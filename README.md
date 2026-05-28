@@ -1,4 +1,4 @@
-# project_title
+# CSC1106 Web Programming Project
 
 > [!NOTE]
 > WIP, remove this note when project is ready.
@@ -31,7 +31,7 @@ project_description
 - [VS Code](https://code.visualstudio.com/download)
   - [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
 
-> [!WARNING]  
+> [!WARNING]
 > Do not use GitHub Desktop! All interactions (files, git, runtime, etc.) should be done through the Dev Container within VS Code.
 
 ### Installation
@@ -39,23 +39,18 @@ project_description
 1. Clone the repo
 
    ```sh
-   git clone git@github.com:10x-Slackers/repo_name.git
+   git clone git@github.com:10x-Slackers/CSC1106.git
    ```
 
 2. Open the repository in VS Code
 
    ```sh
-   code repo_name/
+   code CSC1106/
    ```
 
 3. Click on the "Re-open in Dev Container" prompt
-4. Install the pre-commit hooks
 
-   ```sh
-   pre-commit install
-   ```
-
-5. Start working!
+4. Start working!
 
 ## Developer Tooling
 

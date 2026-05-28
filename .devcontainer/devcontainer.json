@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/debian
 {
-  "name": "project_title",
+  "name": "CSC1106 Web Programming",
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
   "image": "ghcr.io/commit2main/universal:latest",
   // Features to add to the dev container. More info: https://containers.dev/features.
