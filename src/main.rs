@@ -1,37 +1,26 @@
 mod middleware;
 mod models;
 mod routes;
+pub mod db;
 
 use actix_files::Files;
 use actix_identity::IdentityMiddleware;
 use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_web::cookie::Key;
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
-use sqlx::{
-    Error, Pool, Sqlite,
-    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
-};
+use sqlx::{Pool, Sqlite, Row};
 use tera::Tera;
 
-struct AppState {
-    db: Pool<Sqlite>,
-}
+use db::{create_db, fetch_users, fetch_users2};
 
-#[derive(sqlx::FromRow)]
-struct User {
-    id: i64,
-    name: String,
-    email: String,
-    role: String,
+struct AppState {
+    pool: Pool<Sqlite>,
 }
 
 #[actix_web::get("/")]
 async fn home(data: web::Data<AppState>) -> impl Responder {
     let response = "<h1>Welcome to the Accounting App</h1>";
-    let users = sqlx::query_as::<_, User>("SELECT id, name, email, role FROM users")
-        .fetch_all(&data.db)
-        .await
-        .unwrap();
+    let users = fetch_users(&data.pool).await.unwrap();
     let mut user_list = String::from("<ul>");
     for user in users {
         user_list.push_str(&format!("<li>{} - {} - {:?}</li>", user.name, user.email, user.role));
@@ -41,23 +30,22 @@ async fn home(data: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().content_type("text/html").body(response)
 }
 
-async fn create_db() -> Result<Pool<Sqlite>, Error> {
-    let db_url = "accounting.db";
-    let db_exist = std::path::Path::new(db_url).exists();
-
-    let options = SqliteConnectOptions::new()
-        .filename(db_url)
-        .create_if_missing(true);
-
-    let pool = SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect_with(options)
-        .await?;
-    if !db_exist {
-        println!("Database created at {}", db_url);
-        sqlx::migrate!().run(&pool).await?;
+#[actix_web::get("/test")]
+async fn home2(data: web::Data<AppState>) -> impl Responder {
+    let response = "<h1>Welcome to the Accounting App</h1>";
+    let users = fetch_users2(&data.pool).await.unwrap();
+    let mut user_list = String::from("<ul>");
+    for user in users {
+        user_list.push_str(&format!(
+            "<li>{} - {} - {}</li>",
+            user.get::<String, _>("name"),
+            user.get::<String, _>("email"),
+            user.get::<String, _>("role"),
+        ));
     }
-    Ok(pool)
+    user_list.push_str("</ul>");
+    let response = format!("{}{}", response, user_list);
+    HttpResponse::Ok().content_type("text/html").body(response)
 }
 
 #[actix_web::main]
@@ -81,7 +69,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(tera.clone()))
-            .app_data(web::Data::new(AppState { db: pool.clone() }))
+            .app_data(web::Data::new(AppState { pool: pool.clone() }))
             .wrap(
                 SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
                     .cookie_secure(false) // No HTTPS for the project, not deployed
@@ -90,6 +78,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(IdentityMiddleware::default())
             .configure(routes::configure)
             .service(home)
+            .service(home2)
             .service(Files::new("/css", "assets/css"))
     })
     .bind((host.as_str(), port))?
