@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Login</title>
+  </head>
+  <body>
+    <h1>Login</h1>
+
+    {% match message %} {% when Some with (msg) %}
+    <p>{{ msg }}</p>
+    {% when None %} {% endmatch %}
+
+    <form action="/login" method="post">
+      <label>Username:</label>
+      <input type="text" name="username" />
+
+      <br /><br />
+
+      <label>Password:</label>
+      <input type="password" name="password" />
+
+      <br /><br />
+
+      <button type="submit">Login</button>
+    </form>
+  </body>
+</html>
