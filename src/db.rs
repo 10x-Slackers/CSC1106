@@ -1,6 +1,6 @@
 use sqlx::{
     Error, Pool, Sqlite,
-    sqlite::{SqliteConnectOptions, SqlitePoolOptions, SqliteRow},
+    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
 };
 
 #[derive(sqlx::FromRow)]
@@ -15,12 +15,6 @@ pub async fn fetch_users(pool: &Pool<Sqlite>) -> Result<Vec<User>, Error> {
     sqlx::query_as::<_, User>("SELECT id, name, email, role FROM users")
         .fetch_all(&*pool)
         .await
-}
-
-pub async fn fetch_users2(pool: &Pool<Sqlite>) -> Result<Vec<SqliteRow>, Error> {
-    sqlx::query("SELECT id, name, email, role FROM users")
-    .fetch_all(&*pool)
-    .await
 }
 
 pub async fn create_db() -> Result<Pool<Sqlite>, Error> {

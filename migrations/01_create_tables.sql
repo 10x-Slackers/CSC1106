@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status TEXT NOT NULL,
     role TEXT NOT NULL,
-    deleted_at TIMESTAMP DEFAULT NULL
+    deleted_at TIMESTAMP DEFAULT NULL,
+    password_hash TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS expense_categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,5 +95,6 @@ CREATE TABLE IF NOT EXISTS crm (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL
 );
-INSERT INTO users (name, email, phone, status, role) VALUES
-('Alice', 'alice@example.com', '123-456-7890', 'Active', 'Employee');
+INSERT INTO users (name, email, phone, status, role, password_hash) VALUES
+('Alice', 'alice@example.com', '123-456-7890', 'Active', 'Employee', 'hashed_password'),
+('Bob', 'bob@example.com', '098-765-4321', 'Active', 'Manager', 'hashed_password');

@@ -8,10 +8,10 @@ use actix_identity::IdentityMiddleware;
 use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_web::cookie::Key;
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
-use sqlx::{Pool, Sqlite, Row};
+use sqlx::{Pool, Sqlite};
 use tera::Tera;
 
-use db::{create_db, fetch_users, fetch_users2};
+use db::{create_db, fetch_users};
 
 struct AppState {
     pool: Pool<Sqlite>,
@@ -23,24 +23,9 @@ async fn home(data: web::Data<AppState>) -> impl Responder {
     let users = fetch_users(&data.pool).await.unwrap();
     let mut user_list = String::from("<ul>");
     for user in users {
-        user_list.push_str(&format!("<li>{} - {} - {:?}</li>", user.name, user.email, user.role));
-    }
-    user_list.push_str("</ul>");
-    let response = format!("{}{}", response, user_list);
-    HttpResponse::Ok().content_type("text/html").body(response)
-}
-
-#[actix_web::get("/test")]
-async fn home2(data: web::Data<AppState>) -> impl Responder {
-    let response = "<h1>Welcome to the Accounting App</h1>";
-    let users = fetch_users2(&data.pool).await.unwrap();
-    let mut user_list = String::from("<ul>");
-    for user in users {
         user_list.push_str(&format!(
-            "<li>{} - {} - {}</li>",
-            user.get::<String, _>("name"),
-            user.get::<String, _>("email"),
-            user.get::<String, _>("role"),
+            "<li>{} - {} - {:?}</li>",
+            user.name, user.email, user.role
         ));
     }
     user_list.push_str("</ul>");
@@ -78,7 +63,6 @@ async fn main() -> std::io::Result<()> {
             .wrap(IdentityMiddleware::default())
             .configure(routes::configure)
             .service(home)
-            .service(home2)
             .service(Files::new("/css", "assets/css"))
     })
     .bind((host.as_str(), port))?
