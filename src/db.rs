@@ -1,7 +1,7 @@
 use crate::entities::{customer, invoice, user};
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbErr, Schema,
+    ActiveModelTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbErr, Schema, EntityTrait, ActiveValue::
     Set,
 };
 use std::str::FromStr;
@@ -31,7 +31,9 @@ pub async fn init_db() -> Result<DatabaseConnection, DbErr> {
         schema,
         [user::Entity, customer::Entity, invoice::Entity]
     );
-    // seed_db(&db).await?;
+    if user::Entity::find().one(&db).await?.is_none() {
+        seed_db(&db).await?;
+    }
     Ok(db)
 }
 
@@ -59,8 +61,8 @@ pub async fn seed_db(db: &DatabaseConnection) -> Result<(), DbErr> {
         customer_id: Set(1),
         created_by: Set(1),
         invoice_number: Set("INV-001".to_string()),
-        issue_date: Set(chrono::Utc::now()),
-        due_date: Set(chrono::Utc::now() + chrono::Duration::days(30)),
+        issue_date: Set(chrono::Utc::now().timestamp()),
+        due_date: Set(chrono::Utc::now().timestamp() + 30 * 24 * 60 * 60),
         reference: Set(Some("PO-123".to_string())),
         subtotal: Set(Decimal::from_str("100.50").unwrap()),
         total_amount: Set(Decimal::from_str("107.00").unwrap()),

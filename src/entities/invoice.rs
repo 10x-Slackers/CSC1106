@@ -10,8 +10,8 @@ pub struct Model {
     pub customer_id: i32,
     pub created_by: i32,
     pub invoice_number: String,
-    pub issue_date: DateTimeUtc,
-    pub due_date: DateTimeUtc,
+    pub issue_date: i64,
+    pub due_date: i64,
     pub reference: Option<String>,
     #[sea_orm(column_type = "Decimal(Some((15, 2)))")]
     pub subtotal: Decimal,
@@ -20,8 +20,8 @@ pub struct Model {
     #[sea_orm(column_type = "Decimal(Some((15, 2)))")]
     pub paid_amount: Decimal,
     pub status: String,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -58,15 +58,15 @@ pub struct InvoiceRow {
     pub customer_id: i32,
     pub created_by: i32,
     pub invoice_number: String,
-    pub issue_date: DateTimeUtc,
-    pub due_date: DateTimeUtc,
+    pub issue_date: i64,
+    pub due_date: i64,
     pub reference: Option<String>,
     pub subtotal: Decimal,
     pub total_amount: Decimal,
     pub paid_amount: Decimal,
     pub status: String,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: i64,
+    pub updated_at: i64,
     pub customer_name: String,
     pub created_by_name: String,
 }
@@ -74,8 +74,8 @@ pub struct InvoiceRow {
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
-            created_at: Set(chrono::Utc::now()),
-            updated_at: Set(chrono::Utc::now()),
+            created_at: Set(chrono::Utc::now().timestamp()),
+            updated_at: Set(chrono::Utc::now().timestamp()),
             ..<Self as ActiveModelTrait>::default()
         }
     }

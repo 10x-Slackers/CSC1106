@@ -32,9 +32,9 @@ pub struct Model {
     pub address: String,
     pub company: Option<String>,
     pub status: CustomerStatus,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
-    pub deleted_at: Option<DateTimeUtc>,
+    pub created_at: i64,
+    pub updated_at: i64,
+    pub deleted_at: Option<i64>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -52,8 +52,8 @@ impl Related<super::invoice::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
-            created_at: Set(chrono::Utc::now()),
-            updated_at: Set(chrono::Utc::now()),
+            created_at: Set(chrono::Utc::now().timestamp()),
+            updated_at: Set(chrono::Utc::now().timestamp()),
             ..<Self as ActiveModelTrait>::default()
         }
     }
