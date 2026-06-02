@@ -1,6 +1,7 @@
 mod middleware;
 mod models;
 mod routes;
+mod entities;
 pub mod db;
 
 use actix_files::Files;
@@ -8,29 +9,37 @@ use actix_identity::IdentityMiddleware;
 use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_web::cookie::Key;
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
-use sqlx::{Pool, Sqlite};
+use sea_orm::{DatabaseConnection, EntityTrait, Iterable, JoinType, QuerySelect, RelationTrait};
 use tera::Tera;
 
-use db::{create_db, fetch_users};
+use crate::db::init_db;
+
+use entities::{customer, invoice, user};
 
 struct AppState {
-    pool: Pool<Sqlite>,
+    pool: DatabaseConnection,
 }
 
 #[actix_web::get("/")]
 async fn home(data: web::Data<AppState>) -> impl Responder {
-    let response = "<h1>Welcome to the Accounting App</h1>";
-    let users = fetch_users(&data.pool).await.unwrap();
-    let mut user_list = String::from("<ul>");
-    for user in users {
-        user_list.push_str(&format!(
-            "<li>{} - {} - {:?}</li>",
-            user.name, user.email, user.role
-        ));
-    }
-    user_list.push_str("</ul>");
-    let response = format!("{}{}", response, user_list);
-    HttpResponse::Ok().content_type("text/html").body(response)
+    let users = user::Entity::find().all(&data.pool).await.unwrap();
+    HttpResponse::Ok().json(users)
+}
+
+#[actix_web::get("/invoice")]
+async fn get_invoices(data: web::Data<AppState>) -> impl Responder {
+    let invoices = invoice::Entity::find()
+        .select_only()
+        .columns(invoice::Column::iter())
+        .column_as(customer::Column::Name, "customer_name")
+        .column_as(user::Column::Name, "created_by_name")
+        .join(JoinType::LeftJoin, invoice::Relation::Customer.def())
+        .join(JoinType::LeftJoin, invoice::Relation::CreatedBy.def())
+        .into_model::<invoice::InvoiceRow>()
+        .all(&data.pool)
+        .await
+        .unwrap();
+    HttpResponse::Ok().json(invoices)
 }
 
 #[actix_web::main]
@@ -45,9 +54,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or_else(|_| Key::generate());
 
     let tera = Tera::new("templates/**/*").expect("Failed to initialize Tera templates");
-    let pool = create_db()
-        .await
-        .expect("Failed to create database connection");
+    let pool = init_db().await.unwrap();
 
     println!("Server running at http://{host}:{port}");
 
@@ -63,6 +70,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(IdentityMiddleware::default())
             .configure(routes::configure)
             .service(home)
+            .service(get_invoices)
             .service(Files::new("/css", "assets/css"))
     })
     .bind((host.as_str(), port))?
