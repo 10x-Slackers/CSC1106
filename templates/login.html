@@ -6,17 +6,21 @@
   <body>
     <h1>Login</h1>
 
-    {% match message %} {% when Some with (msg) %}
-    <p style="color: red">{{ msg }}</p>
-    {% when None %} {% endmatch %}
+    {% if message != "" %}
+    <p style="color: red">{{ message }}</p>
+    {% endif %}
 
     <form action="/login" method="post">
       <label>Username:</label>
       <input type="text" name="username" required />
+
       <br /><br />
+
       <label>Password:</label>
       <input type="password" name="password" required />
+
       <br /><br />
+
       <button type="submit">Login</button>
     </form>
   </body>
