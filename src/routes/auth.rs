@@ -44,7 +44,7 @@ pub async fn process_login(
     }
 }
 
-#[get("/logout")]
+#[post("/logout")]
 pub async fn logout(user: Option<Identity>) -> impl Responder {
     if let Some(identity) = user {
         identity.logout();
@@ -59,11 +59,10 @@ fn render_login(tera: &Tera, message: &str) -> HttpResponse {
     let mut context = Context::new();
     context.insert("message", message);
 
-    let rendered = tera
-        .render("login.html", &context)
-        .expect("Failed to render login template");
-
-    HttpResponse::Ok().content_type("text/html").body(rendered)
+    match tera.render("login.html", &context) {
+        Ok(rendered) => HttpResponse::Ok().content_type("text/html").body(rendered),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
 }
 
 pub fn configure(cfg: &mut web::ServiceConfig) {

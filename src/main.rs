@@ -16,8 +16,9 @@ async fn main() -> std::io::Result<()> {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(8080);
-
-    let secret_key = Key::generate();
+    let secret_key = std::env::var("SECRET_KEY")
+        .map(|s| Key::from(s.as_bytes()))
+        .unwrap_or_else(|_| Key::generate());
 
     let tera = Tera::new("templates/**/*").expect("Failed to initialize Tera templates");
 
