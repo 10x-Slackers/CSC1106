@@ -1,34 +1,27 @@
+mod middleware;
 mod models;
 mod routes;
 
+use actix_files::Files;
 use actix_identity::IdentityMiddleware;
-use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_web::cookie::Key;
-use actix_web::{get, web, App, HttpMessage, HttpResponse, HttpServer, Responder};
-use actix_identity::Identity;
+use actix_web::{App, HttpServer, web};
 use tera::Tera;
-
-#[get("/")]
-async fn home(user: Option<Identity>) -> impl Responder {
-    if user.is_some() {
-        HttpResponse::Found()
-            .append_header(("Location", "/dashboard"))
-            .finish()
-    } else {
-        HttpResponse::Found()
-            .append_header(("Location", "/login"))
-            .finish()
-    }
-}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let host = std::env::var("HOST").unwrap_or_else(|_| "localhost".to_string());
+    let port: u16 = std::env::var("PORT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(8080);
+
     let secret_key = Key::generate();
 
-    let tera = Tera::new("templates/**/*")
-        .expect("Failed to initialize Tera templates");
+    let tera = Tera::new("templates/**/*").expect("Failed to initialize Tera templates");
 
-    println!("Server running at http://localhost:8080");
+    println!("Server running at http://{host}:{port}");
 
     HttpServer::new(move || {
         App::new()
@@ -39,13 +32,10 @@ async fn main() -> std::io::Result<()> {
                     .cookie_secure(false)
                     .build(),
             )
-            .service(home)
-            .service(routes::auth::show_login)
-            .service(routes::auth::process_login)
-            .service(routes::auth::logout)
-            .service(routes::dashboard::dashboard)
+            .configure(routes::configure)
+            .service(Files::new("/css", "assets/css"))
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind((host.as_str(), port))?
     .run()
     .await
 }

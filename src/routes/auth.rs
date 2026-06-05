@@ -1,24 +1,21 @@
 use actix_identity::Identity;
-use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, get, post, web};
 use serde::Deserialize;
 use tera::{Context, Tera};
 
-use crate::models::user::find_user;
+use crate::models::user::{AuthError, authenticate};
 
 #[derive(Deserialize)]
 pub struct LoginForm {
-    username: String,
+    email: String,
     password: String,
 }
 
 #[get("/login")]
-pub async fn show_login(
-    user: Option<Identity>,
-    tera: web::Data<Tera>,
-) -> impl Responder {
+pub async fn show_login(user: Option<Identity>, tera: web::Data<Tera>) -> impl Responder {
     if user.is_some() {
         return HttpResponse::Found()
-            .append_header(("Location", "/dashboard"))
+            .append_header(("Location", "/"))
             .finish();
     }
 
@@ -27,25 +24,27 @@ pub async fn show_login(
 
 #[post("/login")]
 pub async fn process_login(
-    req:  HttpRequest,
+    req: HttpRequest,
     form: web::Form<LoginForm>,
     tera: web::Data<Tera>,
 ) -> impl Responder {
-    // TODO: Replace with hashed password check once you add password hashing
-    match find_user(&form.username) {
-        Some(user) if user.password == form.password => {
-            Identity::login(&req.extensions(), user.username.to_string())
-                .expect("Failed to create identity");
+    match authenticate(&form.email, &form.password) {
+        Ok(user) => {
+            if Identity::login(&req.extensions(), user.email.clone()).is_err() {
+                return HttpResponse::InternalServerError().finish();
+            }
 
             HttpResponse::Found()
-                .append_header(("Location", "/dashboard"))
+                .append_header(("Location", "/"))
                 .finish()
         }
-        _ => render_login(tera.get_ref(), "Wrong username or password."),
+        Err(AuthError::InvalidCredentials) => {
+            render_login(tera.get_ref(), "Wrong email or password.")
+        }
     }
 }
 
-#[post("/logout")]
+#[get("/logout")]
 pub async fn logout(user: Option<Identity>) -> impl Responder {
     if let Some(identity) = user {
         identity.logout();
@@ -64,7 +63,11 @@ fn render_login(tera: &Tera, message: &str) -> HttpResponse {
         .render("login.html", &context)
         .expect("Failed to render login template");
 
-    HttpResponse::Ok()
-        .content_type("text/html")
-        .body(rendered)
+    HttpResponse::Ok().content_type("text/html").body(rendered)
+}
+
+pub fn configure(cfg: &mut web::ServiceConfig) {
+    cfg.service(show_login)
+        .service(process_login)
+        .service(logout);
 }

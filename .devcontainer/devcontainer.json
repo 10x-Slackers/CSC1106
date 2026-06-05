@@ -5,13 +5,13 @@
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
   "image": "ghcr.io/commit2main/universal:latest",
   // Features to add to the dev container. More info: https://containers.dev/features.
-  // "features": {
-  //   "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
-  //     "clean_ppas": true,
-  //     "preserve_apt_list": true,
-  //     "packages": ""
-  //   }
-  // }
+  "features": {
+    "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
+      "clean_ppas": true,
+      "preserve_apt_list": true,
+      "packages": "entr,just"
+    }
+  },
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": []
   // Use 'postCreateCommand' to run commands after the container is created.
