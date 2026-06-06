@@ -30,7 +30,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(IdentityMiddleware::default())
             .wrap(
                 SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
-                    .cookie_secure(false)
+                    .cookie_secure(false) // No HTTPS for the project, not deployed
                     .build(),
             )
             .configure(routes::configure)
