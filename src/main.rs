@@ -17,7 +17,7 @@ async fn main() -> std::io::Result<()> {
         .and_then(|s| s.parse().ok())
         .unwrap_or(8080);
     let secret_key = std::env::var("SECRET_KEY")
-        .map(|s| Key::from(s.as_bytes()))
+        .map(|s| Key::derive_from(s.as_bytes()))
         .unwrap_or_else(|_| Key::generate());
 
     let tera = Tera::new("templates/**/*").expect("Failed to initialize Tera templates");
@@ -27,12 +27,12 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(tera.clone()))
-            .wrap(IdentityMiddleware::default())
             .wrap(
                 SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
                     .cookie_secure(false) // No HTTPS for the project, not deployed
                     .build(),
             )
+            .wrap(IdentityMiddleware::default())
             .configure(routes::configure)
             .service(Files::new("/css", "assets/css"))
     })
