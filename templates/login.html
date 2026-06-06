@@ -1,0 +1,39 @@
+{% extends "base.html" %} {% block title %}Login{% endblock %} {% block content
+%}
+<div class="hero min-h-screen">
+  <div class="hero-content">
+    <div class="card card-border w-lg">
+      <div class="card-body">
+        <h2 class="card-title justify-center text-2xl">Login</h2>
+
+        <form action="/login" method="post">
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">Sign in to your account</legend>
+
+            <label class="label" for="email">Email</label>
+            <input type="email" name="email" class="input w-full" required />
+
+            <label class="label" for="password">Password</label>
+            <input
+              type="password"
+              name="password"
+              class="input w-full"
+              required
+            />
+
+            <button type="submit" class="btn btn-primary mt-4 w-full">
+              Login
+            </button>
+
+            {% if message != "" %}
+            <div role="alert" class="alert alert-error mt-4">
+              <span>{{ message }}</span>
+            </div>
+            {% endif %}
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
