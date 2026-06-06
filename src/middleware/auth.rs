@@ -36,7 +36,7 @@ impl FromRequest for Authenticated {
 
             let user = find_user(db.get_ref(), &email)
                 .await
-                .map_err(|_| ErrorUnauthorized("Database error"))?
+                .map_err(|_| actix_web::error::ErrorInternalServerError("Database error"))?
                 .ok_or_else(|| ErrorUnauthorized("User not found"))?;
 
             Ok(Authenticated {

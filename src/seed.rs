@@ -1,14 +1,11 @@
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::DatabaseConnection;
 
 use crate::entity::role::Role;
-use crate::entity::user;
-use crate::models::user::create_user;
+use crate::models::user::{create_user, find_user};
 
 pub async fn seed(db: &DatabaseConnection) {
     // Check if already seeded
-    if user::Entity::find()
-        .filter(user::Column::Email.eq("admin@example.com"))
-        .one(db)
+    if find_user(db, "admin@example.com")
         .await
         .expect("DB query failed")
         .is_some()
@@ -17,6 +14,7 @@ pub async fn seed(db: &DatabaseConnection) {
     }
 
     // Create users
+    // TODO: Don't hardcode credentials
     create_user(
         db,
         "admin@example.com",
