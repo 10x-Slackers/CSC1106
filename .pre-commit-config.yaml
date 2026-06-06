@@ -16,3 +16,8 @@ repos:
       # Converts all line endings to LF
       - id: mixed-line-ending
         args: ["--fix=lf"]
+  - repo: https://github.com/doublify/pre-commit-rust
+    rev: master
+    hooks:
+      - id: fmt
+      - id: cargo-check
