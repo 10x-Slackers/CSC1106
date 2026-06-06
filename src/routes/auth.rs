@@ -1,5 +1,6 @@
 use actix_identity::Identity;
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, get, post, web};
+use sea_orm::DatabaseConnection;
 use serde::Deserialize;
 use tera::{Context, Tera};
 
@@ -27,8 +28,9 @@ pub async fn process_login(
     req: HttpRequest,
     form: web::Form<LoginForm>,
     tera: web::Data<Tera>,
+    db: web::Data<DatabaseConnection>,
 ) -> impl Responder {
-    match authenticate(&form.email, &form.password) {
+    match authenticate(db.get_ref(), &form.email, &form.password).await {
         Ok(user) => {
             if Identity::login(&req.extensions(), user.email.clone()).is_err() {
                 return HttpResponse::InternalServerError().finish();
@@ -41,6 +43,7 @@ pub async fn process_login(
         Err(AuthError::InvalidCredentials) => {
             render_login(tera.get_ref(), "Wrong email or password.")
         }
+        Err(AuthError::DatabaseError(_)) => HttpResponse::InternalServerError().finish(),
     }
 }
 
