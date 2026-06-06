@@ -2,10 +2,12 @@ use actix_identity::Identity;
 use actix_web::dev::Payload;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::{FromRequest, HttpRequest};
+use sea_orm::DatabaseConnection;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::models::user::{Role, find_user};
+use crate::entity::role::Role;
+use crate::models::user::find_user;
 
 /// Extractor that requires authentication and looks up the user.
 /// Returns 401 for unauthenticated requests.
@@ -21,17 +23,25 @@ impl FromRequest for Authenticated {
 
     fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
         let result = <Identity as FromRequest>::from_request(req, payload);
+        let db = req
+            .app_data::<actix_web::web::Data<DatabaseConnection>>()
+            .expect("DatabaseConnection not in app data")
+            .clone();
 
         Box::pin(async move {
             let identity = result.await?;
             let email = identity
                 .id()
                 .map_err(|_| ErrorUnauthorized("Invalid session"))?;
-            let user = find_user(&email).ok_or_else(|| ErrorUnauthorized("User not found"))?;
+
+            let user = find_user(db.get_ref(), &email)
+                .await
+                .map_err(|_| ErrorUnauthorized("Database error"))?
+                .ok_or_else(|| ErrorUnauthorized("User not found"))?;
 
             Ok(Authenticated {
                 email: user.email.clone(),
-                role: user.role.clone(),
+                role: user.role,
             })
         })
     }
