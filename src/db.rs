@@ -1,8 +1,8 @@
 use crate::entities::{customer, invoice, user};
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbErr, Schema, EntityTrait, ActiveValue::
-    Set,
+    ActiveModelTrait, ActiveValue::Set, ConnectOptions, ConnectionTrait, Database,
+    DatabaseConnection, DbErr, EntityTrait, Schema,
 };
 use std::str::FromStr;
 

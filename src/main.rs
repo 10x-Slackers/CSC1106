@@ -1,8 +1,8 @@
+pub mod db;
+mod entities;
 mod middleware;
 mod models;
 mod routes;
-mod entities;
-pub mod db;
 
 use actix_files::Files;
 use actix_identity::IdentityMiddleware;
