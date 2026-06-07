@@ -1,11 +1,11 @@
 use sea_orm::DatabaseConnection;
 
 use crate::entity::role::Role;
-use crate::models::user::{create_user, find_user};
+use crate::models::user::{create_user, find_user_by_email};
 
 pub async fn seed(db: &DatabaseConnection) {
     // Check if already seeded
-    if find_user(db, "admin@example.com")
+    if find_user_by_email(db, "admin@example.com")
         .await
         .expect("DB query failed")
         .is_some()
