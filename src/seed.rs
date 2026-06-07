@@ -1,4 +1,5 @@
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::sea_query::OnConflict;
+use sea_orm::{DatabaseConnection, EntityTrait, Set};
 
 use crate::entity::account::{AccountCategory, NormalBalance};
 use crate::entity::user::Role;
@@ -38,20 +39,11 @@ pub async fn seed_users(db: &DatabaseConnection) {
 }
 
 pub async fn seed_accounts(db: &DatabaseConnection) {
-    // Check if accounts already exist
     use crate::entity::account as account_entity;
-
-    if account_entity::Entity::find()
-        .one(db)
-        .await
-        .expect("DB query failed")
-        .is_some()
-    {
-        return;
-    }
 
     let now = chrono::Utc::now().naive_utc();
 
+    // Default chart of accounts
     let accounts = [
         ("Cash", AccountCategory::Asset, NormalBalance::Debit),
         (
@@ -91,18 +83,27 @@ pub async fn seed_accounts(db: &DatabaseConnection) {
         ),
     ];
 
-    for (name, category, normal_balance) in accounts {
-        let account = account_entity::ActiveModel {
-            name: Set(name.to_string()),
-            category: Set(category),
-            normal_balance: Set(normal_balance),
-            created_at: Set(now),
-            ..Default::default()
-        };
+    let active_models: Vec<account_entity::ActiveModel> = accounts
+        .into_iter()
+        .map(
+            |(name, category, normal_balance)| account_entity::ActiveModel {
+                name: Set(name.to_string()),
+                category: Set(category),
+                normal_balance: Set(normal_balance),
+                created_at: Set(now),
+                ..Default::default()
+            },
+        )
+        .collect();
 
-        account
-            .insert(db)
-            .await
-            .unwrap_or_else(|e| panic!("Failed to seed account '{}': {}", name, e));
-    }
+    // Insert all accounts, skip any that already exist
+    account_entity::Entity::insert_many(active_models)
+        .on_conflict(
+            OnConflict::column(account_entity::Column::Name)
+                .do_nothing()
+                .to_owned(),
+        )
+        .exec(db)
+        .await
+        .expect("Failed to seed chart of accounts");
 }

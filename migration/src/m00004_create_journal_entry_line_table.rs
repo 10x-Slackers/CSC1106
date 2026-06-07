@@ -52,10 +52,50 @@ impl MigrationTrait for Migration {
                     )
                     .to_owned(),
             )
-            .await
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_journal_entry_line_entry_id")
+                    .table(JournalEntryLine::Table)
+                    .col(JournalEntryLine::EntryId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_journal_entry_line_account_id")
+                    .table(JournalEntryLine::Table)
+                    .col(JournalEntryLine::AccountId)
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_journal_entry_line_account_id")
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_journal_entry_line_entry_id")
+                    .to_owned(),
+            )
+            .await?;
+
         manager
             .drop_table(Table::drop().table(JournalEntryLine::Table).to_owned())
             .await
