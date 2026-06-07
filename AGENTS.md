@@ -1,8 +1,16 @@
 # Agents
 
+## Research First
+
+- Always research before implementing a task — both the codebase and online. Understand existing patterns, dependencies, and conventions before writing code.
+- Refer to the latest documentation and existing implementations of any libraries or frameworks in use.
+- Check `docs/` for architectural and planning details relevant to the task.
+
 ## Code Style
 
 - Do not add `derive(Debug)` unless it is actually needed
+  - Run `cargo clippy` to check for unused `Debug` derives and remove them
+  - SeaORM `DeriveEntityModel` requires `Debug`
 - Always run `cargo fmt` after completing a task
 
 ## DaisyUI Styling Guidelines

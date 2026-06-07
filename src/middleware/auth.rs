@@ -6,7 +6,7 @@ use sea_orm::DatabaseConnection;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::entity::role::Role;
+use crate::entity::user::Role;
 use crate::models::user::User;
 
 /// Extractor that requires authentication and looks up the user.
