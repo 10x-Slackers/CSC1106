@@ -10,6 +10,13 @@ use serde::{Deserialize, Serialize};
 use crate::entity::role::Role;
 use crate::entity::user as user_entity;
 
+#[allow(dead_code)]
+#[derive(Debug)]
+pub enum AuthError {
+    InvalidCredentials,
+    DatabaseError(String),
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: i32,
@@ -20,13 +27,6 @@ pub struct User {
     pub disabled: bool,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
-}
-
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum AuthError {
-    InvalidCredentials,
-    DatabaseError(String),
 }
 
 impl From<user_entity::Model> for User {
@@ -42,13 +42,6 @@ impl From<user_entity::Model> for User {
             updated_at: m.updated_at,
         }
     }
-}
-
-fn hash_password(password: &str) -> Result<String, HashError> {
-    let salt = SaltString::generate(&mut OsRng);
-    Argon2::default()
-        .hash_password(password.as_bytes(), &salt)
-        .map(|hash| hash.to_string())
 }
 
 impl User {
@@ -114,6 +107,7 @@ impl User {
     ) -> Result<Option<User>, AuthError> {
         user_entity::Entity::find()
             .filter(user_entity::Column::Email.eq(email))
+            // Only consider active users for authentication
             .filter(user_entity::Column::Disabled.eq(false))
             .one(db)
             .await
@@ -193,4 +187,11 @@ impl User {
             _ => Err(AuthError::InvalidCredentials),
         }
     }
+}
+
+fn hash_password(password: &str) -> Result<String, HashError> {
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map(|hash| hash.to_string())
 }
