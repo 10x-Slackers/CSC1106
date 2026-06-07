@@ -1,0 +1,123 @@
+erDiagram
+    USER {
+        INT id PK
+        VARCHAR name
+        VARCHAR email UK
+        VARCHAR password_hash
+        ENUM role "ADMIN/ACCOUNTANT/STAFF"
+        BOOL disabled
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    PARTY {
+        INT id PK
+        ENUM type "CUSTOMER/VENDOR"
+        VARCHAR name
+        VARCHAR company "Nullable"
+        VARCHAR email UK
+        VARCHAR phone
+        VARCHAR address
+        ENUM status "ACTIVE/INACTIVE"
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    INVOICE {
+        INT id PK
+        INT party_id FK
+        INT created_by_user_id FK
+        VARCHAR invoice_no UK
+        DATE issue_date
+        DATE due_date
+        ENUM status "DRAFT/SENT/PARTIALLY_PAID/PAID/VOIDED"
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    INVOICE_LINE_ITEM {
+        INT id PK
+        INT invoice_id FK
+        TEXT description
+        INT quantity
+        DECIMAL unit_price
+        ENUM gst_rate "NONE/STANDARD"
+    }
+
+    PAYMENT {
+        INT id PK
+        INT invoice_id FK "Nullable"
+        INT party_id FK "Nullable"
+        INT created_by_user_id FK
+        ENUM payment_direction "IN/OUT"
+        DECIMAL amount
+        DATE payment_date
+        TEXT remarks "Nullable"
+        TIMESTAMP created_at
+    }
+
+    CLAIMS {
+        INT id PK
+        INT submitted_by_user_id FK
+        INT reviewed_by_user_id FK "Nullable"
+        INT category_id FK
+        VARCHAR claim_title
+        TEXT description
+        DECIMAL amount
+        DATE purchase_date
+        ENUM status "PENDING/APPROVED/REJECTED"
+        TEXT rejection_reason "Nullable"
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    CLAIM_CATEGORY {
+        INT id PK
+        VARCHAR name UK
+    }
+
+    JOURNAL_ENTRY {
+        INT id PK
+        INT payment_id FK "Nullable"
+        INT claim_id FK "Nullable"
+        INT invoice_id FK "Nullable"
+        INT created_by_user_id FK
+        TIMESTAMP created_at
+    }
+
+    JOURNAL_ENTRY_LINE {
+        INT id PK
+        INT entry_id FK
+        INT account_id FK
+        ENUM entry_side "DEBIT/CREDIT"
+        DECIMAL amount
+        TEXT description "Nullable"
+    }
+
+    ACCOUNT {
+        INT id PK
+        VARCHAR name UK
+        ENUM category "ASSET/LIABILITY/EQUITY/REVENUE/EXPENSE"
+        ENUM normal_balance "DEBIT/CREDIT"
+        TIMESTAMP created_at
+    }
+
+    USER ||--o{ PAYMENT : records
+    USER ||--o{ CLAIMS : submits
+    USER ||--o{ CLAIMS : reviews
+    USER ||--o{ INVOICE : creates
+
+    CLAIM_CATEGORY ||--o{ CLAIMS : categorises
+
+    PARTY ||--o{ INVOICE : receives
+    PARTY ||--o{ PAYMENT : pays_or_receives
+
+    INVOICE ||--|{ INVOICE_LINE_ITEM : contains
+    INVOICE ||--o{ PAYMENT : applies_to
+
+    JOURNAL_ENTRY ||--|{ JOURNAL_ENTRY_LINE : contains
+    ACCOUNT ||--o{ JOURNAL_ENTRY_LINE : posts_to
+
+    USER ||--o{ JOURNAL_ENTRY : posts
+    PAYMENT ||--o{ JOURNAL_ENTRY : source_for
+    CLAIMS ||--o{ JOURNAL_ENTRY : source_for
