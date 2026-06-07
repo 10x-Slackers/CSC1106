@@ -1,3 +1,5 @@
+use std::fmt;
+
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -10,4 +12,14 @@ pub enum Role {
     Accountant,
     #[sea_orm(string_value = "STAFF")]
     Staff,
+}
+
+impl fmt::Display for Role {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Role::Admin => write!(f, "Admin"),
+            Role::Accountant => write!(f, "Accountant"),
+            Role::Staff => write!(f, "Staff"),
+        }
+    }
 }

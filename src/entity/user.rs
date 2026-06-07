@@ -12,6 +12,7 @@ pub struct Model {
     pub name: String,
     pub password_hash: String,
     pub role: Role,
+    pub disabled: bool,
     pub created_at: DateTime,
     pub updated_at: DateTime,
 }

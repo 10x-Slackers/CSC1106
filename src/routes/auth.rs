@@ -4,7 +4,7 @@ use sea_orm::DatabaseConnection;
 use serde::Deserialize;
 use tera::{Context, Tera};
 
-use crate::models::user::{AuthError, authenticate};
+use crate::models::user::{AuthError, User};
 
 #[derive(Deserialize)]
 pub struct LoginForm {
@@ -30,7 +30,7 @@ pub async fn process_login(
     tera: web::Data<Tera>,
     db: web::Data<DatabaseConnection>,
 ) -> impl Responder {
-    match authenticate(db.get_ref(), &form.email, &form.password).await {
+    match User::authenticate(db.get_ref(), &form.email, &form.password).await {
         Ok(user) => {
             if Identity::login(&req.extensions(), user.email.clone()).is_err() {
                 return HttpResponse::InternalServerError().finish();
