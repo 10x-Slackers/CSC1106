@@ -7,8 +7,8 @@ use chrono::NaiveDateTime;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 
-use crate::entity::role::Role;
 use crate::entity::user as user_entity;
+use crate::entity::user::Role;
 
 #[allow(dead_code)]
 #[derive(Debug)]
