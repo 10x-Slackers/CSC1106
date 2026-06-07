@@ -107,8 +107,6 @@ impl User {
     ) -> Result<Option<User>, AuthError> {
         user_entity::Entity::find()
             .filter(user_entity::Column::Email.eq(email))
-            // Only consider active users for authentication
-            .filter(user_entity::Column::Disabled.eq(false))
             .one(db)
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))
@@ -182,8 +180,9 @@ impl User {
         email: &str,
         password: &str,
     ) -> Result<User, AuthError> {
+        // Check if user is not disabled and password is correct
         match Self::find_by_email(db, email).await? {
-            Some(user) if user.verify_password(password).is_ok() => Ok(user),
+            Some(user) if !user.disabled && user.verify_password(password).is_ok() => Ok(user),
             _ => Err(AuthError::InvalidCredentials),
         }
     }
