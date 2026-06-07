@@ -96,14 +96,14 @@ Group leader ensures all materials are submitted on time to **xSiTe Dropbox** us
 
 File naming: `g##` = group number (e.g., `g03`, `g22`). All lowercase.
 
-| #   | Deliverable                                                                                        | Format                      | Max Size |
-| --- | -------------------------------------------------------------------------------------------------- | --------------------------- | -------- |
-| 1   | Source Code Archive                                                                                | `g##_source.zip`            | 20 MB    |
-| 2   | Demonstration Recording (15 min, original speed, every member demos their contribution)            | `g##_recording.mp4`         | 200 MB   |
-| 3   | Presentation Slides — source                                                                       | `g##_slides.ppt` or `.pptx` | 20 MB    |
-| 3   | Presentation Slides — PDF                                                                          | `g##_slides.pdf`            | 20 MB    |
-| 4   | Project Report (max 6 pages, each member states group contribution + individual features) — source | `g##_report.doc` or `.docx` | 20 MB    |
-| 4   | Project Report — PDF                                                                               | `g##_report.pdf`            | 20 MB    |
+| Deliverable                                                                                        | Format                      | Max Size |
+| -------------------------------------------------------------------------------------------------- | --------------------------- | -------- |
+| Source Code Archive                                                                                | `g##_source.zip`            | 20 MB    |
+| Demonstration Recording (15 min, original speed, every member demos their contribution)            | `g##_recording.mp4`         | 200 MB   |
+| Presentation Slides — source                                                                       | `g##_slides.ppt` or `.pptx` | 20 MB    |
+| Presentation Slides — PDF                                                                          | `g##_slides.pdf`            | 20 MB    |
+| Project Report (max 6 pages, each member states group contribution + individual features) — source | `g##_report.doc` or `.docx` | 20 MB    |
+| Project Report — PDF                                                                               | `g##_report.pdf`            | 20 MB    |
 
 ---
 
@@ -113,11 +113,11 @@ File naming: `g##` = group number (e.g., `g03`, `g22`). All lowercase.
 
 If activated: submit a max 2-page document by end of **Week 5** (feedback by end of **Week 6**) covering proposed system functionality, business workflows, domain, module planning, and intended advanced features.
 
-| #   | Criteria                                       | Weight |
-| --- | ---------------------------------------------- | ------ |
-| 1   | Project Direction & Business Workflow Planning | 4%     |
-| 2   | Feature Scope & Complexity Planning            | 3%     |
-| 3   | Literature Review & Background Study           | 3%     |
+| Criteria                                       | Weight |
+| ---------------------------------------------- | ------ |
+| Project Direction & Business Workflow Planning | 4%     |
+| Feature Scope & Complexity Planning            | 3%     |
+| Literature Review & Background Study           | 3%     |
 
 ---
 

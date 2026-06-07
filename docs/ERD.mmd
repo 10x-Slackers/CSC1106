@@ -59,7 +59,7 @@ erDiagram
     CLAIMS {
         INT id PK
         INT submitted_by_user_id FK
-        INT reviewed_by_user_id FK
+        INT reviewed_by_user_id FK "Nullable"
         INT category_id FK
         VARCHAR claim_title
         TEXT description
@@ -80,6 +80,7 @@ erDiagram
         INT id PK
         INT payment_id FK "Nullable"
         INT claim_id FK "Nullable"
+        INT invoice_id FK "Nullable"
         INT created_by_user_id FK
         TIMESTAMP created_at
     }
