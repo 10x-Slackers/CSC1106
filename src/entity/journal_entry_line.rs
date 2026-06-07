@@ -32,6 +32,7 @@ pub struct Model {
     pub entry_id: i32,
     pub account_id: i32,
     pub entry_side: EntrySide,
+    #[sea_orm(column_type = "Decimal(Some((15, 4)))")]
     pub amount: Decimal,
     pub description: Option<String>,
 }

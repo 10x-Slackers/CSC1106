@@ -34,8 +34,9 @@ impl MigrationTrait for Migration {
                     )
                     .col(
                         ColumnDef::new(JournalEntryLine::Amount)
-                            .decimal()
-                            .not_null(),
+                            .decimal_len(15, 4)
+                            .not_null()
+                            .extra("CONSTRAINT chk_amount_positive CHECK (amount > 0)"),
                     )
                     .col(ColumnDef::new(JournalEntryLine::Description).text().null())
                     .foreign_key(
