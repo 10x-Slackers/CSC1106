@@ -21,6 +21,12 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(User::Name).string().not_null())
                     .col(ColumnDef::new(User::PasswordHash).string().not_null())
                     .col(ColumnDef::new(User::Role).string().not_null())
+                    .col(
+                        ColumnDef::new(User::Disabled)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
                     .col(ColumnDef::new(User::CreatedAt).date_time().not_null())
                     .col(ColumnDef::new(User::UpdatedAt).date_time().not_null())
                     .to_owned(),
@@ -43,6 +49,7 @@ enum User {
     Name,
     PasswordHash,
     Role,
+    Disabled,
     CreatedAt,
     UpdatedAt,
 }

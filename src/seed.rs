@@ -1,11 +1,11 @@
 use sea_orm::DatabaseConnection;
 
 use crate::entity::role::Role;
-use crate::models::user::{create_user, find_user_by_email};
+use crate::models::user::User;
 
 pub async fn seed(db: &DatabaseConnection) {
     // Check if already seeded
-    if find_user_by_email(db, "admin@example.com")
+    if User::find_by_email(db, "admin@example.com")
         .await
         .expect("DB query failed")
         .is_some()
@@ -15,7 +15,7 @@ pub async fn seed(db: &DatabaseConnection) {
 
     // Create users
     // TODO: Don't hardcode credentials
-    create_user(
+    User::create(
         db,
         "admin@example.com",
         "Administrator",
@@ -25,7 +25,7 @@ pub async fn seed(db: &DatabaseConnection) {
     .await
     .expect("Failed to seed admin user");
 
-    create_user(
+    User::create(
         db,
         "john@example.com",
         "John Doe",
