@@ -3,6 +3,7 @@ use std::fmt;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+/// User role controlling access level.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
 pub enum Role {

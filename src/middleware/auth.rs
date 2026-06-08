@@ -19,18 +19,21 @@ pub struct UserCache {
     inner: web::Data<RwLock<HashMap<String, CachedUser>>>,
 }
 
+/// Cached user record with insertion time for TTL expiration.
 pub struct CachedUser {
     pub user: User,
     pub cached_at: Instant,
 }
 
 impl UserCache {
+    /// Create an empty user cache.
     pub fn new() -> Self {
         Self {
             inner: web::Data::new(RwLock::new(HashMap::new())),
         }
     }
 
+    /// Add or refresh a user in the cache.
     pub fn insert(&self, user: &User) {
         self.inner.write().unwrap().insert(
             user.email.clone(),
@@ -41,10 +44,12 @@ impl UserCache {
         );
     }
 
+    /// Remove a user from the cache by email.
     pub fn invalidate(&self, email: &str) {
         self.inner.write().unwrap().remove(email);
     }
 
+    /// Look up a cached user, evicting expired entries.
     fn get(&self, email: &str) -> Option<CachedUser> {
         let cache = self.inner.read().unwrap();
         let entry = cache.get(email)?;

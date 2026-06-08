@@ -8,6 +8,7 @@ use crate::entity::journal_entry_line::EntrySide;
 
 #[allow(dead_code)] // TODO: Remove when implementing journal entry UI
 #[derive(Clone)]
+/// Input for a single debit or credit line within a journal entry.
 pub struct JournalEntryLineInput {
     pub account_id: i32,
     pub entry_side: EntrySide,
