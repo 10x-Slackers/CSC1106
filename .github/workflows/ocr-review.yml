@@ -1,26 +1,8 @@
-# OpenCodeReview - GitHub Actions PR Auto-Review Demo
-#
-# This workflow automatically reviews pull requests using OpenCodeReview
-# and posts review comments directly on the PR.
-#
-# Triggers:
-#   - PR opened, synchronized, or reopened
-#   - Comment on PR containing '/open-code-review' or '@open-code-review'
-#
-# Required secrets:
-#   OCR_LLM_URL        - LLM API endpoint (e.g., https://api.openai.com/v1/chat/completions)
-#   OCR_LLM_AUTH_TOKEN - Authentication token for the LLM API
-#
-# Optional secrets:
-#   OCR_LLM_MODEL      - Model name (default: gpt-4o)
-#
-# Note: GITHUB_TOKEN is automatically provided by GitHub Actions.
-
 name: OpenCodeReview PR Review
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
 
@@ -73,7 +55,6 @@ jobs:
           ocr config set llm.url ${{ secrets.OCR_LLM_URL }}
           ocr config set llm.auth_token ${{ secrets.OCR_LLM_AUTH_TOKEN }}
           ocr config set llm.model ${{ secrets.OCR_LLM_MODEL }}
-          ocr config set llm.use_anthropic ${{ secrets.OCR_LLM_USE_ANTHROPIC }}
 
       - name: Run OpenCodeReview
         id: review
@@ -92,7 +73,7 @@ jobs:
           # Run OCR in range mode with JSON output
           ocr review \
             --from "origin/${BASE_REF}" \
-            --to "origin/${HEAD_REF}" \
+            --to "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || steps.pr-context.outputs.head_sha }}" \
             --format json \
             > /tmp/ocr-result.json 2>/tmp/ocr-stderr.log || true
 
