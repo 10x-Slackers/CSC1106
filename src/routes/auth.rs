@@ -4,6 +4,7 @@ use sea_orm::DatabaseConnection;
 use serde::Deserialize;
 use tera::{Context, Tera};
 
+use crate::middleware::auth::UserCache;
 use crate::models::user::{AuthError, User};
 
 #[derive(Deserialize)]
@@ -29,12 +30,16 @@ pub async fn process_login(
     form: web::Form<LoginForm>,
     tera: web::Data<Tera>,
     db: web::Data<DatabaseConnection>,
+    cache: web::Data<UserCache>,
 ) -> impl Responder {
     match User::authenticate(db.get_ref(), &form.email, &form.password).await {
         Ok(user) => {
+            // Set session cookie, use email as identity
             if Identity::login(&req.extensions(), user.email.clone()).is_err() {
                 return HttpResponse::InternalServerError().finish();
             }
+
+            cache.insert(&user);
 
             HttpResponse::Found()
                 .append_header(("Location", "/"))
@@ -48,8 +53,11 @@ pub async fn process_login(
 }
 
 #[post("/logout")]
-pub async fn logout(user: Option<Identity>) -> impl Responder {
+pub async fn logout(user: Option<Identity>, cache: web::Data<UserCache>) -> impl Responder {
     if let Some(identity) = user {
+        if let Ok(email) = identity.id() {
+            cache.invalidate(&email);
+        }
         identity.logout();
     }
 
