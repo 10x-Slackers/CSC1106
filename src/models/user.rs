@@ -13,7 +13,6 @@ use crate::entity::user as user_entity;
 use crate::entity::user::Role;
 use crate::middleware::auth::UserCache;
 
-/// Error type for user operations.
 #[derive(Debug)]
 pub enum AuthError {
     InvalidCredentials,
@@ -45,6 +44,7 @@ impl From<HashError> for AuthError {
     }
 }
 
+/// Application-level user model with authentication support.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: i32,
@@ -83,11 +83,13 @@ impl User {
             .map_err(AuthError::from)
     }
 
+    /// Verify a plaintext password against the stored Argon2 hash.
     pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
         let parsed_hash = PasswordHash::new(&self.password_hash)?;
         Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
     }
 
+    /// Create a new user with a hashed password.
     pub async fn create(
         db: &DatabaseConnection,
         email: &str,
@@ -120,6 +122,7 @@ impl User {
             .ok_or(AuthError::NotFound)
     }
 
+    /// Look up a user by their primary key.
     #[allow(dead_code)] // TODO: Remove when implementing user management
     pub async fn find_by_id(db: &DatabaseConnection, id: i32) -> Result<Option<User>, AuthError> {
         Self::find_model_by_id(db, id)
@@ -127,6 +130,7 @@ impl User {
             .map(|opt| opt.map(User::from))
     }
 
+    /// Look up a user by email address.
     pub async fn find_by_email(
         db: &DatabaseConnection,
         email: &str,
@@ -139,6 +143,7 @@ impl User {
             .map(|opt| opt.map(User::from))
     }
 
+    /// Update user fields, re-hashing password if provided; invalidates cache.
     #[allow(dead_code)] // TODO: Remove when implementing user management
     pub async fn update(
         &self,
@@ -179,6 +184,7 @@ impl User {
         Ok(User::from(updated))
     }
 
+    /// Enable or disable a user account; invalidates cache.
     #[allow(dead_code)] // TODO: Remove when implementing user management
     pub async fn set_disabled(
         &self,
@@ -215,6 +221,7 @@ impl User {
     }
 }
 
+/// Hash a plaintext password using Argon2 with a random salt.
 fn hash_password(password: &str) -> Result<String, HashError> {
     let salt = SaltString::generate(&mut OsRng);
     Argon2::default()

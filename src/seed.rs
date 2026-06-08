@@ -5,8 +5,8 @@ use crate::entity::account::{AccountCategory, NormalBalance};
 use crate::entity::user::Role;
 use crate::models::user::User;
 
+/// Insert default admin and accountant users if the database is empty.
 pub async fn seed_users(db: &DatabaseConnection) {
-    // Check if already seeded
     if User::find_by_email(db, "admin@example.com")
         .await
         .expect("DB query failed")
@@ -15,7 +15,6 @@ pub async fn seed_users(db: &DatabaseConnection) {
         return;
     }
 
-    // Create users
     // TODO: Don't hardcode credentials
     User::create(
         db,
@@ -38,6 +37,7 @@ pub async fn seed_users(db: &DatabaseConnection) {
     .expect("Failed to seed accountant user");
 }
 
+/// Insert a default chart of accounts, skipping duplicates.
 pub async fn seed_accounts(db: &DatabaseConnection) {
     use crate::entity::account as account_entity;
 

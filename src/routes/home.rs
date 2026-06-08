@@ -2,6 +2,7 @@ use actix_web::{HttpResponse, Responder, get, web};
 
 use crate::middleware::auth::Authenticated;
 
+/// Render the home page for authenticated users.
 #[get("/")]
 pub async fn home(user: Authenticated) -> impl Responder {
     HttpResponse::Ok()

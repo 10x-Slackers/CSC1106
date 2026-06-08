@@ -6,6 +6,7 @@ use std::time::Duration;
 use crate::seed;
 use migration::{Migrator, MigratorTrait};
 
+/// Initialise the database: connect, run migrations, and seed default data.
 pub async fn init(database_url: &str) -> DatabaseConnection {
     let db = connect(database_url)
         .await
@@ -21,8 +22,8 @@ pub async fn init(database_url: &str) -> DatabaseConnection {
     db
 }
 
+/// Create a connection pool with WAL mode and foreign keys enabled for concurrency.
 async fn connect(url: &str) -> Result<DatabaseConnection, sea_orm::DbErr> {
-    // Enable WAL mode for concurrency
     let opts = SqliteConnectOptions::from_str(url)
         .map_err(|e| sea_orm::DbErr::Custom(e.to_string()))?
         .journal_mode(SqliteJournalMode::Wal)

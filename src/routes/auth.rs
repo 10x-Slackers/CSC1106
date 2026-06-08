@@ -7,12 +7,14 @@ use tera::{Context, Tera};
 use crate::middleware::auth::UserCache;
 use crate::models::user::{AuthError, User};
 
+/// Form data for the login page.
 #[derive(Deserialize)]
 pub struct LoginForm {
     email: String,
     password: String,
 }
 
+/// Render the login page; redirects to home if already authenticated.
 #[get("/login")]
 pub async fn show_login(user: Option<Identity>, tera: web::Data<Tera>) -> impl Responder {
     if user.is_some() {
@@ -24,6 +26,7 @@ pub async fn show_login(user: Option<Identity>, tera: web::Data<Tera>) -> impl R
     render_login(tera.get_ref(), "")
 }
 
+/// Process a login form submission and establish a session.
 #[post("/login")]
 pub async fn process_login(
     req: HttpRequest,
@@ -52,6 +55,7 @@ pub async fn process_login(
     }
 }
 
+/// Log out the current user and invalidate their cache entry.
 #[post("/logout")]
 pub async fn logout(user: Option<Identity>, cache: web::Data<UserCache>) -> impl Responder {
     if let Some(identity) = user {
@@ -66,6 +70,7 @@ pub async fn logout(user: Option<Identity>, cache: web::Data<UserCache>) -> impl
         .finish()
 }
 
+/// Helper function to render the login template with an optional status message.
 fn render_login(tera: &Tera, message: &str) -> HttpResponse {
     let mut context = Context::new();
     context.insert("message", message);
