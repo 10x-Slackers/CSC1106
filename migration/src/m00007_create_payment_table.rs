@@ -38,7 +38,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Payment::PaymentDate).date().not_null())
                     .col(ColumnDef::new(Payment::Remarks).text().null())
                     .col(ColumnDef::new(Payment::CreatedAt).date_time().not_null())
-                    .extra("CONSTRAINT chk_payment_direction CHECK (payment_direction IN ('IN', 'OUT'))")
+                    .check(Expr::cust("payment_direction IN ('IN', 'OUT')"))
                     .foreign_key(
                         ForeignKey::create()
                             .from(Payment::Table, Payment::InvoiceId)

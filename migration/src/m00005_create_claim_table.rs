@@ -24,7 +24,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Claim::ReviewedByUserId).integer().null())
                     .col(ColumnDef::new(Claim::CategoryId).integer().not_null())
-                    .col(ColumnDef::new(Claim::ClaimTitle).string().not_null())
+                    .col(ColumnDef::new(Claim::Title).string().not_null())
                     .col(ColumnDef::new(Claim::Description).text().not_null())
                     .col(ColumnDef::new(Claim::Amount).decimal_len(15, 4).not_null().extra("CONSTRAINT chk_claim_amount_positive CHECK (amount > 0)"))
                     .col(ColumnDef::new(Claim::PurchaseDate).date().not_null())
@@ -32,7 +32,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Claim::RejectionReason).text().null())
                     .col(ColumnDef::new(Claim::CreatedAt).date_time().not_null())
                     .col(ColumnDef::new(Claim::UpdatedAt).date_time().not_null())
-                    .extra("CONSTRAINT chk_claim_rejection CHECK (status != 'REJECTED' OR rejection_reason IS NOT NULL)")
+                    .check(Expr::cust("status != 'REJECTED' OR rejection_reason IS NOT NULL"))
                     .foreign_key(
                         ForeignKey::create()
                             .from(Claim::Table, Claim::SubmittedByUserId)
@@ -71,7 +71,7 @@ enum Claim {
     SubmittedByUserId,
     ReviewedByUserId,
     CategoryId,
-    ClaimTitle,
+    Title,
     Description,
     Amount,
     PurchaseDate,

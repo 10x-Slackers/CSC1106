@@ -34,7 +34,7 @@ pub struct Model {
     pub submitted_by_user_id: i32,
     pub reviewed_by_user_id: Option<i32>,
     pub category_id: i32,
-    pub claim_title: String,
+    pub title: String,
     pub description: String,
     #[sea_orm(column_type = "Decimal(Some((15, 4)))")]
     pub amount: Decimal,

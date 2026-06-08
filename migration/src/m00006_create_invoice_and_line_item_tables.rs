@@ -35,7 +35,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Invoice::Status).string().not_null().extra("CONSTRAINT chk_invoice_status CHECK (status IN ('DRAFT', 'SENT', 'PARTIALLY_PAID', 'PAID', 'VOIDED'))"))
                     .col(ColumnDef::new(Invoice::CreatedAt).date_time().not_null())
                     .col(ColumnDef::new(Invoice::UpdatedAt).date_time().not_null())
-                    .extra("CONSTRAINT chk_invoice_dates CHECK (due_date >= issue_date)")
+                    .check(Expr::cust("due_date >= issue_date"))
                     .foreign_key(
                         ForeignKey::create()
                             .from(Invoice::Table, Invoice::PartyId)

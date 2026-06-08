@@ -46,6 +46,7 @@ impl fmt::Display for PartyStatus {
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
+    #[sea_orm(column_name = "type")]
     pub party_type: PartyType,
     pub name: String,
     pub company: Option<String>,

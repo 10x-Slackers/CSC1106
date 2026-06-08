@@ -46,10 +46,18 @@ pub enum Relation {
     Invoice,
     #[sea_orm(has_many = "super::payment::Entity")]
     Payment,
-    #[sea_orm(has_many = "super::claim::Entity")]
-    Claim,
     #[sea_orm(has_many = "super::journal_entry::Entity")]
     JournalEntry,
+}
+
+impl Related<super::claim::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::claim::Relation::SubmittedByUser.def()
+    }
+
+    fn via() -> Option<RelationDef> {
+        None
+    }
 }
 
 impl Related<super::invoice::Entity> for Entity {
@@ -61,12 +69,6 @@ impl Related<super::invoice::Entity> for Entity {
 impl Related<super::payment::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Payment.def()
-    }
-}
-
-impl Related<super::claim::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Claim.def()
     }
 }
 
