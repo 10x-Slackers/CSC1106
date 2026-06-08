@@ -13,6 +13,7 @@ use crate::entity::user as user_entity;
 use crate::entity::user::Role;
 use crate::middleware::auth::UserCache;
 
+/// Error type for user operations.
 #[derive(Debug)]
 pub enum AuthError {
     InvalidCredentials,

@@ -23,6 +23,9 @@ pub enum PostingError {
         total_credits: Decimal,
     },
     NoLines,
+    NonPositiveAmount {
+        amount: Decimal,
+    },
     DatabaseError(DbErr),
 }
 
@@ -38,6 +41,9 @@ impl std::fmt::Display for PostingError {
                 total_debits, total_credits
             ),
             PostingError::NoLines => write!(f, "Journal entry must have at least one line"),
+            PostingError::NonPositiveAmount { amount } => {
+                write!(f, "Amount must be positive, got: {}", amount)
+            }
             PostingError::DatabaseError(e) => write!(f, "Database error: {}", e),
         }
     }
@@ -122,10 +128,9 @@ impl PostingService {
 
         for line in lines {
             if line.amount <= Decimal::ZERO {
-                return Err(PostingError::DatabaseError(DbErr::Custom(format!(
-                    "Amount must be positive, got: {}",
-                    line.amount
-                ))));
+                return Err(PostingError::NonPositiveAmount {
+                    amount: line.amount,
+                });
             }
         }
 
