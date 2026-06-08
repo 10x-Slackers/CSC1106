@@ -6,6 +6,11 @@
 - Refer to the latest documentation and existing implementations of any libraries or frameworks in use.
 - Check `docs/` for architectural and planning details relevant to the task.
 
+## Ask When Unsure
+
+- Clarify ambiguities before proceeding — ask rather than guess.
+- When in doubt about scope, priorities, or critical decisions, surface the uncertainty and let the user decide.
+
 ## Code Style
 
 - Do not add `derive(Debug)` unless it is actually needed
