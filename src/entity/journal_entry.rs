@@ -1,6 +1,5 @@
+use sea_orm::Set;
 use sea_orm::entity::prelude::*;
-
-use super::user;
 
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "journal_entry")]
@@ -45,11 +44,29 @@ pub enum Relation {
         to = "super::user::Column::Id"
     )]
     User,
+    #[sea_orm(
+        belongs_to = "super::payment::Entity",
+        from = "Column::PaymentId",
+        to = "super::payment::Column::Id"
+    )]
+    Payment,
+    #[sea_orm(
+        belongs_to = "super::claim::Entity",
+        from = "Column::ClaimId",
+        to = "super::claim::Column::Id"
+    )]
+    Claim,
+    #[sea_orm(
+        belongs_to = "super::invoice::Entity",
+        from = "Column::InvoiceId",
+        to = "super::invoice::Column::Id"
+    )]
+    Invoice,
     #[sea_orm(has_many = "super::journal_entry_line::Entity")]
     JournalEntryLine,
 }
 
-impl Related<user::Entity> for Entity {
+impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::User.def()
     }
@@ -61,4 +78,34 @@ impl Related<super::journal_entry_line::Entity> for Entity {
     }
 }
 
-impl ActiveModelBehavior for ActiveModel {}
+impl Related<super::payment::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Payment.def()
+    }
+}
+
+impl Related<super::claim::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Claim.def()
+    }
+}
+
+impl Related<super::invoice::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Invoice.def()
+    }
+}
+
+#[async_trait::async_trait]
+impl ActiveModelBehavior for ActiveModel {
+    async fn before_save<C>(self, _db: &C, insert: bool) -> Result<Self, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        let mut am = self;
+        if insert && am.is_not_set(Column::CreatedAt) {
+            am.created_at = Set(chrono::Utc::now().naive_utc());
+        }
+        Ok(am)
+    }
+}

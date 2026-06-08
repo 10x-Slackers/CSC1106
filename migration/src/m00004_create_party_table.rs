@@ -9,34 +9,38 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(User::Table)
+                    .table(Party::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(User::Id)
+                        ColumnDef::new(Party::Id)
                             .integer()
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(User::Email).string().not_null().unique_key())
-                    .col(ColumnDef::new(User::Name).string().not_null())
-                    .col(ColumnDef::new(User::PasswordHash).string().not_null())
-                    .col(ColumnDef::new(User::Role).string().not_null().extra(
-                        "CONSTRAINT chk_user_role CHECK (role IN ('ADMIN', 'ACCOUNTANT', 'STAFF'))",
+                    .col(ColumnDef::new(Party::PartyType).string().not_null().extra(
+                        "CONSTRAINT chk_party_type CHECK (party_type IN ('CUSTOMER', 'VENDOR'))",
+                    ))
+                    .col(ColumnDef::new(Party::Name).string().not_null())
+                    .col(ColumnDef::new(Party::Company).string().null())
+                    .col(
+                        ColumnDef::new(Party::Email)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(ColumnDef::new(Party::Phone).string().not_null())
+                    .col(ColumnDef::new(Party::Address).string().not_null())
+                    .col(ColumnDef::new(Party::Status).string().not_null().extra(
+                        "CONSTRAINT chk_party_status CHECK (status IN ('ACTIVE', 'INACTIVE'))",
                     ))
                     .col(
-                        ColumnDef::new(User::Disabled)
-                            .boolean()
-                            .not_null()
-                            .default(false),
-                    )
-                    .col(
-                        ColumnDef::new(User::CreatedAt)
+                        ColumnDef::new(Party::CreatedAt)
                             .date_time()
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
                     .col(
-                        ColumnDef::new(User::UpdatedAt)
+                        ColumnDef::new(Party::UpdatedAt)
                             .date_time()
                             .not_null()
                             .default(Expr::current_timestamp()),
@@ -48,20 +52,22 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(User::Table).if_exists().to_owned())
+            .drop_table(Table::drop().table(Party::Table).if_exists().to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum User {
+enum Party {
     Table,
     Id,
-    Email,
+    PartyType,
     Name,
-    PasswordHash,
-    Role,
-    Disabled,
+    Company,
+    Email,
+    Phone,
+    Address,
+    Status,
     CreatedAt,
     UpdatedAt,
 }

@@ -4,39 +4,57 @@ use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-/// User role controlling access level.
+/// Party type: customer or vendor.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-pub enum Role {
-    #[sea_orm(string_value = "ADMIN")]
-    Admin,
-    #[sea_orm(string_value = "ACCOUNTANT")]
-    Accountant,
-    #[sea_orm(string_value = "STAFF")]
-    Staff,
+pub enum PartyType {
+    #[sea_orm(string_value = "CUSTOMER")]
+    Customer,
+    #[sea_orm(string_value = "VENDOR")]
+    Vendor,
 }
 
-impl fmt::Display for Role {
+impl fmt::Display for PartyType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Role::Admin => write!(f, "Admin"),
-            Role::Accountant => write!(f, "Accountant"),
-            Role::Staff => write!(f, "Staff"),
+            PartyType::Customer => write!(f, "Customer"),
+            PartyType::Vendor => write!(f, "Vendor"),
+        }
+    }
+}
+
+/// Party status: active or inactive.
+#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
+pub enum PartyStatus {
+    #[sea_orm(string_value = "ACTIVE")]
+    Active,
+    #[sea_orm(string_value = "INACTIVE")]
+    Inactive,
+}
+
+impl fmt::Display for PartyStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PartyStatus::Active => write!(f, "Active"),
+            PartyStatus::Inactive => write!(f, "Inactive"),
         }
     }
 }
 
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
-#[sea_orm(table_name = "user")]
+#[sea_orm(table_name = "party")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
+    pub party_type: PartyType,
+    pub name: String,
+    pub company: Option<String>,
     #[sea_orm(unique)]
     pub email: String,
-    pub name: String,
-    pub password_hash: String,
-    pub role: Role,
-    pub disabled: bool,
+    pub phone: String,
+    pub address: String,
+    pub status: PartyStatus,
     pub created_at: DateTime,
     pub updated_at: DateTime,
 }
@@ -47,20 +65,6 @@ pub enum Relation {
     Invoice,
     #[sea_orm(has_many = "super::payment::Entity")]
     Payment,
-    #[sea_orm(has_many = "super::journal_entry::Entity")]
-    JournalEntry,
-}
-
-/// Related<claim::Entity> only resolves submitter relation.
-/// To find claims reviewed by this user, use with `claim::Relation::ReviewedByUser.def()` directly.
-impl Related<super::claim::Entity> for Entity {
-    fn to() -> RelationDef {
-        super::claim::Relation::SubmittedByUser.def()
-    }
-
-    fn via() -> Option<RelationDef> {
-        None
-    }
 }
 
 impl Related<super::invoice::Entity> for Entity {
@@ -72,12 +76,6 @@ impl Related<super::invoice::Entity> for Entity {
 impl Related<super::payment::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Payment.def()
-    }
-}
-
-impl Related<super::journal_entry::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::JournalEntry.def()
     }
 }
 

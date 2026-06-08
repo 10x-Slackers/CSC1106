@@ -2,9 +2,12 @@ pub use sea_orm_migration::prelude::*;
 
 mod m00001_create_user_table;
 mod m00002_create_account_table;
-mod m00003_create_journal_entry_table;
-mod m00004_create_journal_entry_line_table;
-mod m00005_add_journal_entry_invoice_id;
+mod m00003_create_claim_category_table;
+mod m00004_create_party_table;
+mod m00005_create_claim_table;
+mod m00006_create_invoice_and_line_item_tables;
+mod m00007_create_payment_table;
+mod m00008_create_journal_entry_tables;
 
 pub struct Migrator;
 
@@ -14,9 +17,12 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m00001_create_user_table::Migration),
             Box::new(m00002_create_account_table::Migration),
-            Box::new(m00003_create_journal_entry_table::Migration),
-            Box::new(m00004_create_journal_entry_line_table::Migration),
-            Box::new(m00005_add_journal_entry_invoice_id::Migration),
+            Box::new(m00003_create_claim_category_table::Migration),
+            Box::new(m00004_create_party_table::Migration),
+            Box::new(m00005_create_claim_table::Migration),
+            Box::new(m00006_create_invoice_and_line_item_tables::Migration),
+            Box::new(m00007_create_payment_table::Migration),
+            Box::new(m00008_create_journal_entry_tables::Migration),
         ]
     }
 }

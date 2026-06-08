@@ -4,68 +4,87 @@ use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-/// User role controlling access level.
+/// Invoice status lifecycle.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
-pub enum Role {
-    #[sea_orm(string_value = "ADMIN")]
-    Admin,
-    #[sea_orm(string_value = "ACCOUNTANT")]
-    Accountant,
-    #[sea_orm(string_value = "STAFF")]
-    Staff,
+pub enum InvoiceStatus {
+    #[sea_orm(string_value = "DRAFT")]
+    Draft,
+    #[sea_orm(string_value = "SENT")]
+    Sent,
+    #[sea_orm(string_value = "PARTIALLY_PAID")]
+    PartiallyPaid,
+    #[sea_orm(string_value = "PAID")]
+    Paid,
+    #[sea_orm(string_value = "VOIDED")]
+    Voided,
 }
 
-impl fmt::Display for Role {
+impl fmt::Display for InvoiceStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Role::Admin => write!(f, "Admin"),
-            Role::Accountant => write!(f, "Accountant"),
-            Role::Staff => write!(f, "Staff"),
+            InvoiceStatus::Draft => write!(f, "Draft"),
+            InvoiceStatus::Sent => write!(f, "Sent"),
+            InvoiceStatus::PartiallyPaid => write!(f, "PartiallyPaid"),
+            InvoiceStatus::Paid => write!(f, "Paid"),
+            InvoiceStatus::Voided => write!(f, "Voided"),
         }
     }
 }
 
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
-#[sea_orm(table_name = "user")]
+#[sea_orm(table_name = "invoice")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
+    pub party_id: i32,
+    pub created_by_user_id: i32,
     #[sea_orm(unique)]
-    pub email: String,
-    pub name: String,
-    pub password_hash: String,
-    pub role: Role,
-    pub disabled: bool,
+    pub invoice_no: String,
+    pub issue_date: Date,
+    pub due_date: Date,
+    pub status: InvoiceStatus,
     pub created_at: DateTime,
     pub updated_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::invoice::Entity")]
-    Invoice,
+    #[sea_orm(
+        belongs_to = "super::party::Entity",
+        from = "Column::PartyId",
+        to = "super::party::Column::Id"
+    )]
+    Party,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::CreatedByUserId",
+        to = "super::user::Column::Id"
+    )]
+    CreatedByUser,
+    #[sea_orm(has_many = "super::invoice_line_item::Entity")]
+    InvoiceLineItem,
     #[sea_orm(has_many = "super::payment::Entity")]
     Payment,
     #[sea_orm(has_many = "super::journal_entry::Entity")]
     JournalEntry,
 }
 
-/// Related<claim::Entity> only resolves submitter relation.
-/// To find claims reviewed by this user, use with `claim::Relation::ReviewedByUser.def()` directly.
-impl Related<super::claim::Entity> for Entity {
+impl Related<super::party::Entity> for Entity {
     fn to() -> RelationDef {
-        super::claim::Relation::SubmittedByUser.def()
-    }
-
-    fn via() -> Option<RelationDef> {
-        None
+        Relation::Party.def()
     }
 }
 
-impl Related<super::invoice::Entity> for Entity {
+impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Invoice.def()
+        Relation::CreatedByUser.def()
+    }
+}
+
+impl Related<super::invoice_line_item::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::InvoiceLineItem.def()
     }
 }
 

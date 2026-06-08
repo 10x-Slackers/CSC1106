@@ -6,6 +6,61 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // journal_entry
+        manager
+            .create_table(
+                Table::create()
+                    .table(JournalEntry::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(JournalEntry::Id)
+                            .integer()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(JournalEntry::PaymentId).integer().null())
+                    .col(ColumnDef::new(JournalEntry::ClaimId).integer().null())
+                    .col(ColumnDef::new(JournalEntry::InvoiceId).integer().null())
+                    .col(
+                        ColumnDef::new(JournalEntry::CreatedByUserId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(JournalEntry::CreatedAt)
+                            .date_time()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(JournalEntry::Table, JournalEntry::CreatedByUserId)
+                            .to(User::Table, User::Id)
+                            .on_delete(ForeignKeyAction::Restrict),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(JournalEntry::Table, JournalEntry::PaymentId)
+                            .to(Payment::Table, Payment::Id)
+                            .on_delete(ForeignKeyAction::SetNull),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(JournalEntry::Table, JournalEntry::ClaimId)
+                            .to(Claim::Table, Claim::Id)
+                            .on_delete(ForeignKeyAction::SetNull),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(JournalEntry::Table, JournalEntry::InvoiceId)
+                            .to(Invoice::Table, Invoice::Id)
+                            .on_delete(ForeignKeyAction::SetNull),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // journal_entry_line
         manager
             .create_table(
                 Table::create()
@@ -30,7 +85,10 @@ impl MigrationTrait for Migration {
                     .col(
                         ColumnDef::new(JournalEntryLine::EntrySide)
                             .string()
-                            .not_null(),
+                            .not_null()
+                            .extra(
+                                "CONSTRAINT chk_journal_entry_line_entry_side CHECK (entry_side IN ('DEBIT', 'CREDIT'))",
+                            ),
                     )
                     .col(
                         ColumnDef::new(JournalEntryLine::Amount)
@@ -85,6 +143,7 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_journal_entry_line_account_id")
+                    .if_exists()
                     .to_owned(),
             )
             .await?;
@@ -93,14 +152,40 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_journal_entry_line_entry_id")
+                    .if_exists()
                     .to_owned(),
             )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(JournalEntryLine::Table).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(JournalEntryLine::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(JournalEntry::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
             .await
     }
+}
+
+#[derive(DeriveIden)]
+enum JournalEntry {
+    Table,
+    Id,
+    PaymentId,
+    ClaimId,
+    InvoiceId,
+    CreatedByUserId,
+    CreatedAt,
 }
 
 #[derive(DeriveIden)]
@@ -115,7 +200,25 @@ enum JournalEntryLine {
 }
 
 #[derive(DeriveIden)]
-enum JournalEntry {
+enum User {
+    Table,
+    Id,
+}
+
+#[derive(DeriveIden)]
+enum Payment {
+    Table,
+    Id,
+}
+
+#[derive(DeriveIden)]
+enum Claim {
+    Table,
+    Id,
+}
+
+#[derive(DeriveIden)]
+enum Invoice {
     Table,
     Id,
 }
