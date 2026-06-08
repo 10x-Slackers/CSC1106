@@ -97,13 +97,18 @@ pub async fn seed_accounts(db: &DatabaseConnection) {
         .collect();
 
     // Insert all accounts, skip any that already exist
-    account_entity::Entity::insert_many(active_models)
+    let result = account_entity::Entity::insert_many(active_models)
         .on_conflict(
             OnConflict::column(account_entity::Column::Name)
                 .do_nothing()
                 .to_owned(),
         )
         .exec(db)
-        .await
-        .expect("Failed to seed chart of accounts");
+        .await;
+
+    match result {
+        Ok(_) => {}
+        Err(sea_orm::DbErr::RecordNotInserted) => {}
+        Err(e) => panic!("Failed to seed chart of accounts: {e}"),
+    }
 }
