@@ -4,18 +4,45 @@ use argon2::password_hash::{
     Error as HashError, PasswordHash, PasswordHasher, PasswordVerifier, SaltString,
 };
 use chrono::NaiveDateTime;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::entity::user as user_entity;
 use crate::entity::user::Role;
 use crate::middleware::auth::UserCache;
 
-#[allow(dead_code)]
+/// Error type for user operations.
 #[derive(Debug)]
 pub enum AuthError {
     InvalidCredentials,
-    DatabaseError(String),
+    NotFound,
+    HashError(HashError),
+    DatabaseError(DbErr),
+}
+
+impl std::fmt::Display for AuthError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AuthError::InvalidCredentials => write!(f, "Invalid credentials"),
+            AuthError::NotFound => write!(f, "User not found"),
+            AuthError::HashError(e) => write!(f, "Password hash error: {}", e),
+            AuthError::DatabaseError(e) => write!(f, "Database error: {}", e),
+        }
+    }
+}
+
+impl From<DbErr> for AuthError {
+    fn from(e: DbErr) -> Self {
+        AuthError::DatabaseError(e)
+    }
+}
+
+impl From<HashError> for AuthError {
+    fn from(e: HashError) -> Self {
+        AuthError::HashError(e)
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -46,7 +73,6 @@ impl From<user_entity::Model> for User {
 }
 
 impl User {
-    #[allow(dead_code)] // TODO: Remove when implementing user management
     async fn find_model_by_id(
         db: &DatabaseConnection,
         id: i32,
@@ -54,7 +80,7 @@ impl User {
         user_entity::Entity::find_by_id(id)
             .one(db)
             .await
-            .map_err(|e| AuthError::DatabaseError(e.to_string()))
+            .map_err(AuthError::from)
     }
 
     pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
@@ -69,8 +95,7 @@ impl User {
         password: &str,
         role: Role,
     ) -> Result<User, AuthError> {
-        let password_hash =
-            hash_password(password).map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+        let password_hash = hash_password(password)?;
 
         let now = chrono::Utc::now().naive_utc();
 
@@ -88,11 +113,11 @@ impl User {
         user_entity::Entity::insert(user)
             .exec(db)
             .await
-            .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+            .map_err(AuthError::from)?;
 
         Self::find_by_email(db, email)
             .await?
-            .ok_or_else(|| AuthError::DatabaseError("User not found after insert".into()))
+            .ok_or(AuthError::NotFound)
     }
 
     #[allow(dead_code)] // TODO: Remove when implementing user management
@@ -110,7 +135,7 @@ impl User {
             .filter(user_entity::Column::Email.eq(email))
             .one(db)
             .await
-            .map_err(|e| AuthError::DatabaseError(e.to_string()))
+            .map_err(AuthError::from)
             .map(|opt| opt.map(User::from))
     }
 
@@ -126,7 +151,7 @@ impl User {
     ) -> Result<User, AuthError> {
         let user_model = Self::find_model_by_id(db, self.id)
             .await?
-            .ok_or_else(|| AuthError::DatabaseError("User not found".into()))?;
+            .ok_or(AuthError::NotFound)?;
 
         let mut user: user_entity::ActiveModel = user_model.into();
 
@@ -137,8 +162,7 @@ impl User {
             user.name = Set(name.into());
         }
         if let Some(password) = password {
-            let password_hash =
-                hash_password(password).map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+            let password_hash = hash_password(password)?;
             user.password_hash = Set(password_hash);
         }
         if let Some(role) = role {
@@ -147,10 +171,7 @@ impl User {
 
         user.updated_at = Set(chrono::Utc::now().naive_utc());
 
-        let updated = user
-            .update(db)
-            .await
-            .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+        let updated = user.update(db).await.map_err(AuthError::from)?;
 
         // Invalidate cache since user info changed
         cache.invalidate(&self.email);
@@ -167,16 +188,13 @@ impl User {
     ) -> Result<User, AuthError> {
         let user_model = Self::find_model_by_id(db, self.id)
             .await?
-            .ok_or_else(|| AuthError::DatabaseError("User not found".into()))?;
+            .ok_or(AuthError::NotFound)?;
 
         let mut user: user_entity::ActiveModel = user_model.into();
         user.disabled = Set(disabled);
         user.updated_at = Set(chrono::Utc::now().naive_utc());
 
-        let updated = user
-            .update(db)
-            .await
-            .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+        let updated = user.update(db).await.map_err(AuthError::from)?;
 
         // Remove user from cache
         cache.invalidate(&self.email);
@@ -184,12 +202,12 @@ impl User {
         Ok(User::from(updated))
     }
 
+    /// Check if user exists, password is correct, and account is not disabled.
     pub async fn authenticate(
         db: &DatabaseConnection,
         email: &str,
         password: &str,
     ) -> Result<User, AuthError> {
-        // Check if user is not disabled and password is correct
         match Self::find_by_email(db, email).await? {
             Some(user) if !user.disabled && user.verify_password(password).is_ok() => Ok(user),
             _ => Err(AuthError::InvalidCredentials),
