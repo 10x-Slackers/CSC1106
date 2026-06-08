@@ -55,6 +55,7 @@ jobs:
           ocr config set llm.url ${{ secrets.OCR_LLM_URL }}
           ocr config set llm.auth_token ${{ secrets.OCR_LLM_AUTH_TOKEN }}
           ocr config set llm.model ${{ secrets.OCR_LLM_MODEL }}
+          ocr config set language English
 
       - name: Run OpenCodeReview
         id: review
