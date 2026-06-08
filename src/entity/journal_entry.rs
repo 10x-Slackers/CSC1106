@@ -1,3 +1,4 @@
+use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
@@ -95,4 +96,16 @@ impl Related<super::invoice::Entity> for Entity {
     }
 }
 
-impl ActiveModelBehavior for ActiveModel {}
+#[async_trait::async_trait]
+impl ActiveModelBehavior for ActiveModel {
+    async fn before_save<C>(self, _db: &C, insert: bool) -> Result<Self, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        let mut am = self;
+        if insert && am.is_not_set(Column::CreatedAt) {
+            am.created_at = Set(chrono::Utc::now().naive_utc());
+        }
+        Ok(am)
+    }
+}

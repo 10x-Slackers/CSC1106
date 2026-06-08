@@ -1,5 +1,6 @@
 use std::fmt;
 
+use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -80,4 +81,18 @@ impl Related<super::journal_entry::Entity> for Entity {
     }
 }
 
-impl ActiveModelBehavior for ActiveModel {}
+#[async_trait::async_trait]
+impl ActiveModelBehavior for ActiveModel {
+    async fn before_save<C>(self, _db: &C, insert: bool) -> Result<Self, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        let now = chrono::Utc::now().naive_utc();
+        let mut am = self;
+        if insert && am.is_not_set(Column::CreatedAt) {
+            am.created_at = Set(now);
+        }
+        am.updated_at = Set(now);
+        Ok(am)
+    }
+}
