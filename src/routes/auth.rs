@@ -48,7 +48,9 @@ pub async fn process_login(
         Err(AuthError::InvalidCredentials) => {
             render_login(tera.get_ref(), "Wrong email or password.")
         }
-        Err(AuthError::DatabaseError(_)) => HttpResponse::InternalServerError().finish(),
+        Err(AuthError::NotFound)
+        | Err(AuthError::HashError(_))
+        | Err(AuthError::DatabaseError(_)) => HttpResponse::InternalServerError().finish(),
     }
 }
 
