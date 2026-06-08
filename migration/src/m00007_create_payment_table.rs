@@ -37,7 +37,12 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Payment::PaymentDate).date().not_null())
                     .col(ColumnDef::new(Payment::Remarks).text().null())
-                    .col(ColumnDef::new(Payment::CreatedAt).date_time().not_null())
+                    .col(
+                        ColumnDef::new(Payment::CreatedAt)
+                            .date_time()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
                     .check(Expr::cust("payment_direction IN ('IN', 'OUT')"))
                     .foreign_key(
                         ForeignKey::create()
@@ -88,15 +93,25 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_index(Index::drop().name("idx_payment_party_id").to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("idx_payment_party_id")
+                    .if_exists()
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_index(Index::drop().name("idx_payment_invoice_id").to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("idx_payment_invoice_id")
+                    .if_exists()
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(Payment::Table).to_owned())
+            .drop_table(Table::drop().table(Payment::Table).if_exists().to_owned())
             .await
     }
 }

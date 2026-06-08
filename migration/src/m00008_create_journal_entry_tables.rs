@@ -29,7 +29,8 @@ impl MigrationTrait for Migration {
                     .col(
                         ColumnDef::new(JournalEntry::CreatedAt)
                             .date_time()
-                            .not_null(),
+                            .not_null()
+                            .default(Expr::current_timestamp()),
                     )
                     .foreign_key(
                         ForeignKey::create()
@@ -142,6 +143,7 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_journal_entry_line_account_id")
+                    .if_exists()
                     .to_owned(),
             )
             .await?;
@@ -150,16 +152,27 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_journal_entry_line_entry_id")
+                    .if_exists()
                     .to_owned(),
             )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(JournalEntryLine::Table).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(JournalEntryLine::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(JournalEntry::Table).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(JournalEntry::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
             .await
     }
 }

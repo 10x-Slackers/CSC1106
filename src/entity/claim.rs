@@ -69,6 +69,8 @@ pub enum Relation {
     JournalEntry,
 }
 
+/// `Related<user::Entity>` only resolves the submitter relation.
+/// To load the reviewer, use `Relation::ReviewedByUser.def()` explicitly.
 impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::SubmittedByUser.def()

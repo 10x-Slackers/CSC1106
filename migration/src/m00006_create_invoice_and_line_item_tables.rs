@@ -33,8 +33,8 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Invoice::IssueDate).date().not_null())
                     .col(ColumnDef::new(Invoice::DueDate).date().not_null())
                     .col(ColumnDef::new(Invoice::Status).string().not_null().extra("CONSTRAINT chk_invoice_status CHECK (status IN ('DRAFT', 'SENT', 'PARTIALLY_PAID', 'PAID', 'VOIDED'))"))
-                    .col(ColumnDef::new(Invoice::CreatedAt).date_time().not_null())
-                    .col(ColumnDef::new(Invoice::UpdatedAt).date_time().not_null())
+                    .col(ColumnDef::new(Invoice::CreatedAt).date_time().not_null().default(Expr::current_timestamp()))
+                    .col(ColumnDef::new(Invoice::UpdatedAt).date_time().not_null().default(Expr::current_timestamp()))
                     .check(Expr::cust("due_date >= issue_date"))
                     .foreign_key(
                         ForeignKey::create()
@@ -116,16 +116,22 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_invoice_line_item_invoice_id")
+                    .if_exists()
                     .to_owned(),
             )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(InvoiceLineItem::Table).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(InvoiceLineItem::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(Invoice::Table).to_owned())
+            .drop_table(Table::drop().table(Invoice::Table).if_exists().to_owned())
             .await
     }
 }

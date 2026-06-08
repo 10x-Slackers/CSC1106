@@ -50,6 +50,8 @@ pub enum Relation {
     JournalEntry,
 }
 
+/// Related<claim::Entity> only resolves submitter relation.
+/// To find claims reviewed by this user, use with `claim::Relation::ReviewedByUser.def()` directly.
 impl Related<super::claim::Entity> for Entity {
     fn to() -> RelationDef {
         super::claim::Relation::SubmittedByUser.def()

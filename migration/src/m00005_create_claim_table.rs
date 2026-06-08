@@ -30,8 +30,8 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Claim::PurchaseDate).date().not_null())
                     .col(ColumnDef::new(Claim::Status).string().not_null().extra("CONSTRAINT chk_claim_status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED'))"))
                     .col(ColumnDef::new(Claim::RejectionReason).text().null())
-                    .col(ColumnDef::new(Claim::CreatedAt).date_time().not_null())
-                    .col(ColumnDef::new(Claim::UpdatedAt).date_time().not_null())
+                    .col(ColumnDef::new(Claim::CreatedAt).date_time().not_null().default(Expr::current_timestamp()))
+                    .col(ColumnDef::new(Claim::UpdatedAt).date_time().not_null().default(Expr::current_timestamp()))
                     .check(Expr::cust("status != 'REJECTED' OR rejection_reason IS NOT NULL"))
                     .foreign_key(
                         ForeignKey::create()
@@ -58,7 +58,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Claim::Table).to_owned())
+            .drop_table(Table::drop().table(Claim::Table).if_exists().to_owned())
             .await
     }
 }

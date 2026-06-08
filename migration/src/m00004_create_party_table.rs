@@ -17,11 +17,9 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(Party::Type).string().not_null().extra(
-                            "CONSTRAINT chk_party_type CHECK (type IN ('CUSTOMER', 'VENDOR'))",
-                        ),
-                    )
+                    .col(ColumnDef::new(Party::PartyType).string().not_null().extra(
+                        "CONSTRAINT chk_party_type CHECK (party_type IN ('CUSTOMER', 'VENDOR'))",
+                    ))
                     .col(ColumnDef::new(Party::Name).string().not_null())
                     .col(ColumnDef::new(Party::Company).string().null())
                     .col(
@@ -35,8 +33,18 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Party::Status).string().not_null().extra(
                         "CONSTRAINT chk_party_status CHECK (status IN ('ACTIVE', 'INACTIVE'))",
                     ))
-                    .col(ColumnDef::new(Party::CreatedAt).date_time().not_null())
-                    .col(ColumnDef::new(Party::UpdatedAt).date_time().not_null())
+                    .col(
+                        ColumnDef::new(Party::CreatedAt)
+                            .date_time()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        ColumnDef::new(Party::UpdatedAt)
+                            .date_time()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
                     .to_owned(),
             )
             .await
@@ -44,7 +52,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Party::Table).to_owned())
+            .drop_table(Table::drop().table(Party::Table).if_exists().to_owned())
             .await
     }
 }
@@ -53,7 +61,7 @@ impl MigrationTrait for Migration {
 enum Party {
     Table,
     Id,
-    Type,
+    PartyType,
     Name,
     Company,
     Email,
