@@ -54,6 +54,9 @@ impl UserCache {
                 cached_at: entry.cached_at,
             })
         } else {
+            // Drop read lock before acquiring write lock to remove expired entry
+            drop(cache);
+            self.inner.write().unwrap().remove(email);
             None
         }
     }

@@ -30,6 +30,7 @@ async fn main() -> std::io::Result<()> {
 
     let db = db::init(&database_url).await;
     let tera = Tera::new("templates/**/*").expect("Failed to initialize Tera templates");
+    let user_cache = UserCache::new();
 
     println!("Server running at http://{host}:{port}");
 
@@ -37,7 +38,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(db.clone()))
             .app_data(web::Data::new(tera.clone()))
-            .app_data(web::Data::new(UserCache::new()))
+            .app_data(web::Data::new(user_cache.clone()))
             .wrap(
                 SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
                     .cookie_secure(false) // No HTTPS for the project
