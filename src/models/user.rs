@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entity::user as user_entity;
 use crate::entity::user::Role;
+use crate::middleware::auth::UserCache;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -117,6 +118,7 @@ impl User {
     pub async fn update(
         &self,
         db: &DatabaseConnection,
+        cache: &UserCache,
         email: Option<&str>,
         name: Option<&str>,
         password: Option<&str>,
@@ -150,6 +152,9 @@ impl User {
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
 
+        // Invalidate cache since user info changed
+        cache.invalidate(&self.email);
+
         Ok(User::from(updated))
     }
 
@@ -157,6 +162,7 @@ impl User {
     pub async fn set_disabled(
         &self,
         db: &DatabaseConnection,
+        cache: &UserCache,
         disabled: bool,
     ) -> Result<User, AuthError> {
         let user_model = Self::find_model_by_id(db, self.id)
@@ -171,6 +177,9 @@ impl User {
             .update(db)
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+
+        // Remove user from cache
+        cache.invalidate(&self.email);
 
         Ok(User::from(updated))
     }

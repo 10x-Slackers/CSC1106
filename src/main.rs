@@ -12,6 +12,8 @@ use actix_web::cookie::Key;
 use actix_web::{App, HttpServer, web};
 use tera::Tera;
 
+use crate::middleware::auth::UserCache;
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // Load configuration from environment variables with defaults
@@ -35,6 +37,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(db.clone()))
             .app_data(web::Data::new(tera.clone()))
+            .app_data(web::Data::new(UserCache::new()))
             .wrap(
                 SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
                     .cookie_secure(false) // No HTTPS for the project
