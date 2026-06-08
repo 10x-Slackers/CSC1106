@@ -23,8 +23,20 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .unique_key(),
                     )
-                    .col(ColumnDef::new(Account::Category).string().not_null())
-                    .col(ColumnDef::new(Account::NormalBalance).string().not_null())
+                    .col(
+                        ColumnDef::new(Account::Category)
+                            .string()
+                            .not_null()
+                            .extra(
+                                "CONSTRAINT chk_account_category CHECK (category IN ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'))",
+                            ),
+                    )
+                    .col(
+                        ColumnDef::new(Account::NormalBalance)
+                            .string()
+                            .not_null()
+                            .extra("CONSTRAINT chk_account_normal_balance CHECK (normal_balance IN ('DEBIT', 'CREDIT'))"),
+                    )
                     .col(ColumnDef::new(Account::CreatedAt).date_time().not_null())
                     .to_owned(),
             )

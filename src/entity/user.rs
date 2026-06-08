@@ -41,6 +41,39 @@ pub struct Model {
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "super::invoice::Entity")]
+    Invoice,
+    #[sea_orm(has_many = "super::payment::Entity")]
+    Payment,
+    #[sea_orm(has_many = "super::claim::Entity")]
+    Claim,
+    #[sea_orm(has_many = "super::journal_entry::Entity")]
+    JournalEntry,
+}
+
+impl Related<super::invoice::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Invoice.def()
+    }
+}
+
+impl Related<super::payment::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Payment.def()
+    }
+}
+
+impl Related<super::claim::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Claim.def()
+    }
+}
+
+impl Related<super::journal_entry::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::JournalEntry.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}

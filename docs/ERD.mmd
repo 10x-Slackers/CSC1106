@@ -56,7 +56,7 @@ erDiagram
         TIMESTAMP created_at
     }
 
-    CLAIMS {
+    CLAIM {
         INT id PK
         INT submitted_by_user_id FK
         INT reviewed_by_user_id FK "Nullable"
@@ -103,11 +103,11 @@ erDiagram
     }
 
     USER ||--o{ PAYMENT : records
-    USER ||--o{ CLAIMS : submits
-    USER ||--o{ CLAIMS : reviews
+    USER ||--o{ CLAIM : submits
+    USER ||--o{ CLAIM : reviews
     USER ||--o{ INVOICE : creates
 
-    CLAIM_CATEGORY ||--o{ CLAIMS : categorises
+    CLAIM_CATEGORY ||--o{ CLAIM : categorises
 
     PARTY ||--o{ INVOICE : receives
     PARTY ||--o{ PAYMENT : pays_or_receives
@@ -120,4 +120,13 @@ erDiagram
 
     USER ||--o{ JOURNAL_ENTRY : posts
     PAYMENT ||--o{ JOURNAL_ENTRY : source_for
-    CLAIMS ||--o{ JOURNAL_ENTRY : source_for
+    CLAIM ||--o{ JOURNAL_ENTRY : source_for
+
+    %% CHECK constraints
+    %% party: type IN (CUSTOMER, VENDOR), status IN (ACTIVE, INACTIVE)
+    %% claim: amount > 0, status IN (PENDING, APPROVED, REJECTED), status=REJECTED => rejection_reason NOT NULL
+    %% invoice: status IN (DRAFT, SENT, PARTIALLY_PAID, PAID, VOIDED), due_date >= issue_date
+    %% invoice_line_item: quantity > 0, unit_price >= 0, gst_rate IN (NONE, STANDARD)
+    %% payment: amount > 0, payment_direction IN (IN, OUT)
+    %% journal_entry_line: amount > 0
+    %% journal_entry: at most one of (payment_id, claim_id, invoice_id) is non-null (enforced in app via SourceDocument enum)

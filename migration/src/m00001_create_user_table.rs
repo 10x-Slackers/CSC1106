@@ -20,7 +20,9 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(User::Email).string().not_null().unique_key())
                     .col(ColumnDef::new(User::Name).string().not_null())
                     .col(ColumnDef::new(User::PasswordHash).string().not_null())
-                    .col(ColumnDef::new(User::Role).string().not_null())
+                    .col(ColumnDef::new(User::Role).string().not_null().extra(
+                        "CONSTRAINT chk_user_role CHECK (role IN ('ADMIN', 'ACCOUNTANT', 'STAFF'))",
+                    ))
                     .col(
                         ColumnDef::new(User::Disabled)
                             .boolean()
