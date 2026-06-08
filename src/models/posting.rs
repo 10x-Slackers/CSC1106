@@ -2,9 +2,11 @@ use rust_decimal::Decimal;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, Set, TransactionTrait};
 
 use crate::entity::journal_entry as journal_entry_entity;
+use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line as journal_entry_line_entity;
 use crate::entity::journal_entry_line::EntrySide;
 
+#[allow(dead_code)] // TODO: Remove when implementing journal entry UI
 #[derive(Clone)]
 pub struct JournalEntryLineInput {
     pub account_id: i32,
@@ -13,15 +15,7 @@ pub struct JournalEntryLineInput {
     pub description: Option<String>,
 }
 
-/// Each journal entry traces back to at most one source document.
-#[derive(Clone)]
-pub enum SourceDocument {
-    Payment { payment_id: i32 },
-    Claim { claim_id: i32 },
-    Invoice { invoice_id: i32 },
-    Manual,
-}
-
+#[allow(dead_code)] // TODO: Remove when implementing journal entry UI
 #[derive(Debug)]
 pub enum PostingError {
     UnbalancedEntry {
@@ -55,11 +49,13 @@ impl From<DbErr> for PostingError {
     }
 }
 
+#[allow(dead_code)] // TODO: Remove when implementing journal entry UI
 /// Centralised posting service for the double-entry accounting engine.
 pub struct PostingService;
 
+#[allow(dead_code)] // TODO: Remove when implementing journal entry UI
 impl PostingService {
-    /// Create and post a journal entry in a single atomic transaction.
+    /// Create and post a journal entry with an atomic transaction.
     pub async fn post_entry(
         db: &DatabaseConnection,
         lines: Vec<JournalEntryLineInput>,
@@ -77,7 +73,7 @@ impl PostingService {
                     let now = chrono::Utc::now().naive_utc();
 
                     // Insert journal entry header
-                    let (payment_id, claim_id, invoice_id) = Self::resolve_source_fks(&source);
+                    let (payment_id, claim_id, invoice_id) = source.to_fks();
 
                     let journal_entry = journal_entry_entity::ActiveModel {
                         payment_id: Set(payment_id),
@@ -118,12 +114,12 @@ impl PostingService {
         })
     }
 
+    /// Validate amounts are positive, and debit and credit are balanced.
     fn validate_lines(lines: &[JournalEntryLineInput]) -> Result<(), PostingError> {
         if lines.is_empty() {
             return Err(PostingError::NoLines);
         }
 
-        // Check if positive amounts
         for line in lines {
             if line.amount <= Decimal::ZERO {
                 return Err(PostingError::DatabaseError(DbErr::Custom(format!(
@@ -133,7 +129,6 @@ impl PostingService {
             }
         }
 
-        // Check debit and credit are balanced
         let total_debits: Decimal = lines
             .iter()
             .filter(|l| l.entry_side == EntrySide::Debit)
@@ -153,15 +148,5 @@ impl PostingService {
         }
 
         Ok(())
-    }
-
-    /// Map a SourceDocument variant to its nullable FK columns.
-    fn resolve_source_fks(source: &SourceDocument) -> (Option<i32>, Option<i32>, Option<i32>) {
-        match source {
-            SourceDocument::Payment { payment_id } => (Some(*payment_id), None, None),
-            SourceDocument::Claim { claim_id } => (None, Some(*claim_id), None),
-            SourceDocument::Invoice { invoice_id } => (None, None, Some(*invoice_id)),
-            SourceDocument::Manual => (None, None, None),
-        }
     }
 }

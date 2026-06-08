@@ -14,6 +14,29 @@ pub struct Model {
     pub created_at: DateTime,
 }
 
+#[allow(dead_code)] // TODO: Remove when implementing invoice/payment/claim posting
+/// Each journal entry traces back to only one source document.
+#[derive(Clone)]
+pub enum SourceDocument {
+    Payment { payment_id: i32 },
+    Claim { claim_id: i32 },
+    Invoice { invoice_id: i32 },
+    Manual,
+}
+
+impl SourceDocument {
+    #[allow(dead_code)] // TODO: Remove when implementing invoice/payment/claim posting
+    /// Map the source document variant to its nullable FK columns.
+    pub fn to_fks(&self) -> (Option<i32>, Option<i32>, Option<i32>) {
+        match self {
+            SourceDocument::Payment { payment_id } => (Some(*payment_id), None, None),
+            SourceDocument::Claim { claim_id } => (None, Some(*claim_id), None),
+            SourceDocument::Invoice { invoice_id } => (None, None, Some(*invoice_id)),
+            SourceDocument::Manual => (None, None, None),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(

@@ -13,7 +13,7 @@ use crate::models::user::User;
 
 const CACHE_TTL: Duration = Duration::from_secs(300); // 5 minutes
 
-/// In-memory user cache keyed by email
+/// In-memory user cache keyed by email.
 #[derive(Clone)]
 pub struct UserCache {
     inner: web::Data<RwLock<HashMap<String, CachedUser>>>,
