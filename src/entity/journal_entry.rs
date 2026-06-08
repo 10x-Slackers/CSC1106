@@ -9,11 +9,12 @@ pub struct Model {
     pub id: i32,
     pub payment_id: Option<i32>,
     pub claim_id: Option<i32>,
+    pub invoice_id: Option<i32>,
     pub created_by_user_id: i32,
     pub created_at: DateTime,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::user::Entity",
