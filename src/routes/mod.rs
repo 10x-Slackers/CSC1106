@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod home;
+pub mod nav;
 
 use actix_web::web;
 
