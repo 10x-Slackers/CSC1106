@@ -6,6 +6,7 @@ Usage:
 Parameters:
 nav_links - Array of objects with "name" and "href" keys.
 e.g. [{"name": "Dashboard", "href": "/"}, {"name": "Invoices", "href": "/invoices"}]
+
 current_user - Object with "id", "name", "email" and "role" keys.
 e.g. {"id": 1, "name": "Alice", "email": "alice@example.com", "role": "Admin"}
 #}
@@ -68,6 +69,7 @@ e.g. {"id": 1, "name": "Alice", "email": "alice@example.com", "role": "Admin"}
       </p>
       <p><span class="font-semibold">Role:</span> {{ current_user.role }}</p>
       <div class="modal-action">
+        {# TODO: implement /users/{{ current_user.id }}/edit route #}
         <a
           href="/users/{{ current_user.id }}/edit"
           class="btn btn-primary btn-sm"
@@ -78,4 +80,4 @@ e.g. {"id": 1, "name": "Alice", "email": "alice@example.com", "role": "Admin"}
     </div>
     <form method="dialog" class="modal-backdrop"><button>close</button></form>
   </dialog>
-{% endmacro render %}
+{% endmacro %}

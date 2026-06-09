@@ -1,5 +1,6 @@
 use tera::Context;
 
+use crate::entity::user::Role;
 use crate::middleware::auth::Authenticated;
 
 /// A navigation link.
@@ -11,12 +12,12 @@ pub struct NavLink {
 
 /// Insert navbar context variables into a Tera context.
 pub fn insert_nav_context(context: &mut Context, user: &Authenticated) {
-    context.insert("nav_links", &nav_links_for_role(&user.role.to_string()));
+    context.insert("nav_links", &nav_links_for_role(&user.role));
     context.insert("current_user", user);
 }
 
 /// Build the navigation links for a given user role.
-fn nav_links_for_role(role: &str) -> Vec<NavLink> {
+fn nav_links_for_role(role: &Role) -> Vec<NavLink> {
     // TODO: filter links based on ACL permissions
     let links = vec![
         NavLink {
@@ -47,7 +48,7 @@ fn nav_links_for_role(role: &str) -> Vec<NavLink> {
     }];
 
     match role {
-        "Admin" => [links, admin_only].concat(),
-        _ => links,
+        Role::Admin => [links, admin_only].concat(),
+        Role::Accountant | Role::Staff => links,
     }
 }

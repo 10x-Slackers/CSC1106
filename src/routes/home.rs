@@ -1,3 +1,6 @@
+use actix_web::dev::ServiceResponse;
+use actix_web::http::StatusCode;
+use actix_web::middleware::{ErrorHandlerResponse, ErrorHandlers};
 use actix_web::{HttpResponse, Responder, get, web};
 use tera::{Context, Tera};
 
@@ -6,17 +9,7 @@ use crate::routes::nav::insert_nav_context;
 
 /// Render the home page for authenticated users.
 #[get("/")]
-pub async fn home(user: Option<Authenticated>, tera: web::Data<Tera>) -> impl Responder {
-    // Redirect to /login if unauthenticated
-    let user = match user {
-        Some(u) => u,
-        None => {
-            return HttpResponse::Found()
-                .append_header(("Location", "/login"))
-                .finish();
-        }
-    };
-
+pub async fn home(user: Authenticated, tera: web::Data<Tera>) -> impl Responder {
     let mut context = Context::new();
     insert_nav_context(&mut context, &user);
 
@@ -29,6 +22,24 @@ pub async fn home(user: Option<Authenticated>, tera: web::Data<Tera>) -> impl Re
     }
 }
 
+/// Convert 401 Unauthorized responses into a redirect to /login.
+fn redirect_unauthorized<B>(
+    res: ServiceResponse<B>,
+) -> Result<ErrorHandlerResponse<B>, actix_web::Error> {
+    let (req, _) = res.into_parts();
+    let new_response = HttpResponse::Found()
+        .append_header(("Location", "/login"))
+        .finish();
+    let response = new_response.map_into_right_body();
+    Ok(ErrorHandlerResponse::Response(ServiceResponse::new(
+        req, response,
+    )))
+}
+
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(home);
+    cfg.service(
+        web::scope("")
+            .wrap(ErrorHandlers::new().handler(StatusCode::UNAUTHORIZED, redirect_unauthorized))
+            .service(home),
+    );
 }
