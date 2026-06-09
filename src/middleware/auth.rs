@@ -3,7 +3,6 @@ use actix_web::dev::Payload;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::{FromRequest, HttpRequest, web};
 use sea_orm::DatabaseConnection;
-use serde::Serializer;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
@@ -75,15 +74,7 @@ pub struct Authenticated {
     pub id: i32,
     pub name: String,
     pub email: String,
-    #[serde(serialize_with = "serialize_role_display")]
     pub role: crate::entity::user::Role,
-}
-
-fn serialize_role_display<S: Serializer>(
-    role: &crate::entity::user::Role,
-    s: S,
-) -> Result<S::Ok, S::Error> {
-    s.collect_str(&role)
 }
 
 impl FromRequest for Authenticated {
