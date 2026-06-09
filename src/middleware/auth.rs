@@ -69,7 +69,7 @@ impl UserCache {
 
 /// Extractor that requires authentication and looks up the user.
 /// Returns 401 for unauthenticated or disabled users.
-#[allow(dead_code)] // TODO: ACL not implemented yet
+#[derive(serde::Serialize)]
 pub struct Authenticated {
     pub id: i32,
     pub name: String,
