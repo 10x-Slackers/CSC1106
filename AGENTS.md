@@ -16,7 +16,7 @@
 - Do not add `derive(Debug)` unless it is actually needed
   - Run `cargo clippy` to check for unused `Debug` derives and remove them
   - SeaORM `DeriveEntityModel` requires `Debug`
-- Always run `cargo fmt` after completing a task
+- Always run `just format` and `just lint` after completing a task
 
 ## DaisyUI Styling Guidelines
 
