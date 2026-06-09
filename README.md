@@ -3,7 +3,7 @@
 > [!NOTE]
 > WIP, remove this note when project is ready.
 
-project_description
+Accounting web application with double-entry system built with Rust (Actix-web) and Tera templates (TailwindCSS + DaisyUI for styling).
 
 ---
 
@@ -14,13 +14,22 @@ project_description
 
 ## Usage
 
-### runtime_executable
+### Justfile
 
-```sh
-./runtime_executable <args> [optional]
-```
+| Command       | Description                                        |
+| ------------- | -------------------------------------------------- |
+| `just dev`    | Start both Rust and frontend watchers concurrently |
+| `just build`  | Build frontend assets and Rust binary (release)    |
+| `just format` | Auto-format Rust and frontend code                 |
+| `just lint`   | Run Clippy lint checks                             |
 
-- runtime_executable_description
+### Server
+
+- Start the server with `just dev`
+- Access the app at <http://localhost:8080>
+- Default credentials (for now):
+  - `admin@example.com:P@ssw0rd` (admin role)
+  - `john@example.com:P@ssw0rd` (accountant role)
 
 ## Getting Started
 

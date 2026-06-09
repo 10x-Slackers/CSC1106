@@ -3,7 +3,7 @@ dev:
     @just watch-frontend
 
 watch-rust:
-    find src migration templates Cargo.toml Cargo.lock \( -name '*.rs' -o -name '*.toml' -o -name '*.html' \) | entr -r cargo run
+    find src migration templates Cargo.toml Cargo.lock \( -name '*.rs' -o -name '*.toml' -o -name '*.html' \) | SECRET_KEY=abcdefghijklmnopqrstuvwxyz1234567890 entr -r cargo run
 
 watch-frontend:
     npm run dev
