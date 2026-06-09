@@ -1,14 +1,13 @@
 use actix_web::dev::ServiceResponse;
 use actix_web::http::StatusCode;
 use actix_web::middleware::{ErrorHandlerResponse, ErrorHandlers};
-use actix_web::{HttpResponse, Responder, get, web};
+use actix_web::{HttpResponse, Responder, web};
 use tera::{Context, Tera};
 
 use crate::middleware::auth::Authenticated;
 use crate::routes::nav::insert_nav_context;
 
 /// Render the home page for authenticated users.
-#[get("/")]
 pub async fn home(user: Authenticated, tera: web::Data<Tera>) -> impl Responder {
     let mut context = Context::new();
     insert_nav_context(&mut context, &user);
@@ -38,8 +37,8 @@ fn redirect_unauthorized<B>(
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        web::scope("")
+        web::resource("/")
             .wrap(ErrorHandlers::new().handler(StatusCode::UNAUTHORIZED, redirect_unauthorized))
-            .service(home),
+            .route(web::get().to(home)),
     );
 }
