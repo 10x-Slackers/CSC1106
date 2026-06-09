@@ -97,30 +97,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        manager
-            .create_index(
-                Index::create()
-                    .if_not_exists()
-                    .name("idx_invoice_line_item_invoice_id")
-                    .table(InvoiceLineItem::Table)
-                    .col(InvoiceLineItem::InvoiceId)
-                    .to_owned(),
-            )
-            .await?;
-
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .drop_index(
-                Index::drop()
-                    .name("idx_invoice_line_item_invoice_id")
-                    .if_exists()
-                    .to_owned(),
-            )
-            .await?;
-
         manager
             .drop_table(
                 Table::drop()
