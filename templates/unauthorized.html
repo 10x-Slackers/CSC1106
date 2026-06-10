@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Unauthorized{% endblock %}
+{% block content %}
+  <div class="hero min-h-screen">
+    <div class="hero-content text-center">
+      <div class="max-w-md">
+        <h1 class="text-3xl font-bold">Unauthorized</h1>
+        <p class="py-4">You need to be logged in to access this page.</p>
+        <a href="/login" class="btn btn-outline">Proceed to login</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}
