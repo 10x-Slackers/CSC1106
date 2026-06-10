@@ -1,13 +1,15 @@
 use actix_identity::Identity;
-use actix_web::dev::Payload;
+use actix_web::dev::{Payload, ServiceResponse};
 use actix_web::error::ErrorUnauthorized;
-use actix_web::{FromRequest, HttpRequest, web};
+use actix_web::middleware::ErrorHandlerResponse;
+use actix_web::{FromRequest, HttpRequest, HttpResponse, web};
 use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
+use tera::{Context, Tera};
 
 use crate::models::user::User;
 
@@ -132,4 +134,42 @@ impl FromRequest for Authenticated {
             })
         })
     }
+}
+
+/// Convert 401 Unauthorized responses into a redirect to `/login`.
+pub fn redirect_unauthorized<B>(
+    res: ServiceResponse<B>,
+) -> Result<ErrorHandlerResponse<B>, actix_web::Error> {
+    let (req, _) = res.into_parts();
+    let new_response = HttpResponse::Found()
+        .append_header(("Location", "/login"))
+        .finish();
+    let response = new_response.map_into_right_body();
+    Ok(ErrorHandlerResponse::Response(ServiceResponse::new(
+        req, response,
+    )))
+}
+
+/// Render an unauthorized page with a link to the login page.
+pub fn show_unauthorized_page<B>(
+    res: ServiceResponse<B>,
+) -> Result<ErrorHandlerResponse<B>, actix_web::Error> {
+    let (req, _) = res.into_parts();
+    let tera = req
+        .app_data::<web::Data<Tera>>()
+        .expect("Tera not registered");
+    let context = Context::new();
+    let rendered = tera.render("unauthorized.html", &context).unwrap_or_else(|e| {
+        eprintln!("Template error: {e}");
+        String::from(
+            "<html><body><h1>Unauthorized</h1><a href=\"/login\">Proceed to login</a></body></html>",
+        )
+    });
+    let new_response = HttpResponse::Unauthorized()
+        .content_type("text/html")
+        .body(rendered);
+    let response = new_response.map_into_right_body();
+    Ok(ErrorHandlerResponse::Response(ServiceResponse::new(
+        req, response,
+    )))
 }

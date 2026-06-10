@@ -9,10 +9,12 @@ use actix_files::Files;
 use actix_identity::IdentityMiddleware;
 use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_web::cookie::Key;
+use actix_web::http::StatusCode;
+use actix_web::middleware::ErrorHandlers;
 use actix_web::{App, HttpServer, web};
 use tera::Tera;
 
-use crate::middleware::auth::UserCache;
+use crate::middleware::auth::{UserCache, show_unauthorized_page};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -45,6 +47,7 @@ async fn main() -> std::io::Result<()> {
                     .build(),
             )
             .wrap(IdentityMiddleware::default())
+            .wrap(ErrorHandlers::new().handler(StatusCode::UNAUTHORIZED, show_unauthorized_page))
             .configure(routes::configure)
             .service(Files::new("/", "assets/"))
     })
