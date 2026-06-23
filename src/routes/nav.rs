@@ -2,6 +2,7 @@ use tera::Context;
 
 use crate::entity::user::Role;
 use crate::middleware::auth::Authenticated;
+use crate::middleware::permissions::{AdminOnly, Finance, RoleSet};
 
 /// A navigation link.
 #[derive(Clone, serde::Serialize)]
@@ -18,8 +19,8 @@ pub fn insert_nav_context(context: &mut Context, user: &Authenticated) {
 
 /// Build the navigation links for a given user role.
 fn nav_links_for_role(role: &Role) -> Vec<NavLink> {
-    // TODO: filter links based on ACL permissions
-    let links = vec![
+    // Base links
+    let mut links = vec![
         NavLink {
             name: "Dashboard".into(),
             href: "/".into(),
@@ -36,19 +37,21 @@ fn nav_links_for_role(role: &Role) -> Vec<NavLink> {
             name: "Parties".into(),
             href: "/parties".into(),
         },
-        NavLink {
-            name: "Reports".into(),
-            href: "/reports".into(),
-        },
     ];
 
-    let admin_only = vec![NavLink {
-        name: "Users".into(),
-        href: "/users".into(),
-    }];
-
-    match role {
-        Role::Admin => [links, admin_only].concat(),
-        Role::Accountant | Role::Staff => links,
+    if Finance::ROLES.contains(role) {
+        links.push(NavLink {
+            name: "Reports".into(),
+            href: "/reports".into(),
+        });
     }
+
+    if AdminOnly::ROLES.contains(role) {
+        links.push(NavLink {
+            name: "Users".into(),
+            href: "/users".into(),
+        });
+    }
+
+    links
 }
