@@ -1,11 +1,11 @@
 use actix_web::{HttpResponse, Responder, get, web};
 use tera::{Context, Tera};
 
-use crate::middleware::auth::Authenticated;
+use crate::middleware::permissions::{Finance, Require};
 use crate::routes::nav::insert_nav_context;
 
 #[get("/reports")]
-pub async fn reports(user: Authenticated, tera: web::Data<Tera>) -> impl Responder {
+pub async fn reports(user: Require<Finance>, tera: web::Data<Tera>) -> impl Responder {
     let mut context = Context::new();
     insert_nav_context(&mut context, &user);
 

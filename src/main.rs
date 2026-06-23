@@ -14,7 +14,9 @@ use actix_web::middleware::ErrorHandlers;
 use actix_web::{App, HttpServer, web};
 use tera::Tera;
 
-use crate::middleware::auth::{UserCache, show_unauthorized_page};
+use crate::middleware::auth::UserCache;
+use crate::middleware::auth::show_unauthorized_page;
+use crate::middleware::permissions::forbidden_page;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -47,7 +49,11 @@ async fn main() -> std::io::Result<()> {
                     .build(),
             )
             .wrap(IdentityMiddleware::default())
-            .wrap(ErrorHandlers::new().handler(StatusCode::UNAUTHORIZED, show_unauthorized_page))
+            .wrap(
+                ErrorHandlers::new()
+                    .handler(StatusCode::UNAUTHORIZED, show_unauthorized_page)
+                    .handler(StatusCode::FORBIDDEN, forbidden_page),
+            )
             .configure(routes::configure)
             .service(Files::new("/", "assets/"))
     })
