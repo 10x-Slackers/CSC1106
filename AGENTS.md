@@ -1,5 +1,9 @@
 # Agents
 
+## Project context
+
+This is a **university coursework project** done by undergraduates. It is not a production system and will never be deployed to real users.
+
 ## Research First
 
 - Always research before implementing a task — both the codebase and online. Understand existing patterns, dependencies, and conventions before writing code.
@@ -14,12 +18,17 @@
 ## Code Style
 
 - Do not add `derive(Debug)` unless it is actually needed
-  - Run `cargo clippy` to check for unused `Debug` derives and remove them
   - SeaORM `DeriveEntityModel` requires `Debug`
 - Always run `just format` and `just lint` after completing a task
+- Reduce duplicated code/logic. Extract shared helpers when patterns repeat, and account for likely future development where it makes sense
+- Don't spam comments or rustdoc. No verbose or decorative comments. Keep rustdoc short and normal comments concise — refer to the existing codebase for style
 
-## DaisyUI Styling Guidelines
+## Testing
 
-- Prefer DaisyUI components over Tailwind utilities. Use `btn`, `card`, `fieldset`, `hero`, `alert`, `input`, `label`, `navbar`, etc. Don't replicate them with Tailwind.
-- Use DaisyUI color names (`primary`, `secondary`, `accent`, `base-100`, `error`, etc.) over raw Tailwind.
+- The server is long-running. Ask the user to start it if not already up; don't start it yourself as it will hang the session
+
+## UI posture
+
+- Prefer DaisyUI components over Tailwind utilities. Don't replicate them with Tailwind.
+- Use DaisyUI color names over raw Tailwind.
 - When doing HTML/UI design, reference: https://daisyui.com/llms.txt

@@ -159,7 +159,7 @@ pub fn show_unauthorized_page<B>(
         .app_data::<web::Data<Tera>>()
         .expect("Tera not registered");
     let context = Context::new();
-    let rendered = tera.render("unauthorized.html", &context).unwrap_or_else(|e| {
+    let rendered = tera.render("auth/unauthorized.html", &context).unwrap_or_else(|e| {
         eprintln!("Template error: {e}");
         String::from(
             "<html><body><h1>Unauthorized</h1><a href=\"/login\">Proceed to login</a></body></html>",

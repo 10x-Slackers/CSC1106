@@ -26,6 +26,44 @@ impl fmt::Display for Role {
     }
 }
 
+impl Role {
+    /// Parse a role string (case-insensitive) into a `Role`.
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_lowercase().as_str() {
+            "admin" => Some(Role::Admin),
+            "accountant" => Some(Role::Accountant),
+            "staff" => Some(Role::Staff),
+            _ => None,
+        }
+    }
+}
+
+/// Account status filter, mapping to the `disabled` boolean column.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum UserStatus {
+    Active,
+    Disabled,
+}
+
+impl UserStatus {
+    /// Parse a status string (case-insensitive) into a `UserStatus`.
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_lowercase().as_str() {
+            "active" => Some(UserStatus::Active),
+            "disabled" => Some(UserStatus::Disabled),
+            _ => None,
+        }
+    }
+
+    /// The `disabled` column value this status maps to.
+    pub fn disabled(&self) -> bool {
+        match self {
+            UserStatus::Active => false,
+            UserStatus::Disabled => true,
+        }
+    }
+}
+
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "user")]
 pub struct Model {

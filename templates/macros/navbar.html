@@ -69,12 +69,7 @@ e.g. {"id": 1, "name": "Alice", "email": "alice@example.com", "role": "Admin"}
       </p>
       <p><span class="font-semibold">Role:</span> {{ current_user.role }}</p>
       <div class="modal-action">
-        {# TODO: implement /users/{{ current_user.id }}/edit route #}
-        <a
-          href="/users/{{ current_user.id }}/edit"
-          class="btn btn-primary btn-sm"
-          >Edit Profile</a
-        >
+        <a href="/profile" class="btn btn-primary btn-sm">Edit Profile</a>
         <form method="dialog"><button class="btn btn-sm">Close</button></form>
       </div>
     </div>

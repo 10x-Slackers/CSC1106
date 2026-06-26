@@ -5,12 +5,13 @@ use argon2::password_hash::{
 };
 use chrono::NaiveDateTime;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set,
+    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, Order,
+    QueryFilter, QueryOrder, Set,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::entity::user as user_entity;
-use crate::entity::user::Role;
+use crate::entity::user::{Role, UserStatus};
 use crate::middleware::auth::UserCache;
 
 #[derive(Debug)]
@@ -123,7 +124,6 @@ impl User {
     }
 
     /// Look up a user by their primary key.
-    #[allow(dead_code)] // TODO: Remove when implementing user management
     pub async fn find_by_id(db: &DatabaseConnection, id: i32) -> Result<Option<User>, AuthError> {
         Self::find_model_by_id(db, id)
             .await
@@ -143,8 +143,51 @@ impl User {
             .map(|opt| opt.map(User::from))
     }
 
+    /// List users with optional filters.
+    /// `q` matches name or email (case-insensitive LIKE).
+    pub async fn list(
+        db: &DatabaseConnection,
+        q: Option<&str>,
+        role: Option<Role>,
+        status: Option<UserStatus>,
+    ) -> Result<Vec<User>, AuthError> {
+        let mut conditions = Condition::all();
+
+        if let Some(query) = q {
+            let query = query.trim();
+            if !query.is_empty() {
+                let escaped = query.replace('%', "\\%").replace('_', "\\_");
+                let pattern = format!("%{}%", escaped);
+                conditions = conditions.add(
+                    Condition::any()
+                        .add(user_entity::Column::Name.like(&pattern))
+                        .add(user_entity::Column::Email.like(&pattern)),
+                );
+            }
+        }
+
+        if let Some(role) = role {
+            conditions = conditions.add(user_entity::Column::Role.eq(role));
+        }
+
+        if let Some(status) = status {
+            conditions = conditions.add(user_entity::Column::Disabled.eq(status.disabled()));
+        }
+
+        let users = user_entity::Entity::find()
+            .filter(conditions)
+            .order_by(user_entity::Column::CreatedAt, Order::Desc)
+            .all(db)
+            .await
+            .map_err(AuthError::from)?
+            .into_iter()
+            .map(User::from)
+            .collect();
+
+        Ok(users)
+    }
+
     /// Update user fields, re-hashing password if provided; invalidates cache.
-    #[allow(dead_code)] // TODO: Remove when implementing user management
     pub async fn update(
         &self,
         db: &DatabaseConnection,
@@ -185,7 +228,6 @@ impl User {
     }
 
     /// Enable or disable a user account; invalidates cache.
-    #[allow(dead_code)] // TODO: Remove when implementing user management
     pub async fn set_disabled(
         &self,
         db: &DatabaseConnection,
