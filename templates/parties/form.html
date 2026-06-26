@@ -28,7 +28,7 @@
               type="text"
               id="name"
               name="name"
-              value="{% if form.name is defined %}{{ form.name }}{% elif party is defined %}{{ party.name }}{% endif %}"
+              value="{{ form.name }}"
               class="input w-full"
               required
             />
@@ -38,7 +38,7 @@
               type="text"
               id="company"
               name="company"
-              value="{% if form.company is defined %}{{ form.company }}{% elif party is defined %}{{ party.company }}{% endif %}"
+              value="{{ form.company }}"
               placeholder="Optional"
               class="input w-full"
             />
@@ -48,7 +48,7 @@
               type="email"
               id="email"
               name="email"
-              value="{% if form.email is defined %}{{ form.email }}{% elif party is defined %}{{ party.email }}{% endif %}"
+              value="{{ form.email }}"
               class="input w-full"
               required
             />
@@ -58,7 +58,7 @@
               type="text"
               id="phone"
               name="phone"
-              value="{% if form.phone is defined %}{{ form.phone }}{% elif party is defined %}{{ party.phone }}{% endif %}"
+              value="{{ form.phone }}"
               class="input w-full"
               required
             />
@@ -70,7 +70,7 @@
               class="textarea w-full"
               required
             >
-{% if form.address is defined %}{{ form.address }}{% elif party is defined %}{{ party.address }}{% endif %}</textarea
+{{ form.address }}</textarea
             >
 
             <label class="label" for="party_type">Party Type</label>
@@ -80,13 +80,7 @@
               class="select w-full"
               required
             >
-              {% if form.party_type is defined %}
-                {% set current_party_type = form.party_type %}
-              {% elif party is defined %}
-                {% set current_party_type = party.party_type %}
-              {% else %}
-                {% set current_party_type = "" %}
-              {% endif %}
+              {% set current_party_type = form.party_type %}
               <option
                 value="Customer"
                 {% if current_party_type == "Customer" %}selected{% endif %}

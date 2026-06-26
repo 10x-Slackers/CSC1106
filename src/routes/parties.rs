@@ -147,7 +147,10 @@ pub async fn list_parties(
         Some("") => None,
         Some(s) => PartyStatus::parse(s),
     };
-    let status_str = query.status.as_deref().unwrap_or("Active");
+    let status_str = match query.status.as_deref() {
+        Some(s) if PartyStatus::parse(s).is_some() => s,
+        _ => "Active",
+    };
 
     match Party::list(db.get_ref(), q, party_type, status).await {
         Ok(parties) => render_parties_list(ListContext {

@@ -91,7 +91,7 @@
             <th>Email</th>
             <th>Phone</th>
             <th>Status</th>
-            <th>Created</th>
+            <th>Updated</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -116,7 +116,7 @@
                   <span class="badge badge-error">Inactive</span>
                 {% endif %}
               </td>
-              <td>{{ party.created_at }}</td>
+              <td>{{ party.updated_at | datetime }}</td>
               <td>
                 <a href="/parties/{{ party.id }}" class="btn btn-xs btn-ghost">
                   View

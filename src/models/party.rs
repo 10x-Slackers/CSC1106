@@ -104,7 +104,10 @@ impl Party {
         if let Some(query) = q {
             let query = query.trim();
             if !query.is_empty() {
-                let escaped = query.replace('%', "\\%").replace('_', "\\_");
+                let escaped = query
+                    .replace('\\', "\\\\")
+                    .replace('%', "\\%")
+                    .replace('_', "\\_");
                 let pattern = format!("%{}%", escaped);
                 conditions = conditions.add(
                     Condition::any()
@@ -159,13 +162,14 @@ impl Party {
             ..Default::default()
         };
 
-        party_entity::Entity::insert(party)
+        let result = party_entity::Entity::insert(party)
             .exec(db)
             .await
             .map_err(AuthError::from)?;
 
-        Self::find_by_email(db, email)
+        Self::find_model_by_id(db, result.last_insert_id)
             .await?
+            .map(Party::from)
             .ok_or(AuthError::NotFound)
     }
 

@@ -26,10 +26,13 @@ impl RoleSet for Finance {
 
 /// Look up a named role set by its short name.
 pub fn role_set(name: &str) -> Option<&'static [crate::entity::user::Role]> {
-    match name.trim().to_lowercase().as_str() {
-        "admin" => Some(AdminOnly::ROLES),
-        "finance" => Some(Finance::ROLES),
-        _ => None,
+    let name = name.trim();
+    if name.eq_ignore_ascii_case("admin") {
+        Some(AdminOnly::ROLES)
+    } else if name.eq_ignore_ascii_case("finance") {
+        Some(Finance::ROLES)
+    } else {
+        None
     }
 }
 

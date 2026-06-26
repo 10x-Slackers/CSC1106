@@ -36,6 +36,7 @@ async fn main() -> std::io::Result<()> {
     let db = db::init(&database_url).await;
     let mut tera = Tera::new("templates/**/*").expect("Failed to initialize Tera templates");
     tera.register_filter("can", tera_filters::can);
+    tera.register_filter("datetime", tera_filters::datetime);
     let user_cache = UserCache::new();
 
     println!("Server running at http://{host}:{port}");

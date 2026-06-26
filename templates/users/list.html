@@ -80,7 +80,7 @@
             <th>Email</th>
             <th>Role</th>
             <th>Status</th>
-            <th>Created</th>
+            <th>Updated</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -105,7 +105,7 @@
                   <span class="badge badge-success">Active</span>
                 {% endif %}
               </td>
-              <td>{{ user.created_at }}</td>
+              <td>{{ user.updated_at | datetime }}</td>
               <td>
                 <a
                   href="/users/{{ user.id }}/edit"
