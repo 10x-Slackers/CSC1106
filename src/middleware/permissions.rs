@@ -72,7 +72,7 @@ pub fn forbidden_page<B>(
         .expect("Tera not registered");
     let context = Context::new();
 
-    let rendered = tera.render("forbidden.html", &context).unwrap_or_else(|e| {
+    let rendered = tera.render("auth/forbidden.html", &context).unwrap_or_else(|e| {
         eprintln!("Template error: {e}");
         String::from(
             "<html><body><h1>Forbidden</h1><p>You don't have permission to access this page.</p><a href=\"/\">Go home</a></body></html>",

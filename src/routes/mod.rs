@@ -4,6 +4,8 @@ pub mod home;
 pub mod invoices;
 pub mod nav;
 pub mod parties;
+pub mod profile;
+pub mod render;
 pub mod reports;
 pub mod users;
 
@@ -16,5 +18,6 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         .configure(claims::configure)
         .configure(parties::configure)
         .configure(reports::configure)
-        .configure(users::configure);
+        .configure(users::configure)
+        .configure(profile::configure);
 }

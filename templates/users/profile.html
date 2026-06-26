@@ -1,0 +1,69 @@
+{% extends "partials/layout.html" %}
+
+{% block title %}My Profile{% endblock %}
+{% block page_content %}
+  <div class="mx-auto max-w-lg">
+    <div class="card card-border">
+      <div class="card-body">
+        <h2 class="card-title justify-center text-2xl">My Profile</h2>
+
+        {% if message != "" %}
+          <div
+            role="alert"
+            class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %}"
+          >
+            <span>{{ message }}</span>
+          </div>
+        {% endif %}
+
+        <form action="/profile" method="post">
+          <fieldset class="fieldset">
+            <label class="label" for="name">Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value="{{ form.name | default(value=current_user.name) }}"
+              class="input w-full"
+              required
+            />
+
+            <label class="label" for="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value="{{ form.email | default(value=current_user.email) }}"
+              class="input w-full"
+              required
+            />
+
+            <label class="label" for="current_password">Current password</label>
+            <input
+              type="password"
+              id="current_password"
+              name="current_password"
+              class="input w-full"
+              required
+            />
+
+            <label class="label" for="password"
+              >New password (leave blank to keep current)</label
+            >
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="input w-full"
+            />
+
+            <div class="mt-4 flex gap-2">
+              <button type="submit" class="btn btn-primary">Save</button>
+              <a href="/" class="btn btn-ghost">Cancel</a>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

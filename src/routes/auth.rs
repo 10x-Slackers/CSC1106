@@ -6,6 +6,7 @@ use tera::{Context, Tera};
 
 use crate::middleware::auth::UserCache;
 use crate::models::user::{AuthError, User};
+use crate::routes::render::render;
 
 /// Form data for the login page.
 #[derive(Deserialize)]
@@ -74,11 +75,7 @@ pub async fn logout(user: Option<Identity>, cache: web::Data<UserCache>) -> impl
 fn render_login(tera: &Tera, message: &str) -> HttpResponse {
     let mut context = Context::new();
     context.insert("message", message);
-
-    match tera.render("login.html", &context) {
-        Ok(rendered) => HttpResponse::Ok().content_type("text/html").body(rendered),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+    render(tera, "auth/login.html", &context)
 }
 
 pub fn configure(cfg: &mut web::ServiceConfig) {

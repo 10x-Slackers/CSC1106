@@ -1,21 +1,15 @@
-use actix_web::{HttpResponse, Responder, get, web};
-use tera::{Context, Tera};
+use actix_web::{Responder, get, web};
+use tera::Context;
 
 use crate::middleware::permissions::{Finance, Require};
 use crate::routes::nav::insert_nav_context;
+use crate::routes::render::render;
 
 #[get("/reports")]
-pub async fn reports(user: Require<Finance>, tera: web::Data<Tera>) -> impl Responder {
+pub async fn reports(user: Require<Finance>, tera: web::Data<tera::Tera>) -> impl Responder {
     let mut context = Context::new();
     insert_nav_context(&mut context, &user);
-
-    match tera.render("reports.html", &context) {
-        Ok(rendered) => HttpResponse::Ok().content_type("text/html").body(rendered),
-        Err(e) => {
-            eprintln!("Template error: {e}");
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+    render(&tera, "reports/index.html", &context)
 }
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
