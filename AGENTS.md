@@ -20,6 +20,12 @@ This is a **university coursework project** done by undergraduates. It is not a 
 - Do not add `derive(Debug)` unless it is actually needed
   - SeaORM `DeriveEntityModel` requires `Debug`
 - Always run `just format` and `just lint` after completing a task
+- Reduce duplicated code/logic. Extract shared helpers when patterns repeat, and account for likely future development where it makes sense
+- Don't spam comments or rustdoc. No verbose or decorative comments. Keep rustdoc short and normal comments concise — refer to the existing codebase for style
+
+## Testing
+
+- The server is long-running. Ask the user to start it if not already up; don't start it yourself as it will hang the session
 
 ## UI posture
 
