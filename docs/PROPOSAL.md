@@ -43,6 +43,7 @@ Shared search/filter system applied across modules. Each module supports text se
 | Module          | Search By                               | Filter By                                        |
 | --------------- | --------------------------------------- | ------------------------------------------------ |
 | Invoices        | invoice number, party name              | party, status, issue date, due date              |
+| Payments        | party name, remarks                     | direction (IN/OUT), party, date range            |
 | Claims          | employee name, claim title, category    | date range, employee, category, status           |
 | Parties         | name, company                           | type (customer/vendor), status (active/inactive) |
 | Journal Entries | entry number, account name, description | date range, account type, source type            |
@@ -117,6 +118,7 @@ Allow Admin/Accountant to create, edit, and deactivate accounts beyond the seede
 ### Invoice & Payment Integration
 
 - One-to-many (party → invoices)
+- Payments recorded through the Payment Records module may link to a party
 - Support partial payments
 
 ### Party Dashboard
@@ -130,7 +132,7 @@ Allow Admin/Accountant to create, edit, and deactivate accounts beyond the seede
 
 ## Invoice Management
 
-_Consolidated module: includes tax calculation and payment recording._
+_Includes tax calculation._
 
 ### CRUD Operations
 
@@ -167,14 +169,9 @@ _Consolidated module: includes tax calculation and payment recording._
 
 ### Payment Recording
 
-- Record payments against invoices
-- Payment direction: IN (customer pays us) and OUT (we pay vendor)
-- Nullable `party_id` allows payments not tied to a specific party
-- Nullable `invoice_id` allows payments not tied to a specific invoice
-- Optional `remarks` text field
-- Partial payment tracking
-  - auto-updates invoice status to Partially Paid or Paid
-- Payment history per party and per invoice
+- Payments are recorded through the Payment Records module (see below)
+- Recording a payment against an invoice auto-updates its status (Partially Paid / Paid)
+- Payment history per invoice appears on the invoice detail page
 
 ### Double Entry Posting (Invoice)
 
@@ -189,12 +186,31 @@ When an invoice is sent (posted to ledger):
 
 ### Double Entry Posting (Payment)
 
-When a payment is recorded against an invoice:
+When a payment is recorded against an invoice (IN direction, linked):
 
 | Account             | Debit          | Credit         |
 | ------------------- | -------------- | -------------- |
 | Cash                | Payment amount |                |
 | Accounts Receivable |                | Payment amount |
+
+## Payment Records
+
+_Payments may tie to an invoice/party or stand alone._
+
+### Payment CRUD
+
+- Record payments (IN and OUT directions)
+- Nullable `party_id` allows payments not tied to a specific party
+- Optional `remarks` text field
+- List payments with filters (direction, party, date range)
+- View payment detail with linked source document
+- Manually recorded payments cannot link to an invoice — invoice-linked payments are created only through the invoice payment flow (see Invoice Management)
+
+### Invoice Integration
+
+- Recording an IN payment against an invoice auto-updates its status (Partially Paid / Paid)
+- Payment history per invoice appears on the invoice detail page
+
 
 ---
 
@@ -328,16 +344,19 @@ Centralized service that all modules call to post journal entries:
 flowchart TD
     Auth["Auth & RBAC"]
     Party["Party Management"]
-    Invoice["Invoice Management\n(includes Tax + Payments)"]
+    Invoice["Invoice Management\n(includes Tax)"]
+    Payment["Payment Records"]
     Claims["Claims / Expense Tracking"]
     DEE["Double Entry Accounting Engine"]
     Reports["Financial Reports"]
 
     Auth --> Party
     Auth --> Invoice
+    Auth --> Payment
     Auth --> Claims
     Party --> Invoice
     Invoice --> DEE
+    Payment --> DEE
     Claims --> DEE
     DEE --> Reports
 ```
