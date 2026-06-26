@@ -99,8 +99,8 @@ pub async fn list_users(
     query: web::Query<UserFilter>,
 ) -> HttpResponse {
     let q = query.q.as_deref();
-    let role = query.role.as_deref().and_then(Role::from_str);
-    let status = query.status.as_deref().and_then(UserStatus::from_str);
+    let role = query.role.as_deref().and_then(Role::parse);
+    let status = query.status.as_deref().and_then(UserStatus::parse);
 
     match User::list(db.get_ref(), q, role, status).await {
         Ok(users) => render_users_list(ListContext {
@@ -173,7 +173,7 @@ pub async fn create_user(
     if password.is_empty() {
         errors.push("Password is required.");
     }
-    let role = match Role::from_str(role_str) {
+    let role = match Role::parse(role_str) {
         Some(r) => r,
         None => {
             errors.push("Role must be Admin, Accountant, or Staff.");
@@ -304,7 +304,7 @@ pub async fn update_user(
 
     // Block changing own role
     if id == current_user.id
-        && Role::from_str(role_str) != Some(current_user.role.clone())
+        && Role::parse(role_str) != Some(current_user.role.clone())
         && let Ok(Some(existing)) = User::find_by_id(db.get_ref(), id).await
     {
         return render_user_form(FormContext {
@@ -339,7 +339,7 @@ pub async fn update_user(
     } else if !email.contains('@') {
         errors.push("Email must contain '@'.");
     }
-    let role = match Role::from_str(role_str) {
+    let role = match Role::parse(role_str) {
         Some(r) => r,
         None => {
             errors.push("Role must be Admin, Accountant, or Staff.");

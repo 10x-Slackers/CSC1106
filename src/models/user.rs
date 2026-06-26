@@ -156,7 +156,8 @@ impl User {
         if let Some(query) = q {
             let query = query.trim();
             if !query.is_empty() {
-                let pattern = format!("%{}%", query);
+                let escaped = query.replace('%', "\\%").replace('_', "\\_");
+                let pattern = format!("%{}%", escaped);
                 conditions = conditions.add(
                     Condition::any()
                         .add(user_entity::Column::Name.like(&pattern))

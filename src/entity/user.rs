@@ -28,7 +28,7 @@ impl fmt::Display for Role {
 
 impl Role {
     /// Parse a role string (case-insensitive) into a `Role`.
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.trim().to_lowercase().as_str() {
             "admin" => Some(Role::Admin),
             "accountant" => Some(Role::Accountant),
@@ -47,7 +47,7 @@ pub enum UserStatus {
 
 impl UserStatus {
     /// Parse a status string (case-insensitive) into a `UserStatus`.
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.trim().to_lowercase().as_str() {
             "active" => Some(UserStatus::Active),
             "disabled" => Some(UserStatus::Disabled),
