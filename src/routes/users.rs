@@ -11,6 +11,8 @@ use crate::models::user::{AuthError, User};
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
 
+const ROLE_LABELS: &[&str] = &["Admin", "Accountant", "Staff"];
+
 #[derive(Deserialize)]
 pub struct UserForm {
     name: String,
@@ -40,6 +42,7 @@ struct ListContext<'a> {
     q: &'a str,
     role: &'a str,
     status: &'a str,
+    roles: &'a [&'a str],
     message: &'a str,
     message_kind: &'a str,
 }
@@ -50,6 +53,7 @@ fn render_users_list(ctx: ListContext) -> HttpResponse {
     context.insert("q", ctx.q);
     context.insert("role", ctx.role);
     context.insert("status", ctx.status);
+    context.insert("roles", ctx.roles);
     context.insert("message", ctx.message);
     context.insert("message_kind", ctx.message_kind);
     insert_nav_context(&mut context, ctx.user);
@@ -64,6 +68,7 @@ struct FormContext<'a> {
     form_name: &'a str,
     form_email: &'a str,
     form_role: &'a str,
+    roles: &'a [&'a str],
     message: &'a str,
     message_kind: &'a str,
 }
@@ -78,6 +83,7 @@ fn render_user_form(ctx: FormContext) -> HttpResponse {
         role: ctx.form_role,
     };
     context.insert("form", &form);
+    context.insert("roles", ctx.roles);
     context.insert("message", ctx.message);
     context.insert("message_kind", ctx.message_kind);
     insert_nav_context(&mut context, ctx.user);
@@ -98,6 +104,7 @@ pub async fn list_users(
 
     match User::list(db.get_ref(), q, role, status).await {
         Ok(users) => render_users_list(ListContext {
+            roles: ROLE_LABELS,
             tera: tera.get_ref(),
             user: &user,
             users: &users,
@@ -110,6 +117,7 @@ pub async fn list_users(
         Err(e) => {
             eprintln!("Failed to list users: {e}");
             render_users_list(ListContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &user,
                 users: &[],
@@ -127,6 +135,7 @@ pub async fn list_users(
 #[get("/users/new")]
 pub async fn new_user(user: Require<AdminOnly>, tera: web::Data<Tera>) -> HttpResponse {
     render_user_form(FormContext {
+        roles: ROLE_LABELS,
         tera: tera.get_ref(),
         user: &user,
         mode: "create",
@@ -174,6 +183,7 @@ pub async fn create_user(
 
     if !errors.is_empty() {
         return render_user_form(FormContext {
+            roles: ROLE_LABELS,
             tera: tera.get_ref(),
             user: &user,
             mode: "create",
@@ -189,6 +199,7 @@ pub async fn create_user(
     match User::create(db.get_ref(), email, name, password, role).await {
         Ok(_) => match User::list(db.get_ref(), None, None, None).await {
             Ok(users) => render_users_list(ListContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &user,
                 users: &users,
@@ -201,6 +212,7 @@ pub async fn create_user(
             Err(e) => {
                 eprintln!("Failed to list users after create: {e}");
                 render_users_list(ListContext {
+                    roles: ROLE_LABELS,
                     tera: tera.get_ref(),
                     user: &user,
                     users: &[],
@@ -214,6 +226,7 @@ pub async fn create_user(
         },
         Err(AuthError::DatabaseError(ref e)) if is_unique_violation(e) => {
             render_user_form(FormContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &user,
                 mode: "create",
@@ -228,6 +241,7 @@ pub async fn create_user(
         Err(e) => {
             eprintln!("Failed to create user: {e}");
             render_user_form(FormContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &user,
                 mode: "create",
@@ -254,6 +268,7 @@ pub async fn edit_user(
 
     match User::find_by_id(db.get_ref(), id).await {
         Ok(Some(existing)) => render_user_form(FormContext {
+            roles: ROLE_LABELS,
             tera: tera.get_ref(),
             user: &user,
             mode: "edit",
@@ -293,6 +308,7 @@ pub async fn update_user(
         && let Ok(Some(existing)) = User::find_by_id(db.get_ref(), id).await
     {
         return render_user_form(FormContext {
+            roles: ROLE_LABELS,
             tera: tera.get_ref(),
             user: &current_user,
             mode: "edit",
@@ -333,6 +349,7 @@ pub async fn update_user(
 
     if !errors.is_empty() {
         return render_user_form(FormContext {
+            roles: ROLE_LABELS,
             tera: tera.get_ref(),
             user: &current_user,
             mode: "edit",
@@ -360,6 +377,7 @@ pub async fn update_user(
     {
         Ok(_) => match User::list(db.get_ref(), None, None, None).await {
             Ok(users) => render_users_list(ListContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &current_user,
                 users: &users,
@@ -372,6 +390,7 @@ pub async fn update_user(
             Err(e) => {
                 eprintln!("Failed to list users after update: {e}");
                 render_users_list(ListContext {
+                    roles: ROLE_LABELS,
                     tera: tera.get_ref(),
                     user: &current_user,
                     users: &[],
@@ -385,6 +404,7 @@ pub async fn update_user(
         },
         Err(AuthError::DatabaseError(ref e)) if is_unique_violation(e) => {
             render_user_form(FormContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &current_user,
                 mode: "edit",
@@ -399,6 +419,7 @@ pub async fn update_user(
         Err(e) => {
             eprintln!("Failed to update user {id}: {e}");
             render_user_form(FormContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &current_user,
                 mode: "edit",
@@ -429,6 +450,7 @@ pub async fn disable_user(
             .await
             .unwrap_or_default();
         return render_users_list(ListContext {
+            roles: ROLE_LABELS,
             tera: tera.get_ref(),
             user: &current_user,
             users: &users,
@@ -455,6 +477,7 @@ pub async fn disable_user(
     {
         Ok(_) => match User::list(db.get_ref(), None, None, None).await {
             Ok(users) => render_users_list(ListContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &current_user,
                 users: &users,
@@ -467,6 +490,7 @@ pub async fn disable_user(
             Err(e) => {
                 eprintln!("Failed to list users after disable: {e}");
                 render_users_list(ListContext {
+                    roles: ROLE_LABELS,
                     tera: tera.get_ref(),
                     user: &current_user,
                     users: &[],
@@ -484,6 +508,7 @@ pub async fn disable_user(
                 .await
                 .unwrap_or_default();
             render_users_list(ListContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &current_user,
                 users: &users,
@@ -508,22 +533,6 @@ pub async fn enable_user(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    if id == current_user.id {
-        let users = User::list(db.get_ref(), None, None, None)
-            .await
-            .unwrap_or_default();
-        return render_users_list(ListContext {
-            tera: tera.get_ref(),
-            user: &current_user,
-            users: &users,
-            q: "",
-            role: "",
-            status: "",
-            message: "You cannot enable your own account.",
-            message_kind: "error",
-        });
-    }
-
     let existing = match User::find_by_id(db.get_ref(), id).await {
         Ok(Some(u)) => u,
         Ok(None) => return HttpResponse::NotFound().body("User not found."),
@@ -539,6 +548,7 @@ pub async fn enable_user(
     {
         Ok(_) => match User::list(db.get_ref(), None, None, None).await {
             Ok(users) => render_users_list(ListContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &current_user,
                 users: &users,
@@ -551,6 +561,7 @@ pub async fn enable_user(
             Err(e) => {
                 eprintln!("Failed to list users after enable: {e}");
                 render_users_list(ListContext {
+                    roles: ROLE_LABELS,
                     tera: tera.get_ref(),
                     user: &current_user,
                     users: &[],
@@ -568,6 +579,7 @@ pub async fn enable_user(
                 .await
                 .unwrap_or_default();
             render_users_list(ListContext {
+                roles: ROLE_LABELS,
                 tera: tera.get_ref(),
                 user: &current_user,
                 users: &users,

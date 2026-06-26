@@ -15,6 +15,7 @@ pub struct ProfileForm {
     email: String,
     current_password: String,
     password: Option<String>,
+    confirm_password: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -95,6 +96,14 @@ pub async fn update_profile(
         errors.push("Email must contain '@'.");
     }
 
+    let password_opt = form.password.as_deref().filter(|p| !p.trim().is_empty());
+    if let Some(pw) = password_opt {
+        let confirm = form.confirm_password.as_deref().unwrap_or_default().trim();
+        if pw != confirm {
+            errors.push("New password and confirmation do not match.");
+        }
+    }
+
     if !errors.is_empty() {
         return render_profile(
             tera.get_ref(),
@@ -105,8 +114,6 @@ pub async fn update_profile(
             "error",
         );
     }
-
-    let password_opt = form.password.as_deref().filter(|p| !p.trim().is_empty());
 
     match existing
         .update(

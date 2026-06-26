@@ -57,24 +57,14 @@
               {% else %}
                 {% set current_role = "" %}
               {% endif %}
-              <option
-                value="Admin"
-                {% if current_role == "Admin" %}selected{% endif %}
-              >
-                Admin
-              </option>
-              <option
-                value="Accountant"
-                {% if current_role == "Accountant" %}selected{% endif %}
-              >
-                Accountant
-              </option>
-              <option
-                value="Staff"
-                {% if current_role == "Staff" %}selected{% endif %}
-              >
-                Staff
-              </option>
+              {% for role_option in roles %}
+                <option
+                  value="{{ role_option }}"
+                  {% if current_role == role_option %}selected{% endif %}
+                >
+                  {{ role_option }}
+                </option>
+              {% endfor %}
             </select>
             {% if mode == "edit" and user.id == current_user.id %}
               <p class="label">You cannot change your own role.</p>
