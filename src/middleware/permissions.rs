@@ -24,6 +24,18 @@ impl RoleSet for Finance {
     ];
 }
 
+/// Look up a named role set by its short name.
+pub fn role_set(name: &str) -> Option<&'static [crate::entity::user::Role]> {
+    let name = name.trim();
+    if name.eq_ignore_ascii_case("admin") {
+        Some(AdminOnly::ROLES)
+    } else if name.eq_ignore_ascii_case("finance") {
+        Some(Finance::ROLES)
+    } else {
+        None
+    }
+}
+
 /// Extractor that requires the user's role to be in `R::ROLES`.
 pub struct Require<R: RoleSet> {
     pub user: Authenticated,
