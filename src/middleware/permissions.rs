@@ -25,10 +25,6 @@ impl RoleSet for Finance {
 }
 
 /// Look up a named role set by its short name.
-///
-/// Used by the `can` Tera filter so templates can do
-/// `{% if current_user.role | can(set="finance") %}` without re-declaring role
-/// lists. Add new arms here as new `RoleSet` types are defined.
 pub fn role_set(name: &str) -> Option<&'static [crate::entity::user::Role]> {
     match name.trim().to_lowercase().as_str() {
         "admin" => Some(AdminOnly::ROLES),
