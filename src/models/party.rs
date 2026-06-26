@@ -153,7 +153,7 @@ impl Party {
             party_type: Set(party_type),
             name: Set(name.into()),
             company: Set(company.map(|s| s.into())),
-            email: Set(email.into()),
+            email: Set(email.trim().to_lowercase()),
             phone: Set(phone.into()),
             address: Set(address.into()),
             status: Set(PartyStatus::Active),
@@ -185,11 +185,19 @@ impl Party {
         phone: Option<&str>,
         address: Option<&str>,
     ) -> Result<Party, AuthError> {
-        let party_model = Self::find_model_by_id(db, self.id)
-            .await?
-            .ok_or(AuthError::NotFound)?;
-
-        let mut party: party_entity::ActiveModel = party_model.into();
+        let mut party: party_entity::ActiveModel = party_entity::ActiveModel {
+            id: Set(self.id),
+            party_type: Set(self.party_type.clone()),
+            name: Set(self.name.clone()),
+            company: Set(self.company.clone()),
+            email: Set(self.email.clone()),
+            phone: Set(self.phone.clone()),
+            address: Set(self.address.clone()),
+            status: Set(self.status.clone()),
+            created_at: Set(self.created_at),
+            updated_at: Set(self.updated_at),
+            ..Default::default()
+        };
 
         if let Some(pt) = party_type {
             party.party_type = Set(pt);
@@ -201,7 +209,7 @@ impl Party {
             party.company = Set(company.map(|s| s.into()));
         }
         if let Some(email) = email {
-            party.email = Set(email.into());
+            party.email = Set(email.trim().to_lowercase());
         }
         if let Some(phone) = phone {
             party.phone = Set(phone.into());
@@ -223,11 +231,19 @@ impl Party {
         db: &DatabaseConnection,
         status: PartyStatus,
     ) -> Result<Party, AuthError> {
-        let party_model = Self::find_model_by_id(db, self.id)
-            .await?
-            .ok_or(AuthError::NotFound)?;
-
-        let mut party: party_entity::ActiveModel = party_model.into();
+        let mut party: party_entity::ActiveModel = party_entity::ActiveModel {
+            id: Set(self.id),
+            party_type: Set(self.party_type.clone()),
+            name: Set(self.name.clone()),
+            company: Set(self.company.clone()),
+            email: Set(self.email.clone()),
+            phone: Set(self.phone.clone()),
+            address: Set(self.address.clone()),
+            status: Set(self.status.clone()),
+            created_at: Set(self.created_at),
+            updated_at: Set(self.updated_at),
+            ..Default::default()
+        };
         party.status = Set(status);
         party.updated_at = Set(chrono::Utc::now().naive_utc());
 
