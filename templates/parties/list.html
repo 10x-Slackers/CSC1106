@@ -1,0 +1,154 @@
+{% extends "partials/layout.html" %}
+
+{% block title %}Parties{% endblock %}
+{% block page_content %}
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="text-3xl font-bold">Parties</h1>
+    {% if current_user.role | can(set="finance") %}
+      <a href="/parties/new" class="btn btn-primary">New Party</a>
+    {% endif %}
+  </div>
+
+  {% if message != "" %}
+    <div
+      role="alert"
+      class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %} mb-4"
+    >
+      <span>{{ message }}</span>
+    </div>
+  {% endif %}
+
+  <form action="/parties" method="get" class="flex flex-wrap items-end gap-2">
+    <label class="input w-full grow sm:w-auto">
+      <span class="label">Search</span>
+      <input
+        type="text"
+        name="q"
+        value="{{ q }}"
+        placeholder="Search by name or company..."
+        class="input"
+      />
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Type</span>
+      <select name="party_type" class="select select-sm">
+        <option value="" {% if party_type == "" %}selected{% endif %}>
+          All
+        </option>
+        <option
+          value="Customer"
+          {% if party_type == "Customer" %}selected{% endif %}
+        >
+          Customer
+        </option>
+        <option
+          value="Vendor"
+          {% if party_type == "Vendor" %}selected{% endif %}
+        >
+          Vendor
+        </option>
+      </select>
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Status</span>
+      <select name="status" class="select select-sm">
+        <option value="" {% if status == "" %}selected{% endif %}>All</option>
+        <option value="Active" {% if status == "Active" %}selected{% endif %}>
+          Active
+        </option>
+        <option
+          value="Inactive"
+          {% if status == "Inactive" %}selected{% endif %}
+        >
+          Inactive
+        </option>
+      </select>
+    </label>
+
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    <a href="/parties" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+
+  <p class="text-base-content/40 mt-4 mb-2 text-sm">
+    Deactivated parties are hidden by default. Select "Inactive" or "All" to
+    view them.
+  </p>
+
+  <div class="mt-6 overflow-x-auto">
+    {% if parties | length == 0 %}
+      <div role="alert" class="alert">
+        <span>No records found.</span>
+      </div>
+    {% else %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Company</th>
+            <th>Type</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for party in parties %}
+            <tr>
+              <td>{{ party.name }}</td>
+              <td>{{ party.company | default(value="—") }}</td>
+              <td>
+                {% if party.party_type == "Customer" %}
+                  <span class="badge badge-primary">Customer</span>
+                {% else %}
+                  <span class="badge badge-secondary">Vendor</span>
+                {% endif %}
+              </td>
+              <td>{{ party.email }}</td>
+              <td>{{ party.phone }}</td>
+              <td>
+                {% if party.status == "Active" %}
+                  <span class="badge badge-success">Active</span>
+                {% else %}
+                  <span class="badge badge-error">Inactive</span>
+                {% endif %}
+              </td>
+              <td>{{ party.created_at }}</td>
+              <td>
+                <a href="/parties/{{ party.id }}" class="btn btn-xs btn-ghost">
+                  View
+                </a>
+                {% if current_user.role | can(set="finance") %}
+                  {% if party.status == "Active" %}
+                    <form
+                      action="/parties/{{ party.id }}/deactivate"
+                      method="post"
+                      class="inline"
+                    >
+                      <button type="submit" class="btn btn-xs btn-warning">
+                        Deactivate
+                      </button>
+                    </form>
+                  {% else %}
+                    <form
+                      action="/parties/{{ party.id }}/activate"
+                      method="post"
+                      class="inline"
+                    >
+                      <button type="submit" class="btn btn-xs btn-success">
+                        Activate
+                      </button>
+                    </form>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+{% endblock %}

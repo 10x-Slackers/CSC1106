@@ -7,6 +7,7 @@ pub mod parties;
 pub mod profile;
 pub mod render;
 pub mod reports;
+pub mod tera_filters;
 pub mod users;
 
 use actix_web::web;

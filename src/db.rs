@@ -16,8 +16,9 @@ pub async fn init(database_url: &str) -> DatabaseConnection {
         .await
         .expect("Failed to run migrations");
 
-    seed::seed_users(&db).await;
     seed::seed_accounts(&db).await;
+    seed::seed_users(&db).await;
+    seed::seed_parties(&db).await;
 
     db
 }

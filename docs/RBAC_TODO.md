@@ -8,7 +8,7 @@ Deferred work for the two-tier RBAC plan. Page-level gates are done (`/users` â†
 
 ## Template helper
 
-- [ ] Add `Role::can(roles: &[Role]) -> bool` helper on `crate::entity::user::Role` for template button visibility (void, approve, record payment, party CRUD). Register as a Tera filter or inject via context so templates can do `{% if user.role | can([Admin, Accountant]) %}`.
+- [x] Add `Role::can(roles: &[Role]) -> bool` helper on `crate::entity::user::Role` for template button visibility. Registered as a Tera filter named `can` â€” usage: `{% if current_user.role | can(roles=["Admin","Accountant"]) %}`.
 
 ## Action-level gates (inline check, render forbidden inline â€” no flash/session)
 
@@ -25,7 +25,7 @@ Deferred work for the two-tier RBAC plan. Page-level gates are done (`/users` â†
 
 ## Template-side enforcement
 
-- [ ] Party read-only for Staff: hide/disable create/edit/deactivate buttons via `Role::can`
+- [x] Party read-only for Staff: hide/disable create/edit/deactivate buttons via `Role::can`
 
 ## Future routes
 

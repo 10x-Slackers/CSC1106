@@ -17,6 +17,7 @@ use tera::Tera;
 use crate::middleware::auth::UserCache;
 use crate::middleware::auth::show_unauthorized_page;
 use crate::middleware::permissions::forbidden_page;
+use crate::routes::tera_filters;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -33,7 +34,8 @@ async fn main() -> std::io::Result<()> {
         std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://./data.db?mode=rwc".to_string());
 
     let db = db::init(&database_url).await;
-    let tera = Tera::new("templates/**/*").expect("Failed to initialize Tera templates");
+    let mut tera = Tera::new("templates/**/*").expect("Failed to initialize Tera templates");
+    tera.register_filter("can", tera_filters::can);
     let user_cache = UserCache::new();
 
     println!("Server running at http://{host}:{port}");
