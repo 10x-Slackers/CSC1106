@@ -212,7 +212,7 @@ pub async fn create_payment(
     let from_account_id = match from_account_id_str.parse::<i32>() {
         Ok(id) => id,
         Err(_) => {
-            errors.push("From account is required.");
+            errors.push("Invalid from account.");
             0
         }
     };
@@ -220,7 +220,7 @@ pub async fn create_payment(
     let to_account_id = match to_account_id_str.parse::<i32>() {
         Ok(id) => id,
         Err(_) => {
-            errors.push("To account is required.");
+            errors.push("Invalid to account.");
             0
         }
     };

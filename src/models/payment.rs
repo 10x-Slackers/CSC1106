@@ -177,8 +177,11 @@ impl Payment {
             conditions = conditions.add(payment_entity::Column::PartyId.eq(pid));
         }
 
-        if let (Some(from), Some(to)) = (from_date, to_date) {
-            conditions = conditions.add(payment_entity::Column::PaymentDate.between(from, to));
+        if let Some(from) = from_date {
+            conditions = conditions.add(payment_entity::Column::PaymentDate.gte(from));
+        }
+        if let Some(to) = to_date {
+            conditions = conditions.add(payment_entity::Column::PaymentDate.lte(to));
         }
 
         let payments = payment_entity::Entity::find()
@@ -247,13 +250,15 @@ impl Payment {
         db: &DatabaseConnection,
         party_id: i32,
     ) -> Result<Decimal, AuthError> {
-        let payments = payment_entity::Entity::find()
+        use sea_orm::sea_query::Expr;
+        let total: Option<Decimal> = payment_entity::Entity::find()
             .filter(payment_entity::Column::PartyId.eq(party_id))
-            .all(db)
-            .await
-            .map_err(AuthError::from)?;
-
-        Ok(payments.iter().fold(Decimal::ZERO, |acc, p| acc + p.amount))
+            .select_only()
+            .expr(Expr::col(payment_entity::Column::Amount).sum())
+            .into_tuple()
+            .one(db)
+            .await?;
+        Ok(total.unwrap_or(Decimal::ZERO))
     }
 
     /// Most recent payments for a given party.
