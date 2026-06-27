@@ -41,6 +41,10 @@ fn nav_links_for_role(role: &Role) -> Vec<NavLink> {
 
     if Finance::ROLES.contains(role) {
         links.push(NavLink {
+            name: "Payments".into(),
+            href: "/payments".into(),
+        });
+        links.push(NavLink {
             name: "Reports".into(),
             href: "/reports".into(),
         });

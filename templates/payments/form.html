@@ -1,0 +1,125 @@
+{% extends "partials/layout.html" %}
+
+{% block title %}Record Payment{% endblock %}
+{% block page_content %}
+  <div class="mx-auto max-w-lg">
+    <div class="card card-border">
+      <div class="card-body">
+        <h2 class="card-title justify-center text-2xl">Record Payment</h2>
+
+        {% if message != "" %}
+          <div
+            role="alert"
+            class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %}"
+          >
+            <span>{{ message }}</span>
+          </div>
+        {% endif %}
+
+        <form action="/payments" method="post">
+          <fieldset class="fieldset">
+            <label class="label" for="payment_direction">Direction</label>
+            <select
+              id="payment_direction"
+              name="payment_direction"
+              class="select w-full"
+              required
+            >
+              <option value="IN">In (money received)</option>
+              <option value="OUT">Out (money sent out)</option>
+            </select>
+
+            <label class="label" for="amount">Amount</label>
+            <input
+              type="number"
+              id="amount"
+              name="amount"
+              step="0.01"
+              min="0"
+              class="input w-full"
+              required
+            />
+
+            <label class="label" for="payment_date">Payment Date</label>
+            <input
+              type="date"
+              id="payment_date"
+              name="payment_date"
+              class="input w-full"
+              required
+            />
+
+            <label class="label" for="party_id">Party</label>
+            <select id="party_id" name="party_id" class="select w-full">
+              <option value="">No party</option>
+              {% for p in parties %}
+                <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+
+            <label class="label" for="from_account_id"
+              >From Account (credit)</label
+            >
+            <select
+              id="from_account_id"
+              name="from_account_id"
+              class="select w-full"
+              required
+            >
+              <option value="">Select account...</option>
+              {% for a in accounts %}
+                <option value="{{ a.id }}">{{ a.name }}</option>
+              {% endfor %}
+            </select>
+
+            <label class="label" for="to_account_id">To Account (debit)</label>
+            <select
+              id="to_account_id"
+              name="to_account_id"
+              class="select w-full"
+              required
+            >
+              <option value="">Select account...</option>
+              {% for a in accounts %}
+                <option value="{{ a.id }}">{{ a.name }}</option>
+              {% endfor %}
+            </select>
+
+            <label class="label" for="remarks">Remarks</label>
+            <textarea
+              id="remarks"
+              name="remarks"
+              class="textarea w-full"
+            ></textarea>
+
+            <div class="mt-4 flex gap-2">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                id="payment-submit-btn"
+              >
+                Record Payment
+              </button>
+              <a href="/payments" class="btn btn-ghost">Cancel</a>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document
+      .getElementById("payment-submit-btn")
+      .closest("form")
+      .addEventListener("submit", function (e) {
+        if (
+          !confirm(
+            "Record this payment and post to journal? This cannot be undone.",
+          )
+        ) {
+          e.preventDefault();
+        }
+      });
+  </script>
+{% endblock %}

@@ -13,9 +13,12 @@ pub struct Model {
     pub created_at: DateTime,
 }
 
-#[allow(dead_code)] // TODO: Remove when implementing invoice/payment/claim posting
 /// Each journal entry traces back to only one source document.
+///
+/// `Claim`, `Invoice`, and `Manual` variants are unused until claim/invoice
+/// posting is implemented; they are kept here so the enum is complete.
 #[derive(Clone)]
+#[allow(dead_code)]
 pub enum SourceDocument {
     Payment { payment_id: i32 },
     Claim { claim_id: i32 },
@@ -24,7 +27,6 @@ pub enum SourceDocument {
 }
 
 impl SourceDocument {
-    #[allow(dead_code)] // TODO: Remove when implementing invoice/payment/claim posting
     /// Map the source document variant to its nullable FK columns.
     pub fn to_fks(&self) -> (Option<i32>, Option<i32>, Option<i32>) {
         match self {

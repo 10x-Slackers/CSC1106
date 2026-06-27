@@ -1,0 +1,122 @@
+{% extends "partials/layout.html" %}
+
+{% block title %}Payments{% endblock %}
+{% block page_content %}
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="text-3xl font-bold">Payments</h1>
+    {% if current_user.role | can(set="finance") %}
+      <a href="/payments/new" class="btn btn-primary btn-sm">Record Payment</a>
+    {% endif %}
+  </div>
+
+  {% if message != "" %}
+    <div
+      role="alert"
+      class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %} mb-4"
+    >
+      <span>{{ message }}</span>
+    </div>
+  {% endif %}
+
+  <form action="/payments" method="get" class="flex flex-wrap items-end gap-2">
+    <label class="input w-full grow sm:w-auto">
+      <span class="label">Search</span>
+      <input
+        type="text"
+        name="q"
+        placeholder="Search remarks..."
+        class="input"
+      />
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Direction</span>
+      <select name="direction" class="select select-sm">
+        <option value="">All directions</option>
+        <option value="IN">In</option>
+        <option value="OUT">Out</option>
+      </select>
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Party</span>
+      <select name="party_id" class="select select-sm">
+        <option value="">All parties</option>
+        {% for p in parties %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">From</span>
+      <input type="date" name="from_date" class="input input-sm" />
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">To</span>
+      <input type="date" name="to_date" class="input input-sm" />
+    </label>
+
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+    <a href="/payments" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+
+  <div class="mt-6 overflow-x-auto">
+    {% if payments | length == 0 %}
+      <div role="alert" class="alert">
+        <span>No payments found.</span>
+      </div>
+    {% else %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Direction</th>
+            <th>Party</th>
+            <th>Remarks</th>
+            <th>Amount</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+            <tr>
+              <td>{{ payment.payment_date }}</td>
+              <td>
+                {% if payment.payment_direction == "IN" %}
+                  <span class="badge badge-success">In</span>
+                {% else %}
+                  <span class="badge badge-error">Out</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if payment.party_name %}
+                  {{ payment.party_name }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if payment.remarks %}
+                  {{ payment.remarks }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>{{ payment.amount }}</td>
+              <td>
+                <a
+                  href="/payments/{{ payment.id }}"
+                  class="btn btn-xs btn-ghost"
+                >
+                  View
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+{% endblock %}

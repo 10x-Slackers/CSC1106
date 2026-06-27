@@ -211,7 +211,6 @@ _Payments may tie to an invoice/party or stand alone._
 - Recording an IN payment against an invoice auto-updates its status (Partially Paid / Paid)
 - Payment history per invoice appears on the invoice detail page
 
-
 ---
 
 ## Claims / Expense Tracking
