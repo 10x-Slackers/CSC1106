@@ -1,12 +1,11 @@
 use rust_decimal::Decimal;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, Set, TransactionTrait};
+use sea_orm::{ActiveModelTrait, ConnectionTrait, DbErr, EntityTrait, Set};
 
 use crate::entity::journal_entry as journal_entry_entity;
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line as journal_entry_line_entity;
 use crate::entity::journal_entry_line::EntrySide;
 
-#[allow(dead_code)] // TODO: Remove when implementing journal entry UI
 #[derive(Clone)]
 /// Input for a single debit or credit line within a journal entry.
 pub struct JournalEntryLineInput {
@@ -16,7 +15,6 @@ pub struct JournalEntryLineInput {
     pub description: Option<String>,
 }
 
-#[allow(dead_code)] // TODO: Remove when implementing journal entry UI
 #[derive(Debug)]
 pub enum PostingError {
     UnbalancedEntry {
@@ -56,69 +54,51 @@ impl From<DbErr> for PostingError {
     }
 }
 
-#[allow(dead_code)] // TODO: Remove when implementing journal entry UI
 /// Centralised posting service for the double-entry accounting engine.
 pub struct PostingService;
 
-#[allow(dead_code)] // TODO: Remove when implementing journal entry UI
 impl PostingService {
-    /// Create and post a journal entry with an atomic transaction.
-    pub async fn post_entry(
-        db: &DatabaseConnection,
+    /// Create and post a journal entry within an existing transaction.
+    pub async fn post_entry_in<C: ConnectionTrait>(
+        db: &C,
         lines: Vec<JournalEntryLineInput>,
         source: SourceDocument,
         created_by_user_id: i32,
     ) -> Result<journal_entry_entity::Model, PostingError> {
         Self::validate_lines(&lines)?;
 
-        // Execute within a transaction
-        let result = db
-            .transaction::<_, journal_entry_entity::Model, PostingError>(|txn| {
-                let lines = lines.clone();
-                let source = source.clone();
-                Box::pin(async move {
-                    let now = chrono::Utc::now().naive_utc();
+        let now = chrono::Utc::now().naive_utc();
 
-                    // Insert journal entry header
-                    let (payment_id, claim_id, invoice_id) = source.to_fks();
+        let (payment_id, claim_id, invoice_id) = source.to_fks();
 
-                    let journal_entry = journal_entry_entity::ActiveModel {
-                        payment_id: Set(payment_id),
-                        claim_id: Set(claim_id),
-                        invoice_id: Set(invoice_id),
-                        created_by_user_id: Set(created_by_user_id),
-                        created_at: Set(now),
-                        ..Default::default()
-                    }
-                    .insert(txn)
-                    .await?;
+        let journal_entry = journal_entry_entity::ActiveModel {
+            payment_id: Set(payment_id),
+            claim_id: Set(claim_id),
+            invoice_id: Set(invoice_id),
+            created_by_user_id: Set(created_by_user_id),
+            created_at: Set(now),
+            ..Default::default()
+        }
+        .insert(db)
+        .await?;
 
-                    // Insert journal entry lines
-                    let line_models: Vec<journal_entry_line_entity::ActiveModel> = lines
-                        .into_iter()
-                        .map(|line| journal_entry_line_entity::ActiveModel {
-                            entry_id: Set(journal_entry.id),
-                            account_id: Set(line.account_id),
-                            entry_side: Set(line.entry_side),
-                            amount: Set(line.amount),
-                            description: Set(line.description),
-                            ..Default::default()
-                        })
-                        .collect();
-
-                    journal_entry_line_entity::Entity::insert_many(line_models)
-                        .exec(txn)
-                        .await?;
-
-                    Ok(journal_entry)
-                })
+        let line_models: Vec<journal_entry_line_entity::ActiveModel> = lines
+            .into_iter()
+            .map(|line| journal_entry_line_entity::ActiveModel {
+                entry_id: Set(journal_entry.id),
+                account_id: Set(line.account_id),
+                entry_side: Set(line.entry_side),
+                amount: Set(line.amount),
+                description: Set(line.description),
+                ..Default::default()
             })
-            .await;
+            .collect();
 
-        result.map_err(|e| match e {
-            sea_orm::TransactionError::Connection(e) => PostingError::DatabaseError(e),
-            sea_orm::TransactionError::Transaction(e) => e,
-        })
+        journal_entry_line_entity::Entity::insert_many(line_models)
+            .exec(db)
+            .await?;
+
+        Ok(journal_entry)
     }
 
     /// Validate amounts are positive, and debit and credit are balanced.

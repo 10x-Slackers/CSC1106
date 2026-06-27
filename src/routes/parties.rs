@@ -9,6 +9,7 @@ use crate::middleware::auth::Authenticated;
 use crate::middleware::permissions::{Finance, Require};
 use crate::models::error::is_unique_violation;
 use crate::models::party::Party;
+use crate::models::payment::Payment;
 use crate::models::user::AuthError;
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
@@ -568,11 +569,21 @@ pub async fn show_party(
     // TODO: replace with Invoice::count_for_party(db, id) once the invoice model lands
     let invoice_count: u64 = 0;
 
-    // TODO: replace with Payment::total_for_party(db, id) once the payment model lands
-    let total_spending = Decimal::ZERO.to_string();
+    let total_spending = match Payment::total_for_party(db.get_ref(), id).await {
+        Ok(total) => total.to_string(),
+        Err(e) => {
+            eprintln!("Failed to load payment total for party {id}: {e}");
+            Decimal::ZERO.to_string()
+        }
+    };
 
-    // TODO: replace with Payment::recent_for_party(db, id, 5) once the payment model lands
-    let recent_payments: Vec<tera::Value> = Vec::new();
+    let recent_payments = match Payment::recent_for_party(db.get_ref(), id, 5).await {
+        Ok(payments) => payments,
+        Err(e) => {
+            eprintln!("Failed to load recent payments for party {id}: {e}");
+            Vec::new()
+        }
+    };
 
     let mut context = Context::new();
     context.insert("party", &party);

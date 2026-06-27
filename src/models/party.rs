@@ -138,6 +138,41 @@ impl Party {
         Ok(parties)
     }
 
+    /// List all parties ordered by name.
+    pub async fn list_all(db: &DatabaseConnection) -> Result<Vec<Party>, AuthError> {
+        let parties = party_entity::Entity::find()
+            .order_by(party_entity::Column::Name, Order::Asc)
+            .all(db)
+            .await
+            .map_err(AuthError::from)?
+            .into_iter()
+            .map(Party::from)
+            .collect();
+        Ok(parties)
+    }
+
+    /// List active parties ordered by name.
+    pub async fn list_active(db: &DatabaseConnection) -> Result<Vec<Party>, AuthError> {
+        let parties = party_entity::Entity::find()
+            .filter(party_entity::Column::Status.eq(PartyStatus::Active))
+            .order_by(party_entity::Column::Name, Order::Asc)
+            .all(db)
+            .await
+            .map_err(AuthError::from)?
+            .into_iter()
+            .map(Party::from)
+            .collect();
+        Ok(parties)
+    }
+
+    /// Map of party id -> name for all parties.
+    pub async fn name_map(
+        db: &DatabaseConnection,
+    ) -> Result<std::collections::HashMap<i32, String>, AuthError> {
+        let parties = party_entity::Entity::find().all(db).await?;
+        Ok(parties.into_iter().map(|p| (p.id, p.name)).collect())
+    }
+
     pub async fn create(
         db: &DatabaseConnection,
         party_type: PartyType,
@@ -196,7 +231,6 @@ impl Party {
             status: Set(self.status.clone()),
             created_at: Set(self.created_at),
             updated_at: Set(self.updated_at),
-            ..Default::default()
         };
 
         if let Some(pt) = party_type {
@@ -242,7 +276,6 @@ impl Party {
             status: Set(self.status.clone()),
             created_at: Set(self.created_at),
             updated_at: Set(self.updated_at),
-            ..Default::default()
         };
         party.status = Set(status);
         party.updated_at = Set(chrono::Utc::now().naive_utc());

@@ -13,7 +13,7 @@ Deferred work for the two-tier RBAC plan. Page-level gates are done (`/users` �
 ## Action-level gates (inline check, render forbidden inline — no flash/session)
 
 - [ ] Void invoice — inline `if !user.role.can(&[Role::Admin, Role::Accountant]) { return render_forbidden_action(...) }`
-- [ ] Record payment against invoice — same check
+- [ ] Record payment (Payment Records module) — same check
 - [ ] Approve/reject claim — same check
 
 ## Ownership scoping (data-level, enforced in handler/query)

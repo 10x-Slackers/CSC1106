@@ -31,3 +31,14 @@ pub fn datetime(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         .unwrap_or("%Y-%m-%d %H:%M");
     Ok(Value::String(dt.format(format).to_string()))
 }
+
+/// Tera filter that formats a decimal amount string to two decimal places.
+pub fn money(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
+    let Some(s) = value.as_str() else {
+        return Ok(value.clone());
+    };
+    match s.parse::<rust_decimal::Decimal>() {
+        Ok(d) => Ok(Value::String(format!("{:.2}", d))),
+        Err(_) => Ok(value.clone()),
+    }
+}
