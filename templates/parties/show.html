@@ -106,7 +106,7 @@
               {% for payment in recent_payments %}
                 <tr>
                   <td>{{ payment.payment_date }}</td>
-                  <td>{{ payment.amount }}</td>
+                  <td>{{ payment.amount | money }}</td>
                   <td>{{ payment.payment_direction }}</td>
                 </tr>
               {% endfor %}
