@@ -24,7 +24,6 @@
       <input
         type="text"
         name="q"
-        value="{{ q }}"
         placeholder="Search by name or email..."
         class="input"
       />
@@ -33,16 +32,9 @@
     <label class="form-control w-full sm:w-auto">
       <span class="label">Role</span>
       <select name="role" class="select select-sm">
-        <option value="" {% if role == "" %}selected{% endif %}>
-          All roles
-        </option>
+        <option value="">All roles</option>
         {% for role_option in roles %}
-          <option
-            value="{{ role_option }}"
-            {% if role == role_option %}selected{% endif %}
-          >
-            {{ role_option }}
-          </option>
+          <option value="{{ role_option }}">{{ role_option }}</option>
         {% endfor %}
       </select>
     </label>
@@ -50,16 +42,9 @@
     <label class="form-control w-full sm:w-auto">
       <span class="label">Status</span>
       <select name="status" class="select select-sm">
-        <option value="" {% if status == "" %}selected{% endif %}>All</option>
-        <option value="active" {% if status == "active" %}selected{% endif %}>
-          Active
-        </option>
-        <option
-          value="disabled"
-          {% if status == "disabled" %}selected{% endif %}
-        >
-          Disabled
-        </option>
+        <option value="">All</option>
+        <option value="active">Active</option>
+        <option value="disabled">Disabled</option>
       </select>
     </label>
 

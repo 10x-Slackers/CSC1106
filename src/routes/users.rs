@@ -29,36 +29,21 @@ pub struct UserFilter {
     status: Option<String>,
 }
 
-#[derive(serde::Serialize)]
-struct FormValues<'a> {
-    name: &'a str,
-    email: &'a str,
-    role: &'a str,
-}
-
-struct ListContext<'a> {
-    tera: &'a Tera,
-    user: &'a Require<AdminOnly>,
-    users: &'a [User],
-    q: &'a str,
-    role: &'a str,
-    status: &'a str,
-    roles: &'a [&'a str],
-    message: String,
-    message_kind: &'a str,
-}
-
-fn render_users_list(ctx: ListContext) -> HttpResponse {
+fn render_users_list(
+    tera: &Tera,
+    user: &Require<AdminOnly>,
+    users: &[User],
+    roles: &[&str],
+    message: &str,
+    message_kind: &str,
+) -> HttpResponse {
     let mut context = Context::new();
-    context.insert("users", ctx.users);
-    context.insert("q", ctx.q);
-    context.insert("role", ctx.role);
-    context.insert("status", ctx.status);
-    context.insert("roles", ctx.roles);
-    context.insert("message", &ctx.message);
-    context.insert("message_kind", ctx.message_kind);
-    insert_nav_context(&mut context, ctx.user);
-    render(ctx.tera, "users/list.html", &context)
+    context.insert("users", users);
+    context.insert("roles", roles);
+    context.insert("message", message);
+    context.insert("message_kind", message_kind);
+    insert_nav_context(&mut context, user);
+    render(tera, "users/list.html", &context)
 }
 
 /// Reload the full user list and render it with a flash message.
@@ -69,62 +54,49 @@ async fn reload_users_list(
     verb: &str,
 ) -> HttpResponse {
     match User::list(db, None, None, None).await {
-        Ok(users) => render_users_list(ListContext {
-            roles: ROLE_LABELS,
+        Ok(users) => render_users_list(
             tera,
             user,
-            users: &users,
-            q: "",
-            role: "",
-            status: "",
-            message: format!("User {verb}."),
-            message_kind: "success",
-        }),
+            &users,
+            ROLE_LABELS,
+            &format!("User {verb}."),
+            "success",
+        ),
         Err(e) => {
             eprintln!("Failed to list users after {verb}: {e}");
-            render_users_list(ListContext {
-                roles: ROLE_LABELS,
+            render_users_list(
                 tera,
                 user,
-                users: &[],
-                q: "",
-                role: "",
-                status: "",
-                message: format!("User {verb}, but failed to load list."),
-                message_kind: "error",
-            })
+                &[],
+                ROLE_LABELS,
+                &format!("User {verb}, but failed to load list."),
+                "error",
+            )
         }
     }
 }
 
-struct FormContext<'a> {
-    tera: &'a Tera,
-    user: &'a Require<AdminOnly>,
-    mode: &'a str,
-    existing_user: Option<&'a User>,
-    form_name: &'a str,
-    form_email: &'a str,
-    form_role: &'a str,
-    roles: &'a [&'a str],
-    message: &'a str,
-    message_kind: &'a str,
-}
-
-fn render_user_form(ctx: FormContext) -> HttpResponse {
+fn render_user_form(
+    tera: &Tera,
+    user: &Require<AdminOnly>,
+    mode: &str,
+    existing_user: Option<&User>,
+    message: &str,
+    message_kind: &str,
+) -> HttpResponse {
     let mut context = Context::new();
-    context.insert("mode", ctx.mode);
-    context.insert("user", &ctx.existing_user);
-    let form = FormValues {
-        name: ctx.form_name,
-        email: ctx.form_email,
-        role: ctx.form_role,
-    };
-    context.insert("form", &form);
-    context.insert("roles", ctx.roles);
-    context.insert("message", ctx.message);
-    context.insert("message_kind", ctx.message_kind);
-    insert_nav_context(&mut context, ctx.user);
-    render(ctx.tera, "users/form.html", &context)
+    context.insert("mode", mode);
+    context.insert("user", &existing_user);
+    context.insert("roles", ROLE_LABELS);
+    context.insert("entity_label", "User");
+    context.insert("base_path", "/users");
+    if let Some(user) = existing_user {
+        context.insert("id", &user.id);
+    }
+    context.insert("message", message);
+    context.insert("message_kind", message_kind);
+    insert_nav_context(&mut context, user);
+    render(tera, "users/form.html", &context)
 }
 
 /// List users with optional filters.
@@ -140,30 +112,17 @@ pub async fn list_users(
     let status = query.status.as_deref().and_then(UserStatus::parse);
 
     match User::list(db.get_ref(), q, role, status).await {
-        Ok(users) => render_users_list(ListContext {
-            roles: ROLE_LABELS,
-            tera: tera.get_ref(),
-            user: &user,
-            users: &users,
-            q: q.unwrap_or_default(),
-            role: query.role.as_deref().unwrap_or_default(),
-            status: query.status.as_deref().unwrap_or_default(),
-            message: String::new(),
-            message_kind: "",
-        }),
+        Ok(users) => render_users_list(tera.get_ref(), &user, &users, ROLE_LABELS, "", ""),
         Err(e) => {
             eprintln!("Failed to list users: {e}");
-            render_users_list(ListContext {
-                roles: ROLE_LABELS,
-                tera: tera.get_ref(),
-                user: &user,
-                users: &[],
-                q: q.unwrap_or_default(),
-                role: query.role.as_deref().unwrap_or_default(),
-                status: query.status.as_deref().unwrap_or_default(),
-                message: "Failed to load users.".into(),
-                message_kind: "error",
-            })
+            render_users_list(
+                tera.get_ref(),
+                &user,
+                &[],
+                ROLE_LABELS,
+                "Failed to load users.",
+                "error",
+            )
         }
     }
 }
@@ -171,18 +130,7 @@ pub async fn list_users(
 /// Show the create-user form.
 #[get("/users/new")]
 pub async fn new_user(user: Require<AdminOnly>, tera: web::Data<Tera>) -> HttpResponse {
-    render_user_form(FormContext {
-        roles: ROLE_LABELS,
-        tera: tera.get_ref(),
-        user: &user,
-        mode: "create",
-        existing_user: None,
-        form_name: "",
-        form_email: "",
-        form_role: "Staff",
-        message: "",
-        message_kind: "",
-    })
+    render_user_form(tera.get_ref(), &user, "create", None, "", "")
 }
 
 /// Create a new user.
@@ -219,50 +167,36 @@ pub async fn create_user(
     };
 
     if !errors.is_empty() {
-        return render_user_form(FormContext {
-            roles: ROLE_LABELS,
-            tera: tera.get_ref(),
-            user: &user,
-            mode: "create",
-            existing_user: None,
-            form_name: form.name.trim(),
-            form_email: form.email.trim(),
-            form_role: form.role.trim(),
-            message: &errors.join(" "),
-            message_kind: "error",
-        });
+        return render_user_form(
+            tera.get_ref(),
+            &user,
+            "create",
+            None,
+            &errors.join(" "),
+            "error",
+        );
     }
 
     match User::create(db.get_ref(), email, name, password, role).await {
         Ok(_) => reload_users_list(tera.get_ref(), &user, db.get_ref(), "created").await,
-        Err(AuthError::Database(ref e)) if is_unique_violation(e) => {
-            render_user_form(FormContext {
-                roles: ROLE_LABELS,
-                tera: tera.get_ref(),
-                user: &user,
-                mode: "create",
-                existing_user: None,
-                form_name: form.name.trim(),
-                form_email: form.email.trim(),
-                form_role: form.role.trim(),
-                message: "A user with that email already exists.",
-                message_kind: "error",
-            })
-        }
+        Err(AuthError::Database(ref e)) if is_unique_violation(e) => render_user_form(
+            tera.get_ref(),
+            &user,
+            "create",
+            None,
+            "A user with that email already exists.",
+            "error",
+        ),
         Err(e) => {
             eprintln!("Failed to create user: {e}");
-            render_user_form(FormContext {
-                roles: ROLE_LABELS,
-                tera: tera.get_ref(),
-                user: &user,
-                mode: "create",
-                existing_user: None,
-                form_name: form.name.trim(),
-                form_email: form.email.trim(),
-                form_role: form.role.trim(),
-                message: "Failed to create user.",
-                message_kind: "error",
-            })
+            render_user_form(
+                tera.get_ref(),
+                &user,
+                "create",
+                None,
+                "Failed to create user.",
+                "error",
+            )
         }
     }
 }
@@ -278,18 +212,9 @@ pub async fn edit_user(
     let id = path.into_inner();
 
     match User::find_by_id(db.get_ref(), id).await {
-        Ok(Some(existing)) => render_user_form(FormContext {
-            roles: ROLE_LABELS,
-            tera: tera.get_ref(),
-            user: &user,
-            mode: "edit",
-            existing_user: Some(&existing),
-            form_name: &existing.name,
-            form_email: &existing.email,
-            form_role: &existing.role.to_string(),
-            message: "",
-            message_kind: "",
-        }),
+        Ok(Some(existing)) => {
+            render_user_form(tera.get_ref(), &user, "edit", Some(&existing), "", "")
+        }
         Ok(None) => HttpResponse::NotFound().body("User not found."),
         Err(e) => {
             eprintln!("Failed to find user {id}: {e}");
@@ -318,18 +243,14 @@ pub async fn update_user(
         && Role::parse(role_str) != Some(current_user.role.clone())
         && let Ok(Some(existing)) = User::find_by_id(db.get_ref(), id).await
     {
-        return render_user_form(FormContext {
-            roles: ROLE_LABELS,
-            tera: tera.get_ref(),
-            user: &current_user,
-            mode: "edit",
-            existing_user: Some(&existing),
-            form_name: form.name.trim(),
-            form_email: form.email.trim(),
-            form_role: form.role.trim(),
-            message: "You cannot change your own role.",
-            message_kind: "error",
-        });
+        return render_user_form(
+            tera.get_ref(),
+            &current_user,
+            "edit",
+            Some(&existing),
+            "You cannot change your own role.",
+            "error",
+        );
     }
 
     let existing = match User::find_by_id(db.get_ref(), id).await {
@@ -359,18 +280,14 @@ pub async fn update_user(
     };
 
     if !errors.is_empty() {
-        return render_user_form(FormContext {
-            roles: ROLE_LABELS,
-            tera: tera.get_ref(),
-            user: &current_user,
-            mode: "edit",
-            existing_user: Some(&existing),
-            form_name: form.name.trim(),
-            form_email: form.email.trim(),
-            form_role: form.role.trim(),
-            message: &errors.join(" "),
-            message_kind: "error",
-        });
+        return render_user_form(
+            tera.get_ref(),
+            &current_user,
+            "edit",
+            Some(&existing),
+            &errors.join(" "),
+            "error",
+        );
     }
 
     let password_opt = form.password.as_deref().filter(|p| !p.trim().is_empty());
@@ -387,34 +304,24 @@ pub async fn update_user(
         .await
     {
         Ok(_) => reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "updated").await,
-        Err(AuthError::Database(ref e)) if is_unique_violation(e) => {
-            render_user_form(FormContext {
-                roles: ROLE_LABELS,
-                tera: tera.get_ref(),
-                user: &current_user,
-                mode: "edit",
-                existing_user: Some(&existing),
-                form_name: form.name.trim(),
-                form_email: form.email.trim(),
-                form_role: form.role.trim(),
-                message: "That email is already in use.",
-                message_kind: "error",
-            })
-        }
+        Err(AuthError::Database(ref e)) if is_unique_violation(e) => render_user_form(
+            tera.get_ref(),
+            &current_user,
+            "edit",
+            Some(&existing),
+            "That email is already in use.",
+            "error",
+        ),
         Err(e) => {
             eprintln!("Failed to update user {id}: {e}");
-            render_user_form(FormContext {
-                roles: ROLE_LABELS,
-                tera: tera.get_ref(),
-                user: &current_user,
-                mode: "edit",
-                existing_user: Some(&existing),
-                form_name: form.name.trim(),
-                form_email: form.email.trim(),
-                form_role: form.role.trim(),
-                message: "Failed to update user.",
-                message_kind: "error",
-            })
+            render_user_form(
+                tera.get_ref(),
+                &current_user,
+                "edit",
+                Some(&existing),
+                "Failed to update user.",
+                "error",
+            )
         }
     }
 }
@@ -434,17 +341,14 @@ pub async fn disable_user(
         let users = User::list(db.get_ref(), None, None, None)
             .await
             .unwrap_or_default();
-        return render_users_list(ListContext {
-            roles: ROLE_LABELS,
-            tera: tera.get_ref(),
-            user: &current_user,
-            users: &users,
-            q: "",
-            role: "",
-            status: "",
-            message: "You cannot disable your own account.".into(),
-            message_kind: "error",
-        });
+        return render_users_list(
+            tera.get_ref(),
+            &current_user,
+            &users,
+            ROLE_LABELS,
+            "You cannot disable your own account.",
+            "error",
+        );
     }
 
     let existing = match User::find_by_id(db.get_ref(), id).await {
@@ -466,17 +370,14 @@ pub async fn disable_user(
             let users = User::list(db.get_ref(), None, None, None)
                 .await
                 .unwrap_or_default();
-            render_users_list(ListContext {
-                roles: ROLE_LABELS,
-                tera: tera.get_ref(),
-                user: &current_user,
-                users: &users,
-                q: "",
-                role: "",
-                status: "",
-                message: "Failed to disable user.".into(),
-                message_kind: "error",
-            })
+            render_users_list(
+                tera.get_ref(),
+                &current_user,
+                &users,
+                ROLE_LABELS,
+                "Failed to disable user.",
+                "error",
+            )
         }
     }
 }
@@ -511,17 +412,14 @@ pub async fn enable_user(
             let users = User::list(db.get_ref(), None, None, None)
                 .await
                 .unwrap_or_default();
-            render_users_list(ListContext {
-                roles: ROLE_LABELS,
-                tera: tera.get_ref(),
-                user: &current_user,
-                users: &users,
-                q: "",
-                role: "",
-                status: "",
-                message: "Failed to enable user.".into(),
-                message_kind: "error",
-            })
+            render_users_list(
+                tera.get_ref(),
+                &current_user,
+                &users,
+                ROLE_LABELS,
+                "Failed to enable user.",
+                "error",
+            )
         }
     }
 }

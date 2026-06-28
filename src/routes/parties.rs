@@ -31,37 +31,19 @@ pub struct PartyFilter {
     status: Option<String>,
 }
 
-#[derive(serde::Serialize)]
-struct FormValues<'a> {
-    name: &'a str,
-    company: Option<&'a str>,
-    email: &'a str,
-    phone: &'a str,
-    address: &'a str,
-    party_type: &'a str,
-}
-
-struct ListContext<'a> {
-    tera: &'a Tera,
-    user: &'a Authenticated,
-    parties: &'a [Party],
-    q: &'a str,
-    party_type: &'a str,
-    status: &'a str,
-    message: String,
-    message_kind: &'a str,
-}
-
-fn render_parties_list(ctx: ListContext) -> HttpResponse {
+fn render_parties_list(
+    tera: &Tera,
+    user: &Authenticated,
+    parties: &[Party],
+    message: &str,
+    message_kind: &str,
+) -> HttpResponse {
     let mut context = Context::new();
-    context.insert("parties", ctx.parties);
-    context.insert("q", ctx.q);
-    context.insert("party_type", ctx.party_type);
-    context.insert("status", ctx.status);
-    context.insert("message", &ctx.message);
-    context.insert("message_kind", ctx.message_kind);
-    insert_nav_context(&mut context, ctx.user);
-    render(ctx.tera, "parties/list.html", &context)
+    context.insert("parties", parties);
+    context.insert("message", message);
+    context.insert("message_kind", message_kind);
+    insert_nav_context(&mut context, user);
+    render(tera, "parties/list.html", &context)
 }
 
 /// Reload the full party list and render it with a flash message.
@@ -72,64 +54,42 @@ async fn reload_parties_list(
     verb: &str,
 ) -> HttpResponse {
     match Party::list(db, None, None, None).await {
-        Ok(parties) => render_parties_list(ListContext {
-            tera,
-            user,
-            parties: &parties,
-            q: "",
-            party_type: "",
-            status: "",
-            message: format!("Party {verb}."),
-            message_kind: "success",
-        }),
+        Ok(parties) => {
+            render_parties_list(tera, user, &parties, &format!("Party {verb}."), "success")
+        }
         Err(e) => {
             eprintln!("Failed to list parties after {verb}: {e}");
-            render_parties_list(ListContext {
+            render_parties_list(
                 tera,
                 user,
-                parties: &[],
-                q: "",
-                party_type: "",
-                status: "",
-                message: format!("Party {verb}, but failed to load list."),
-                message_kind: "error",
-            })
+                &[],
+                &format!("Party {verb}, but failed to load list."),
+                "error",
+            )
         }
     }
 }
 
-struct FormContext<'a> {
-    tera: &'a Tera,
-    user: &'a Authenticated,
-    mode: &'a str,
-    existing_party: Option<&'a Party>,
-    form_name: &'a str,
-    form_company: Option<&'a str>,
-    form_email: &'a str,
-    form_phone: &'a str,
-    form_address: &'a str,
-    form_party_type: &'a str,
-    message: &'a str,
-    message_kind: &'a str,
-}
-
-fn render_party_form(ctx: FormContext) -> HttpResponse {
+fn render_party_form(
+    tera: &Tera,
+    user: &Authenticated,
+    mode: &str,
+    existing_party: Option<&Party>,
+    message: &str,
+    message_kind: &str,
+) -> HttpResponse {
     let mut context = Context::new();
-    context.insert("mode", ctx.mode);
-    context.insert("party", &ctx.existing_party);
-    let form = FormValues {
-        name: ctx.form_name,
-        company: ctx.form_company,
-        email: ctx.form_email,
-        phone: ctx.form_phone,
-        address: ctx.form_address,
-        party_type: ctx.form_party_type,
-    };
-    context.insert("form", &form);
-    context.insert("message", ctx.message);
-    context.insert("message_kind", ctx.message_kind);
-    insert_nav_context(&mut context, ctx.user);
-    render(ctx.tera, "parties/form.html", &context)
+    context.insert("mode", mode);
+    context.insert("party", &existing_party);
+    context.insert("entity_label", "Party");
+    context.insert("base_path", "/parties");
+    if let Some(party) = existing_party {
+        context.insert("id", &party.id);
+    }
+    context.insert("message", message);
+    context.insert("message_kind", message_kind);
+    insert_nav_context(&mut context, user);
+    render(tera, "parties/form.html", &context)
 }
 
 /// List parties with optional filters.
@@ -148,34 +108,17 @@ pub async fn list_parties(
         Some("") => None,
         Some(s) => PartyStatus::parse(s),
     };
-    let status_str = match query.status.as_deref() {
-        Some(s) if PartyStatus::parse(s).is_some() => s,
-        _ => "Active",
-    };
-
     match Party::list(db.get_ref(), q, party_type, status).await {
-        Ok(parties) => render_parties_list(ListContext {
-            tera: tera.get_ref(),
-            user: &user,
-            parties: &parties,
-            q: q.unwrap_or_default(),
-            party_type: query.party_type.as_deref().unwrap_or_default(),
-            status: status_str,
-            message: String::new(),
-            message_kind: "",
-        }),
+        Ok(parties) => render_parties_list(tera.get_ref(), &user, &parties, "", ""),
         Err(e) => {
             eprintln!("Failed to list parties: {e}");
-            render_parties_list(ListContext {
-                tera: tera.get_ref(),
-                user: &user,
-                parties: &[],
-                q: q.unwrap_or_default(),
-                party_type: query.party_type.as_deref().unwrap_or_default(),
-                status: status_str,
-                message: "Failed to load parties.".into(),
-                message_kind: "error",
-            })
+            render_parties_list(
+                tera.get_ref(),
+                &user,
+                &[],
+                "Failed to load parties.",
+                "error",
+            )
         }
     }
 }
@@ -183,20 +126,7 @@ pub async fn list_parties(
 /// Show the create-party form.
 #[get("/parties/new")]
 pub async fn new_party(user: Require<Finance>, tera: web::Data<Tera>) -> HttpResponse {
-    render_party_form(FormContext {
-        tera: tera.get_ref(),
-        user: &user,
-        mode: "create",
-        existing_party: None,
-        form_name: "",
-        form_company: None,
-        form_email: "",
-        form_phone: "",
-        form_address: "",
-        form_party_type: "Customer",
-        message: "",
-        message_kind: "",
-    })
+    render_party_form(tera.get_ref(), &user, "create", None, "", "")
 }
 
 /// Create a new party.
@@ -238,20 +168,14 @@ pub async fn create_party(
     };
 
     if !errors.is_empty() {
-        return render_party_form(FormContext {
-            tera: tera.get_ref(),
-            user: &user,
-            mode: "create",
-            existing_party: None,
-            form_name: form.name.trim(),
-            form_company: company,
-            form_email: form.email.trim(),
-            form_phone: form.phone.trim(),
-            form_address: form.address.trim(),
-            form_party_type: form.party_type.trim(),
-            message: &errors.join(" "),
-            message_kind: "error",
-        });
+        return render_party_form(
+            tera.get_ref(),
+            &user,
+            "create",
+            None,
+            &errors.join(" "),
+            "error",
+        );
     }
 
     match Party::create(
@@ -266,38 +190,24 @@ pub async fn create_party(
     .await
     {
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "created").await,
-        Err(AppError::Database(ref e)) if is_unique_violation(e) => {
-            render_party_form(FormContext {
-                tera: tera.get_ref(),
-                user: &user,
-                mode: "create",
-                existing_party: None,
-                form_name: form.name.trim(),
-                form_company: company,
-                form_email: form.email.trim(),
-                form_phone: form.phone.trim(),
-                form_address: form.address.trim(),
-                form_party_type: form.party_type.trim(),
-                message: "A party with that email already exists.",
-                message_kind: "error",
-            })
-        }
+        Err(AppError::Database(ref e)) if is_unique_violation(e) => render_party_form(
+            tera.get_ref(),
+            &user,
+            "create",
+            None,
+            "A party with that email already exists.",
+            "error",
+        ),
         Err(e) => {
             eprintln!("Failed to create party: {e}");
-            render_party_form(FormContext {
-                tera: tera.get_ref(),
-                user: &user,
-                mode: "create",
-                existing_party: None,
-                form_name: form.name.trim(),
-                form_company: company,
-                form_email: form.email.trim(),
-                form_phone: form.phone.trim(),
-                form_address: form.address.trim(),
-                form_party_type: form.party_type.trim(),
-                message: "Failed to create party.",
-                message_kind: "error",
-            })
+            render_party_form(
+                tera.get_ref(),
+                &user,
+                "create",
+                None,
+                "Failed to create party.",
+                "error",
+            )
         }
     }
 }
@@ -313,20 +223,9 @@ pub async fn edit_party(
     let id = path.into_inner();
 
     match Party::find_by_id(db.get_ref(), id).await {
-        Ok(Some(existing)) => render_party_form(FormContext {
-            tera: tera.get_ref(),
-            user: &user,
-            mode: "edit",
-            existing_party: Some(&existing),
-            form_name: &existing.name,
-            form_company: existing.company.as_deref(),
-            form_email: &existing.email,
-            form_phone: &existing.phone,
-            form_address: &existing.address,
-            form_party_type: &existing.party_type.to_string(),
-            message: "",
-            message_kind: "",
-        }),
+        Ok(Some(existing)) => {
+            render_party_form(tera.get_ref(), &user, "edit", Some(&existing), "", "")
+        }
         Ok(None) => HttpResponse::NotFound().body("Party not found."),
         Err(e) => {
             eprintln!("Failed to find party {id}: {e}");
@@ -385,20 +284,14 @@ pub async fn update_party(
     };
 
     if !errors.is_empty() {
-        return render_party_form(FormContext {
-            tera: tera.get_ref(),
-            user: &user,
-            mode: "edit",
-            existing_party: Some(&existing),
-            form_name: form.name.trim(),
-            form_company: company,
-            form_email: form.email.trim(),
-            form_phone: form.phone.trim(),
-            form_address: form.address.trim(),
-            form_party_type: form.party_type.trim(),
-            message: &errors.join(" "),
-            message_kind: "error",
-        });
+        return render_party_form(
+            tera.get_ref(),
+            &user,
+            "edit",
+            Some(&existing),
+            &errors.join(" "),
+            "error",
+        );
     }
 
     match existing
@@ -414,38 +307,24 @@ pub async fn update_party(
         .await
     {
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "updated").await,
-        Err(AppError::Database(ref e)) if is_unique_violation(e) => {
-            render_party_form(FormContext {
-                tera: tera.get_ref(),
-                user: &user,
-                mode: "edit",
-                existing_party: Some(&existing),
-                form_name: form.name.trim(),
-                form_company: company,
-                form_email: form.email.trim(),
-                form_phone: form.phone.trim(),
-                form_address: form.address.trim(),
-                form_party_type: form.party_type.trim(),
-                message: "That email is already in use.",
-                message_kind: "error",
-            })
-        }
+        Err(AppError::Database(ref e)) if is_unique_violation(e) => render_party_form(
+            tera.get_ref(),
+            &user,
+            "edit",
+            Some(&existing),
+            "That email is already in use.",
+            "error",
+        ),
         Err(e) => {
             eprintln!("Failed to update party {id}: {e}");
-            render_party_form(FormContext {
-                tera: tera.get_ref(),
-                user: &user,
-                mode: "edit",
-                existing_party: Some(&existing),
-                form_name: form.name.trim(),
-                form_company: company,
-                form_email: form.email.trim(),
-                form_phone: form.phone.trim(),
-                form_address: form.address.trim(),
-                form_party_type: form.party_type.trim(),
-                message: "Failed to update party.",
-                message_kind: "error",
-            })
+            render_party_form(
+                tera.get_ref(),
+                &user,
+                "edit",
+                Some(&existing),
+                "Failed to update party.",
+                "error",
+            )
         }
     }
 }
@@ -479,16 +358,13 @@ pub async fn deactivate_party(
             let parties = Party::list(db.get_ref(), None, None, None)
                 .await
                 .unwrap_or_default();
-            render_parties_list(ListContext {
-                tera: tera.get_ref(),
-                user: &user,
-                parties: &parties,
-                q: "",
-                party_type: "",
-                status: "",
-                message: "Failed to deactivate party.".into(),
-                message_kind: "error",
-            })
+            render_parties_list(
+                tera.get_ref(),
+                &user,
+                &parties,
+                "Failed to deactivate party.",
+                "error",
+            )
         }
     }
 }
@@ -519,16 +395,13 @@ pub async fn activate_party(
             let parties = Party::list(db.get_ref(), None, None, None)
                 .await
                 .unwrap_or_default();
-            render_parties_list(ListContext {
-                tera: tera.get_ref(),
-                user: &user,
-                parties: &parties,
-                q: "",
-                party_type: "",
-                status: "",
-                message: "Failed to activate party.".into(),
-                message_kind: "error",
-            })
+            render_parties_list(
+                tera.get_ref(),
+                &user,
+                &parties,
+                "Failed to activate party.",
+                "error",
+            )
         }
     }
 }
