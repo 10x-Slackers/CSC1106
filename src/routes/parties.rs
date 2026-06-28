@@ -7,10 +7,10 @@ use tera::{Context, Tera};
 use crate::entity::party::{PartyStatus, PartyType};
 use crate::middleware::auth::Authenticated;
 use crate::middleware::permissions::{Finance, Require};
+use crate::models::error::AppError;
 use crate::models::error::is_unique_violation;
 use crate::models::party::Party;
 use crate::models::payment::Payment;
-use crate::models::user::AuthError;
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
 
@@ -273,7 +273,7 @@ pub async fn create_party(
     .await
     {
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "created").await,
-        Err(AuthError::DatabaseError(ref e)) if is_unique_violation(e) => {
+        Err(AppError::Database(ref e)) if is_unique_violation(e) => {
             render_party_form(FormContext {
                 tera: tera.get_ref(),
                 user: &user,
@@ -428,7 +428,7 @@ pub async fn update_party(
         .await
     {
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "updated").await,
-        Err(AuthError::DatabaseError(ref e)) if is_unique_violation(e) => {
+        Err(AppError::Database(ref e)) if is_unique_violation(e) => {
             render_party_form(FormContext {
                 tera: tera.get_ref(),
                 user: &user,

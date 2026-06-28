@@ -5,7 +5,8 @@ use serde::Deserialize;
 use tera::{Context, Tera};
 
 use crate::middleware::auth::UserCache;
-use crate::models::user::{AuthError, User};
+use crate::models::error::AuthError;
+use crate::models::user::User;
 use crate::routes::render::render;
 
 /// Form data for the login page.

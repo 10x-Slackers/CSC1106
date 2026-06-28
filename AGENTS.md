@@ -9,6 +9,7 @@ This is a **university coursework project** done by undergraduates. It is not a 
 - Always research before implementing a task — both the codebase and online. Understand existing patterns, dependencies, and conventions before writing code.
 - Refer to the latest documentation and existing implementations of any libraries or frameworks in use.
 - Check `docs/` for architectural and planning details relevant to the task.
+- When implementing business-rule validation (accounting, financial, domain-specific), verify the rule's correctness against real-world scenarios before implementing.
 
 ## Ask When Unsure
 

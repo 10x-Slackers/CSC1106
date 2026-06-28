@@ -4,8 +4,9 @@ use serde::Deserialize;
 use tera::{Context, Tera};
 
 use crate::middleware::auth::{Authenticated, UserCache};
+use crate::models::error::AuthError;
 use crate::models::error::is_unique_violation;
-use crate::models::user::{AuthError, User};
+use crate::models::user::User;
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
 
@@ -134,7 +135,7 @@ pub async fn update_profile(
             "Profile updated. If you changed your email, you may need to log in again.",
             "success",
         ),
-        Err(AuthError::DatabaseError(ref e)) if is_unique_violation(e) => render_profile(
+        Err(AuthError::Database(ref e)) if is_unique_violation(e) => render_profile(
             tera.get_ref(),
             &user,
             name,

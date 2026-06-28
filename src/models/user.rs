@@ -5,8 +5,8 @@ use argon2::password_hash::{
 };
 use chrono::NaiveDateTime;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, Order,
-    QueryFilter, QueryOrder, Set,
+    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, Order, QueryFilter,
+    QueryOrder, Set,
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,36 +14,7 @@ use crate::entity::user as user_entity;
 use crate::entity::user::{Role, UserStatus};
 use crate::middleware::auth::UserCache;
 
-#[derive(Debug)]
-pub enum AuthError {
-    InvalidCredentials,
-    NotFound,
-    HashError(HashError),
-    DatabaseError(DbErr),
-}
-
-impl std::fmt::Display for AuthError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AuthError::InvalidCredentials => write!(f, "Invalid credentials"),
-            AuthError::NotFound => write!(f, "User not found"),
-            AuthError::HashError(e) => write!(f, "Password hash error: {}", e),
-            AuthError::DatabaseError(e) => write!(f, "Database error: {}", e),
-        }
-    }
-}
-
-impl From<DbErr> for AuthError {
-    fn from(e: DbErr) -> Self {
-        AuthError::DatabaseError(e)
-    }
-}
-
-impl From<HashError> for AuthError {
-    fn from(e: HashError) -> Self {
-        AuthError::HashError(e)
-    }
-}
+use crate::models::error::AuthError;
 
 /// Application-level user model with authentication support.
 #[derive(Clone, Serialize, Deserialize)]

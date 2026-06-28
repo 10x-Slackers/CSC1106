@@ -12,8 +12,8 @@ use crate::entity::party as party_entity;
 use crate::entity::payment as payment_entity;
 use crate::entity::payment::PaymentDirection;
 use crate::entity::user as user_entity;
+use crate::models::error::{AppError, PaymentCreateError};
 use crate::models::posting::{JournalEntryLineInput, PostingService};
-use crate::models::user::AuthError;
 
 /// A payment with enrichment (party name, created-by name).
 #[derive(Serialize)]
@@ -36,37 +36,6 @@ impl PaymentDirection {
             "OUT" => Some(PaymentDirection::Out),
             _ => None,
         }
-    }
-}
-
-#[derive(Debug)]
-pub enum PaymentCreateError {
-    SameAccount,
-    Database(sea_orm::DbErr),
-    Posting(crate::models::posting::PostingError),
-}
-
-impl std::fmt::Display for PaymentCreateError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PaymentCreateError::SameAccount => {
-                write!(f, "From and to accounts must differ")
-            }
-            PaymentCreateError::Database(e) => write!(f, "Database error: {e}"),
-            PaymentCreateError::Posting(e) => write!(f, "Posting failed: {e}"),
-        }
-    }
-}
-
-impl From<sea_orm::DbErr> for PaymentCreateError {
-    fn from(e: sea_orm::DbErr) -> Self {
-        PaymentCreateError::Database(e)
-    }
-}
-
-impl From<crate::models::posting::PostingError> for PaymentCreateError {
-    fn from(e: crate::models::posting::PostingError) -> Self {
-        PaymentCreateError::Posting(e)
     }
 }
 
@@ -103,18 +72,18 @@ impl Payment {
     async fn find_model_by_id(
         db: &DatabaseConnection,
         id: i32,
-    ) -> Result<Option<payment_entity::Model>, AuthError> {
+    ) -> Result<Option<payment_entity::Model>, AppError> {
         payment_entity::Entity::find_by_id(id)
             .one(db)
             .await
-            .map_err(AuthError::from)
+            .map_err(AppError::from)
     }
 
     /// Load a payment with enriched details.
     pub async fn find_with_linked(
         db: &DatabaseConnection,
         id: i32,
-    ) -> Result<Option<PaymentDetail>, AuthError> {
+    ) -> Result<Option<PaymentDetail>, AppError> {
         let payment = match Self::find_model_by_id(db, id).await? {
             Some(m) => Payment::from(m),
             None => return Ok(None),
@@ -154,7 +123,7 @@ impl Payment {
         party_id: Option<i32>,
         from_date: Option<NaiveDate>,
         to_date: Option<NaiveDate>,
-    ) -> Result<Vec<Payment>, AuthError> {
+    ) -> Result<Vec<Payment>, AppError> {
         let mut conditions = Condition::all();
 
         if let Some(query) = q {
@@ -189,7 +158,7 @@ impl Payment {
             .order_by(payment_entity::Column::CreatedAt, Order::Desc)
             .all(db)
             .await
-            .map_err(AuthError::from)?
+            .map_err(AppError::from)?
             .into_iter()
             .map(Payment::from)
             .collect();
@@ -249,7 +218,7 @@ impl Payment {
     pub async fn total_for_party(
         db: &DatabaseConnection,
         party_id: i32,
-    ) -> Result<Decimal, AuthError> {
+    ) -> Result<Decimal, AppError> {
         use sea_orm::sea_query::Expr;
         let total: Option<Decimal> = payment_entity::Entity::find()
             .filter(payment_entity::Column::PartyId.eq(party_id))
@@ -266,14 +235,14 @@ impl Payment {
         db: &DatabaseConnection,
         party_id: i32,
         limit: u64,
-    ) -> Result<Vec<Payment>, AuthError> {
+    ) -> Result<Vec<Payment>, AppError> {
         let payments = payment_entity::Entity::find()
             .filter(payment_entity::Column::PartyId.eq(party_id))
             .order_by_desc(payment_entity::Column::CreatedAt)
             .limit(limit)
             .all(db)
             .await
-            .map_err(AuthError::from)?
+            .map_err(AppError::from)?
             .into_iter()
             .map(Payment::from)
             .collect();

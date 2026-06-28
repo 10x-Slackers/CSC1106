@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entity::party as party_entity;
 use crate::entity::party::{PartyStatus, PartyType};
-use crate::models::user::AuthError;
+use crate::models::error::AppError;
 
 impl PartyType {
     /// Parse a party type string into a `PartyType`.
@@ -66,14 +66,14 @@ impl Party {
     async fn find_model_by_id(
         db: &DatabaseConnection,
         id: i32,
-    ) -> Result<Option<party_entity::Model>, AuthError> {
+    ) -> Result<Option<party_entity::Model>, AppError> {
         party_entity::Entity::find_by_id(id)
             .one(db)
             .await
-            .map_err(AuthError::from)
+            .map_err(AppError::from)
     }
 
-    pub async fn find_by_id(db: &DatabaseConnection, id: i32) -> Result<Option<Party>, AuthError> {
+    pub async fn find_by_id(db: &DatabaseConnection, id: i32) -> Result<Option<Party>, AppError> {
         Self::find_model_by_id(db, id)
             .await
             .map(|opt| opt.map(Party::from))
@@ -82,12 +82,12 @@ impl Party {
     pub async fn find_by_email(
         db: &DatabaseConnection,
         email: &str,
-    ) -> Result<Option<Party>, AuthError> {
+    ) -> Result<Option<Party>, AppError> {
         party_entity::Entity::find()
             .filter(party_entity::Column::Email.eq(email))
             .one(db)
             .await
-            .map_err(AuthError::from)
+            .map_err(AppError::from)
             .map(|opt| opt.map(Party::from))
     }
 
@@ -98,7 +98,7 @@ impl Party {
         q: Option<&str>,
         party_type: Option<PartyType>,
         status: Option<PartyStatus>,
-    ) -> Result<Vec<Party>, AuthError> {
+    ) -> Result<Vec<Party>, AppError> {
         let mut conditions = Condition::all();
 
         if let Some(query) = q {
@@ -130,7 +130,7 @@ impl Party {
             .order_by(party_entity::Column::CreatedAt, Order::Desc)
             .all(db)
             .await
-            .map_err(AuthError::from)?
+            .map_err(AppError::from)?
             .into_iter()
             .map(Party::from)
             .collect();
@@ -139,12 +139,12 @@ impl Party {
     }
 
     /// List all parties ordered by name.
-    pub async fn list_all(db: &DatabaseConnection) -> Result<Vec<Party>, AuthError> {
+    pub async fn list_all(db: &DatabaseConnection) -> Result<Vec<Party>, AppError> {
         let parties = party_entity::Entity::find()
             .order_by(party_entity::Column::Name, Order::Asc)
             .all(db)
             .await
-            .map_err(AuthError::from)?
+            .map_err(AppError::from)?
             .into_iter()
             .map(Party::from)
             .collect();
@@ -152,13 +152,13 @@ impl Party {
     }
 
     /// List active parties ordered by name.
-    pub async fn list_active(db: &DatabaseConnection) -> Result<Vec<Party>, AuthError> {
+    pub async fn list_active(db: &DatabaseConnection) -> Result<Vec<Party>, AppError> {
         let parties = party_entity::Entity::find()
             .filter(party_entity::Column::Status.eq(PartyStatus::Active))
             .order_by(party_entity::Column::Name, Order::Asc)
             .all(db)
             .await
-            .map_err(AuthError::from)?
+            .map_err(AppError::from)?
             .into_iter()
             .map(Party::from)
             .collect();
@@ -168,7 +168,7 @@ impl Party {
     /// Map of party id -> name for all parties.
     pub async fn name_map(
         db: &DatabaseConnection,
-    ) -> Result<std::collections::HashMap<i32, String>, AuthError> {
+    ) -> Result<std::collections::HashMap<i32, String>, AppError> {
         let parties = party_entity::Entity::find().all(db).await?;
         Ok(parties.into_iter().map(|p| (p.id, p.name)).collect())
     }
@@ -181,7 +181,7 @@ impl Party {
         email: &str,
         phone: &str,
         address: &str,
-    ) -> Result<Party, AuthError> {
+    ) -> Result<Party, AppError> {
         let now = chrono::Utc::now().naive_utc();
 
         let party = party_entity::ActiveModel {
@@ -200,12 +200,12 @@ impl Party {
         let result = party_entity::Entity::insert(party)
             .exec(db)
             .await
-            .map_err(AuthError::from)?;
+            .map_err(AppError::from)?;
 
         Self::find_model_by_id(db, result.last_insert_id)
             .await?
             .map(Party::from)
-            .ok_or(AuthError::NotFound)
+            .ok_or(AppError::NotFound)
     }
 
     /// Update party fields.
@@ -219,7 +219,7 @@ impl Party {
         email: Option<&str>,
         phone: Option<&str>,
         address: Option<&str>,
-    ) -> Result<Party, AuthError> {
+    ) -> Result<Party, AppError> {
         let mut party: party_entity::ActiveModel = party_entity::ActiveModel {
             id: Set(self.id),
             party_type: Set(self.party_type.clone()),
@@ -254,7 +254,7 @@ impl Party {
 
         party.updated_at = Set(chrono::Utc::now().naive_utc());
 
-        let updated = party.update(db).await.map_err(AuthError::from)?;
+        let updated = party.update(db).await.map_err(AppError::from)?;
 
         Ok(Party::from(updated))
     }
@@ -264,7 +264,7 @@ impl Party {
         &self,
         db: &DatabaseConnection,
         status: PartyStatus,
-    ) -> Result<Party, AuthError> {
+    ) -> Result<Party, AppError> {
         let mut party: party_entity::ActiveModel = party_entity::ActiveModel {
             id: Set(self.id),
             party_type: Set(self.party_type.clone()),
@@ -280,7 +280,7 @@ impl Party {
         party.status = Set(status);
         party.updated_at = Set(chrono::Utc::now().naive_utc());
 
-        let updated = party.update(db).await.map_err(AuthError::from)?;
+        let updated = party.update(db).await.map_err(AppError::from)?;
 
         Ok(Party::from(updated))
     }
