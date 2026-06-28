@@ -1,0 +1,40 @@
+{% extends "partials/layout.html" %}
+
+{% block title %}{{ mode | capitalize }} {{ entity_label }}{% endblock %}
+{% block page_content %}
+  <div class="mx-auto max-w-lg">
+    <div class="card card-border">
+      <div class="card-body">
+        <h2 class="card-title justify-center text-2xl">
+          {{ mode | capitalize }} {{ entity_label }}
+        </h2>
+
+        {% if message != "" %}
+          <div
+            role="alert"
+            class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %}"
+          >
+            <span>{{ message }}</span>
+          </div>
+        {% endif %}
+
+        <form
+          action="{% if id %}{{ base_path }}/{{ id }}{% else %}{{ base_path }}{% endif %}"
+          method="post"
+        >
+          <fieldset class="fieldset">
+            {% block form_fields %}{% endblock %}
+
+            <div class="mt-4 flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                {% if mode == "create" %}Create {{ entity_label }}{% else %}Save
+                Changes{% endif %}
+              </button>
+              <a href="{{ base_path }}" class="btn btn-ghost">Cancel</a>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

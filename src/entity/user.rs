@@ -1,5 +1,6 @@
 use std::fmt;
 
+use sea_orm::Iterable;
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -8,20 +9,20 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
 pub enum Role {
-    #[sea_orm(string_value = "ADMIN")]
-    Admin,
-    #[sea_orm(string_value = "ACCOUNTANT")]
-    Accountant,
     #[sea_orm(string_value = "STAFF")]
     Staff,
+    #[sea_orm(string_value = "ACCOUNTANT")]
+    Accountant,
+    #[sea_orm(string_value = "ADMIN")]
+    Admin,
 }
 
 impl fmt::Display for Role {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Role::Admin => write!(f, "Admin"),
-            Role::Accountant => write!(f, "Accountant"),
             Role::Staff => write!(f, "Staff"),
+            Role::Accountant => write!(f, "Accountant"),
+            Role::Admin => write!(f, "Admin"),
         }
     }
 }
@@ -30,11 +31,16 @@ impl Role {
     /// Parse a role string (case-insensitive) into a `Role`.
     pub fn parse(s: &str) -> Option<Self> {
         match s.trim().to_lowercase().as_str() {
-            "admin" => Some(Role::Admin),
-            "accountant" => Some(Role::Accountant),
             "staff" => Some(Role::Staff),
+            "accountant" => Some(Role::Accountant),
+            "admin" => Some(Role::Admin),
             _ => None,
         }
+    }
+
+    /// Return all role variant labels in declaration order.
+    pub fn labels() -> Vec<String> {
+        Self::iter().map(|v| v.to_string()).collect()
     }
 }
 

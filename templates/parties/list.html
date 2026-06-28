@@ -24,7 +24,6 @@
       <input
         type="text"
         name="q"
-        value="{{ q }}"
         placeholder="Search by name or company..."
         class="input"
       />
@@ -33,37 +32,20 @@
     <label class="form-control w-full sm:w-auto">
       <span class="label">Type</span>
       <select name="party_type" class="select select-sm">
-        <option value="" {% if party_type == "" %}selected{% endif %}>
-          All
-        </option>
-        <option
-          value="Customer"
-          {% if party_type == "Customer" %}selected{% endif %}
-        >
-          Customer
-        </option>
-        <option
-          value="Vendor"
-          {% if party_type == "Vendor" %}selected{% endif %}
-        >
-          Vendor
-        </option>
+        <option value="">All</option>
+        {% for opt in party_types %}
+          <option value="{{ opt }}">{{ opt }}</option>
+        {% endfor %}
       </select>
     </label>
 
     <label class="form-control w-full sm:w-auto">
       <span class="label">Status</span>
       <select name="status" class="select select-sm">
-        <option value="" {% if status == "" %}selected{% endif %}>All</option>
-        <option value="Active" {% if status == "Active" %}selected{% endif %}>
-          Active
-        </option>
-        <option
-          value="Inactive"
-          {% if status == "Inactive" %}selected{% endif %}
-        >
-          Inactive
-        </option>
+        <option value="">All</option>
+        {% for opt in statuses %}
+          <option value="{{ opt }}">{{ opt }}</option>
+        {% endfor %}
       </select>
     </label>
 

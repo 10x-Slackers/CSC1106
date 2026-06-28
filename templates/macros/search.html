@@ -21,7 +21,6 @@ filters - Array of {name, label, options: [{value, label, selected}]}.
       <input
         type="text"
         name="q"
-        value="{{ q }}"
         placeholder="{{ placeholder }}"
         class="input"
       />
@@ -32,12 +31,7 @@ filters - Array of {name, label, options: [{value, label, selected}]}.
         <span class="label">{{ filter.label }}</span>
         <select name="{{ filter.name }}" class="select select-sm">
           {% for option in filter.options %}
-            <option
-              value="{{ option.value }}"
-              {% if option.selected %}selected{% endif %}
-            >
-              {{ option.label }}
-            </option>
+            <option value="{{ option.value }}">{{ option.label }}</option>
           {% endfor %}
         </select>
       </label>

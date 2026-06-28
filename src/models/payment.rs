@@ -14,6 +14,7 @@ use crate::entity::payment::PaymentDirection;
 use crate::entity::user as user_entity;
 use crate::models::error::{AppError, PaymentCreateError};
 use crate::models::posting::{JournalEntryLineInput, PostingService};
+use crate::models::util::like_pattern;
 
 /// A payment with enrichment (party name, created-by name).
 #[derive(Serialize)]
@@ -126,16 +127,10 @@ impl Payment {
     ) -> Result<Vec<Payment>, AppError> {
         let mut conditions = Condition::all();
 
-        if let Some(query) = q {
-            let query = query.trim();
-            if !query.is_empty() {
-                let escaped = query
-                    .replace('\\', "\\\\")
-                    .replace('%', "\\%")
-                    .replace('_', "\\_");
-                let pattern = format!("%{}%", escaped);
-                conditions = conditions.add(payment_entity::Column::Remarks.like(&pattern));
-            }
+        if let Some(query) = q
+            && let Some(pattern) = like_pattern(query)
+        {
+            conditions = conditions.add(payment_entity::Column::Remarks.like(&pattern));
         }
 
         if let Some(dir) = direction {

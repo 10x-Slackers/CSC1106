@@ -15,6 +15,7 @@ use crate::entity::user::{Role, UserStatus};
 use crate::middleware::auth::UserCache;
 
 use crate::models::error::AuthError;
+use crate::models::util::like_pattern;
 
 /// Application-level user model with authentication support.
 #[derive(Clone, Serialize, Deserialize)]
@@ -124,17 +125,14 @@ impl User {
     ) -> Result<Vec<User>, AuthError> {
         let mut conditions = Condition::all();
 
-        if let Some(query) = q {
-            let query = query.trim();
-            if !query.is_empty() {
-                let escaped = query.replace('%', "\\%").replace('_', "\\_");
-                let pattern = format!("%{}%", escaped);
-                conditions = conditions.add(
-                    Condition::any()
-                        .add(user_entity::Column::Name.like(&pattern))
-                        .add(user_entity::Column::Email.like(&pattern)),
-                );
-            }
+        if let Some(query) = q
+            && let Some(pattern) = like_pattern(query)
+        {
+            conditions = conditions.add(
+                Condition::any()
+                    .add(user_entity::Column::Name.like(&pattern))
+                    .add(user_entity::Column::Email.like(&pattern)),
+            );
         }
 
         if let Some(role) = role {

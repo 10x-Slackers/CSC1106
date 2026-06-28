@@ -4,3 +4,4 @@ pub mod party;
 pub mod payment;
 pub mod posting;
 pub mod user;
+pub mod util;

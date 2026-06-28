@@ -1,99 +1,58 @@
-{% extends "partials/layout.html" %}
+{% extends "partials/form_page.html" %}
 
-{% block title %}{{ mode | capitalize }} User{% endblock %}
-{% block page_content %}
-  <div class="mx-auto max-w-lg">
-    <div class="card card-border">
-      <div class="card-body">
-        <h2 class="card-title justify-center text-2xl">
-          {{ mode | capitalize }} User
-        </h2>
+{% block form_fields %}
+  <label class="label" for="name">Name</label>
+  <input
+    type="text"
+    id="name"
+    name="name"
+    value="{% if user %}{{ user.name }}{% endif %}"
+    class="input w-full"
+    required
+  />
 
-        {% if message != "" %}
-          <div
-            role="alert"
-            class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %}"
-          >
-            <span>{{ message }}</span>
-          </div>
-        {% endif %}
+  <label class="label" for="email">Email</label>
+  <input
+    type="email"
+    id="email"
+    name="email"
+    value="{% if user %}{{ user.email }}{% endif %}"
+    class="input w-full"
+    required
+  />
 
-        <form
-          action="{% if mode == "edit" %}/users/{{ user.id }}{% else %}/users{% endif %}"
-          method="post"
-        >
-          <fieldset class="fieldset">
-            <label class="label" for="name">Name</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value="{% if form.name is defined %}{{ form.name }}{% elif user is defined %}{{ user.name }}{% endif %}"
-              class="input w-full"
-              required
-            />
+  <label class="label" for="role">Role</label>
+  <select
+    id="role"
+    name="role"
+    class="select w-full"
+    {% if mode == "edit" and user.id == current_user.id %}disabled{% endif %}
+  >
+    {% for opt in roles %}
+      <option
+        value="{{ opt }}"
+        {% if user and user.role == opt %}selected{% endif %}
+      >
+        {{ opt }}
+      </option>
+    {% endfor %}
+  </select>
+  {% if mode == "edit" and user.id == current_user.id %}
+    <p class="label">You cannot change your own role.</p>
+  {% endif %}
 
-            <label class="label" for="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value="{% if form.email is defined %}{{ form.email }}{% elif user is defined %}{{ user.email }}{% endif %}"
-              class="input w-full"
-              required
-            />
-
-            <label class="label" for="role">Role</label>
-            <select
-              id="role"
-              name="role"
-              class="select w-full"
-              {% if mode == "edit" and user.id == current_user.id %}disabled{% endif %}
-            >
-              {% if form.role is defined %}
-                {% set current_role = form.role %}
-              {% elif user is defined %}
-                {% set current_role = user.role %}
-              {% else %}
-                {% set current_role = "" %}
-              {% endif %}
-              {% for role_option in roles %}
-                <option
-                  value="{{ role_option }}"
-                  {% if current_role == role_option %}selected{% endif %}
-                >
-                  {{ role_option }}
-                </option>
-              {% endfor %}
-            </select>
-            {% if mode == "edit" and user.id == current_user.id %}
-              <p class="label">You cannot change your own role.</p>
-            {% endif %}
-
-            <label class="label" for="password">
-              {% if mode == "create" %}
-                Password
-              {% else %}
-                New password (leave blank to keep current)
-              {% endif %}
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              class="input w-full"
-              {% if mode == "create" %}required{% endif %}
-            />
-
-            <div class="mt-4 flex gap-2">
-              <button type="submit" class="btn btn-primary">
-                {% if mode == "create" %}Create User{% else %}Save Changes{% endif %}
-              </button>
-              <a href="/users" class="btn btn-ghost">Cancel</a>
-            </div>
-          </fieldset>
-        </form>
-      </div>
-    </div>
-  </div>
+  <label class="label" for="password">
+    {% if mode == "create" %}
+      Password
+    {% else %}
+      New password (leave blank to keep current)
+    {% endif %}
+  </label>
+  <input
+    type="password"
+    id="password"
+    name="password"
+    class="input w-full"
+    {% if mode == "create" %}required{% endif %}
+  />
 {% endblock %}

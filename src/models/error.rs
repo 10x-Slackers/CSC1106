@@ -131,8 +131,3 @@ impl From<PostingError> for PaymentCreateError {
 }
 
 impl std::error::Error for PaymentCreateError {}
-
-/// True if a `DbErr` is a SQLite unique constraint violation.
-pub fn is_unique_violation(err: &DbErr) -> bool {
-    err.to_string().contains("UNIQUE constraint failed")
-}
