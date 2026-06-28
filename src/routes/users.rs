@@ -12,8 +12,6 @@ use crate::models::util::is_unique_violation;
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
 
-const ROLE_LABELS: &[&str] = &["Admin", "Accountant", "Staff"];
-
 #[derive(Deserialize)]
 pub struct UserForm {
     name: String,
@@ -33,13 +31,12 @@ fn render_users_list(
     tera: &Tera,
     user: &Require<AdminOnly>,
     users: &[User],
-    roles: &[&str],
     message: &str,
     message_kind: &str,
 ) -> HttpResponse {
     let mut context = Context::new();
     context.insert("users", users);
-    context.insert("roles", roles);
+    context.insert("roles", &Role::labels());
     context.insert("message", message);
     context.insert("message_kind", message_kind);
     insert_nav_context(&mut context, user);
@@ -54,21 +51,13 @@ async fn reload_users_list(
     verb: &str,
 ) -> HttpResponse {
     match User::list(db, None, None, None).await {
-        Ok(users) => render_users_list(
-            tera,
-            user,
-            &users,
-            ROLE_LABELS,
-            &format!("User {verb}."),
-            "success",
-        ),
+        Ok(users) => render_users_list(tera, user, &users, &format!("User {verb}."), "success"),
         Err(e) => {
             eprintln!("Failed to list users after {verb}: {e}");
             render_users_list(
                 tera,
                 user,
                 &[],
-                ROLE_LABELS,
                 &format!("User {verb}, but failed to load list."),
                 "error",
             )
@@ -87,7 +76,7 @@ fn render_user_form(
     let mut context = Context::new();
     context.insert("mode", mode);
     context.insert("user", &existing_user);
-    context.insert("roles", ROLE_LABELS);
+    context.insert("roles", &Role::labels());
     context.insert("entity_label", "User");
     context.insert("base_path", "/users");
     if let Some(user) = existing_user {
@@ -112,17 +101,10 @@ pub async fn list_users(
     let status = query.status.as_deref().and_then(UserStatus::parse);
 
     match User::list(db.get_ref(), q, role, status).await {
-        Ok(users) => render_users_list(tera.get_ref(), &user, &users, ROLE_LABELS, "", ""),
+        Ok(users) => render_users_list(tera.get_ref(), &user, &users, "", ""),
         Err(e) => {
             eprintln!("Failed to list users: {e}");
-            render_users_list(
-                tera.get_ref(),
-                &user,
-                &[],
-                ROLE_LABELS,
-                "Failed to load users.",
-                "error",
-            )
+            render_users_list(tera.get_ref(), &user, &[], "Failed to load users.", "error")
         }
     }
 }
@@ -345,7 +327,6 @@ pub async fn disable_user(
             tera.get_ref(),
             &current_user,
             &users,
-            ROLE_LABELS,
             "You cannot disable your own account.",
             "error",
         );
@@ -374,7 +355,6 @@ pub async fn disable_user(
                 tera.get_ref(),
                 &current_user,
                 &users,
-                ROLE_LABELS,
                 "Failed to disable user.",
                 "error",
             )
@@ -416,7 +396,6 @@ pub async fn enable_user(
                 tera.get_ref(),
                 &current_user,
                 &users,
-                ROLE_LABELS,
                 "Failed to enable user.",
                 "error",
             )

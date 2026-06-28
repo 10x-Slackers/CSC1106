@@ -33,8 +33,9 @@
       <span class="label">Type</span>
       <select name="party_type" class="select select-sm">
         <option value="">All</option>
-        <option value="Customer">Customer</option>
-        <option value="Vendor">Vendor</option>
+        {% for opt in party_types %}
+          <option value="{{ opt }}">{{ opt }}</option>
+        {% endfor %}
       </select>
     </label>
 
@@ -42,8 +43,9 @@
       <span class="label">Status</span>
       <select name="status" class="select select-sm">
         <option value="">All</option>
-        <option value="Active">Active</option>
-        <option value="Inactive">Inactive</option>
+        {% for opt in statuses %}
+          <option value="{{ opt }}">{{ opt }}</option>
+        {% endfor %}
       </select>
     </label>
 

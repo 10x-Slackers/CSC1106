@@ -40,6 +40,8 @@ fn render_parties_list(
 ) -> HttpResponse {
     let mut context = Context::new();
     context.insert("parties", parties);
+    context.insert("party_types", &PartyType::labels());
+    context.insert("statuses", &PartyStatus::labels());
     context.insert("message", message);
     context.insert("message_kind", message_kind);
     insert_nav_context(&mut context, user);
@@ -81,6 +83,7 @@ fn render_party_form(
     let mut context = Context::new();
     context.insert("mode", mode);
     context.insert("party", &existing_party);
+    context.insert("party_types", &PartyType::labels());
     context.insert("entity_label", "Party");
     context.insert("base_path", "/parties");
     if let Some(party) = existing_party {

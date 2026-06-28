@@ -42,33 +42,19 @@
   />
 
   <label class="label" for="address">Address</label>
-  <textarea
-    id="address"
-    name="address"
-    class="textarea w-full"
-    required
-  >
+  <textarea id="address" name="address" class="textarea w-full" required>
 {% if party %}{{ party.address }}{% endif %}</textarea
   >
 
   <label class="label" for="party_type">Party Type</label>
-  <select
-    id="party_type"
-    name="party_type"
-    class="select w-full"
-    required
-  >
-    <option
-      value="Customer"
-      {% if party and party.party_type == "Customer" %}selected{% endif %}
-    >
-      Customer
-    </option>
-    <option
-      value="Vendor"
-      {% if party and party.party_type == "Vendor" %}selected{% endif %}
-    >
-      Vendor
-    </option>
+  <select id="party_type" name="party_type" class="select w-full" required>
+    {% for opt in party_types %}
+      <option
+        value="{{ opt }}"
+        {% if party and party.party_type == opt %}selected{% endif %}
+      >
+        {{ opt }}
+      </option>
+    {% endfor %}
   </select>
 {% endblock %}

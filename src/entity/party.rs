@@ -1,5 +1,6 @@
 use std::fmt;
 
+use sea_orm::Iterable;
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -23,6 +24,13 @@ impl fmt::Display for PartyType {
     }
 }
 
+impl PartyType {
+    /// Return all party type variant labels in declaration order.
+    pub fn labels() -> Vec<String> {
+        Self::iter().map(|v| v.to_string()).collect()
+    }
+}
+
 /// Party status: active or inactive.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
@@ -39,6 +47,13 @@ impl fmt::Display for PartyStatus {
             PartyStatus::Active => write!(f, "Active"),
             PartyStatus::Inactive => write!(f, "Inactive"),
         }
+    }
+}
+
+impl PartyStatus {
+    /// Return all status variant labels in declaration order.
+    pub fn labels() -> Vec<String> {
+        Self::iter().map(|v| v.to_string()).collect()
     }
 }
 

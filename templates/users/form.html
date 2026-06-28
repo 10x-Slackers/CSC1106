@@ -28,24 +28,14 @@
     class="select w-full"
     {% if mode == "edit" and user.id == current_user.id %}disabled{% endif %}
   >
-    <option
-      value="Staff"
-      {% if user and user.role == "Staff" %}selected{% endif %}
-    >
-      Staff
-    </option>
-    <option
-      value="Accountant"
-      {% if user and user.role == "Accountant" %}selected{% endif %}
-    >
-      Accountant
-    </option>
-    <option
-      value="Admin"
-      {% if user and user.role == "Admin" %}selected{% endif %}
-    >
-      Admin
-    </option>
+    {% for opt in roles %}
+      <option
+        value="{{ opt }}"
+        {% if user and user.role == opt %}selected{% endif %}
+      >
+        {{ opt }}
+      </option>
+    {% endfor %}
   </select>
   {% if mode == "edit" and user.id == current_user.id %}
     <p class="label">You cannot change your own role.</p>
