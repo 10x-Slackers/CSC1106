@@ -23,6 +23,8 @@ impl From<DbErr> for AppError {
     }
 }
 
+impl std::error::Error for AppError {}
+
 #[derive(Debug)]
 pub enum AuthError {
     InvalidCredentials,
@@ -53,6 +55,8 @@ impl From<HashError> for AuthError {
         AuthError::HashError(e)
     }
 }
+
+impl std::error::Error for AuthError {}
 
 #[derive(Debug)]
 pub enum PostingError {
@@ -93,6 +97,8 @@ impl From<DbErr> for PostingError {
     }
 }
 
+impl std::error::Error for PostingError {}
+
 #[derive(Debug)]
 pub enum PaymentCreateError {
     SameAccount,
@@ -123,6 +129,8 @@ impl From<PostingError> for PaymentCreateError {
         PaymentCreateError::Posting(e)
     }
 }
+
+impl std::error::Error for PaymentCreateError {}
 
 /// True if a `DbErr` is a SQLite unique constraint violation.
 pub fn is_unique_violation(err: &DbErr) -> bool {
