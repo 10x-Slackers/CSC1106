@@ -1,5 +1,6 @@
 pub mod account;
 pub mod error;
+pub mod invoice;
 pub mod party;
 pub mod payment;
 pub mod posting;

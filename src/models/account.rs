@@ -1,4 +1,6 @@
-use sea_orm::{DatabaseConnection, EntityTrait, QueryOrder};
+use sea_orm::{
+    ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+};
 
 use crate::entity::account;
 use crate::models::error::AppError;
@@ -7,6 +9,33 @@ use crate::models::error::AppError;
 pub struct AccountOption {
     pub id: i32,
     pub name: String,
+}
+
+/// Find an account by exact name.
+pub async fn find_by_name<C: ConnectionTrait>(
+    db: &C,
+    name: &str,
+) -> Result<Option<account::Model>, AppError> {
+    let acct = account::Entity::find()
+        .filter(account::Column::Name.eq(name))
+        .one(db)
+        .await?;
+    Ok(acct)
+}
+
+/// Find the "Accounts Receivable" and "Sales Revenue" accounts for posting journal entries.
+pub async fn find_ar_and_sr<C: ConnectionTrait>(
+    db: &C,
+) -> Result<(account::Model, account::Model), AppError> {
+    let ar = find_by_name(db, "Accounts Receivable")
+        .await?
+        .ok_or_else(|| {
+            AppError::Database(sea_orm::DbErr::RecordNotFound("Accounts Receivable".into()))
+        })?;
+    let sales = find_by_name(db, "Sales Revenue").await?.ok_or_else(|| {
+        AppError::Database(sea_orm::DbErr::RecordNotFound("Sales Revenue".into()))
+    })?;
+    Ok((ar, sales))
 }
 
 /// List all accounts ordered by name, for use in payment form dropdowns.

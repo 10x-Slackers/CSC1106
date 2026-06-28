@@ -1,4 +1,5 @@
 use rust_decimal::Decimal;
+use sea_orm::Iterable;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -18,6 +19,22 @@ impl fmt::Display for GstRate {
         match self {
             GstRate::None => write!(f, "None"),
             GstRate::Standard => write!(f, "Standard"),
+        }
+    }
+}
+
+impl GstRate {
+    /// Return all GST rate variant labels in declaration order.
+    pub fn labels() -> Vec<String> {
+        Self::iter().map(|v| v.to_string()).collect()
+    }
+
+    /// Parse a GST rate string (case-insensitive) into a `GstRate`.
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_lowercase().as_str() {
+            "none" => Some(GstRate::None),
+            "standard" => Some(GstRate::Standard),
+            _ => None,
         }
     }
 }
