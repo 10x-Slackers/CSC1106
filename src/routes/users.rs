@@ -7,8 +7,8 @@ use crate::entity::user::{Role, UserStatus};
 use crate::middleware::auth::UserCache;
 use crate::middleware::permissions::{AdminOnly, Require};
 use crate::models::error::AuthError;
-use crate::models::error::is_unique_violation;
 use crate::models::user::User;
+use crate::models::util::is_unique_violation;
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
 

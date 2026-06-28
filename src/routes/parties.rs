@@ -8,9 +8,9 @@ use crate::entity::party::{PartyStatus, PartyType};
 use crate::middleware::auth::Authenticated;
 use crate::middleware::permissions::{Finance, Require};
 use crate::models::error::AppError;
-use crate::models::error::is_unique_violation;
 use crate::models::party::Party;
 use crate::models::payment::Payment;
+use crate::models::util::{is_unique_violation, non_empty};
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
 
@@ -212,14 +212,7 @@ pub async fn create_party(
     let phone = form.phone.trim();
     let address = form.address.trim();
     let party_type_str = form.party_type.trim();
-    let company = form.company.as_deref().and_then(|s| {
-        let trimmed = s.trim();
-        if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed)
-        }
-    });
+    let company = form.company.as_deref().and_then(non_empty);
 
     let mut errors = Vec::new();
     if name.is_empty() {
@@ -357,14 +350,7 @@ pub async fn update_party(
     let phone = form.phone.trim();
     let address = form.address.trim();
     let party_type_str = form.party_type.trim();
-    let company = form.company.as_deref().and_then(|s| {
-        let trimmed = s.trim();
-        if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed)
-        }
-    });
+    let company = form.company.as_deref().and_then(non_empty);
 
     let existing = match Party::find_by_id(db.get_ref(), id).await {
         Ok(Some(p)) => p,

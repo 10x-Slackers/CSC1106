@@ -12,6 +12,7 @@ use crate::models::account::list_accounts;
 use crate::models::error::PaymentCreateError;
 use crate::models::party::Party;
 use crate::models::payment::Payment;
+use crate::models::util::non_empty;
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
 
@@ -68,11 +69,6 @@ fn enrich_payments(
             amount: p.amount,
         })
         .collect()
-}
-
-fn non_empty(s: &str) -> Option<&str> {
-    let t = s.trim();
-    if t.is_empty() { None } else { Some(t) }
 }
 
 /// Load parties + party-name map and render the payments list.

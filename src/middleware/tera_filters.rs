@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::NaiveDateTime;
-use tera::{Result, Value};
+use tera::{Result, Tera, Value};
 
 use crate::entity::user::Role;
 use crate::middleware::permissions::role_set;
@@ -41,4 +41,11 @@ pub fn money(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
         Ok(d) => Ok(Value::String(format!("{:.2}", d))),
         Err(_) => Ok(value.clone()),
     }
+}
+
+/// Register all custom Tera filters on the given engine.
+pub fn register(tera: &mut Tera) {
+    tera.register_filter("can", can);
+    tera.register_filter("datetime", datetime);
+    tera.register_filter("money", money);
 }

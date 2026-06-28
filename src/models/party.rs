@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::entity::party as party_entity;
 use crate::entity::party::{PartyStatus, PartyType};
 use crate::models::error::AppError;
+use crate::models::util::like_pattern;
 
 impl PartyType {
     /// Parse a party type string into a `PartyType`.
@@ -101,20 +102,14 @@ impl Party {
     ) -> Result<Vec<Party>, AppError> {
         let mut conditions = Condition::all();
 
-        if let Some(query) = q {
-            let query = query.trim();
-            if !query.is_empty() {
-                let escaped = query
-                    .replace('\\', "\\\\")
-                    .replace('%', "\\%")
-                    .replace('_', "\\_");
-                let pattern = format!("%{}%", escaped);
-                conditions = conditions.add(
-                    Condition::any()
-                        .add(party_entity::Column::Name.like(&pattern))
-                        .add(party_entity::Column::Company.like(&pattern)),
-                );
-            }
+        if let Some(query) = q
+            && let Some(pattern) = like_pattern(query)
+        {
+            conditions = conditions.add(
+                Condition::any()
+                    .add(party_entity::Column::Name.like(&pattern))
+                    .add(party_entity::Column::Company.like(&pattern)),
+            );
         }
 
         if let Some(pt) = party_type {
