@@ -1,10 +1,11 @@
 use rust_decimal::Decimal;
-use sea_orm::{ActiveModelTrait, ConnectionTrait, DbErr, EntityTrait, Set};
+use sea_orm::{ActiveModelTrait, ConnectionTrait, EntityTrait, Set};
 
 use crate::entity::journal_entry as journal_entry_entity;
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line as journal_entry_line_entity;
 use crate::entity::journal_entry_line::EntrySide;
+use crate::models::error::PostingError;
 
 #[derive(Clone)]
 /// Input for a single debit or credit line within a journal entry.
@@ -13,45 +14,6 @@ pub struct JournalEntryLineInput {
     pub entry_side: EntrySide,
     pub amount: Decimal,
     pub description: Option<String>,
-}
-
-#[derive(Debug)]
-pub enum PostingError {
-    UnbalancedEntry {
-        total_debits: Decimal,
-        total_credits: Decimal,
-    },
-    NoLines,
-    NonPositiveAmount {
-        amount: Decimal,
-    },
-    DatabaseError(DbErr),
-}
-
-impl std::fmt::Display for PostingError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PostingError::UnbalancedEntry {
-                total_debits,
-                total_credits,
-            } => write!(
-                f,
-                "Unbalanced entry: total debits ({}) != total credits ({})",
-                total_debits, total_credits
-            ),
-            PostingError::NoLines => write!(f, "Journal entry must have at least one line"),
-            PostingError::NonPositiveAmount { amount } => {
-                write!(f, "Amount must be positive, got: {}", amount)
-            }
-            PostingError::DatabaseError(e) => write!(f, "Database error: {}", e),
-        }
-    }
-}
-
-impl From<DbErr> for PostingError {
-    fn from(e: DbErr) -> Self {
-        PostingError::DatabaseError(e)
-    }
 }
 
 /// Centralised posting service for the double-entry accounting engine.

@@ -9,8 +9,9 @@ use crate::entity::payment::PaymentDirection;
 use crate::middleware::auth::Authenticated;
 use crate::middleware::permissions::{Finance, Require};
 use crate::models::account::list_accounts;
+use crate::models::error::PaymentCreateError;
 use crate::models::party::Party;
-use crate::models::payment::{Payment, PaymentCreateError};
+use crate::models::payment::Payment;
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
 

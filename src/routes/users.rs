@@ -6,8 +6,9 @@ use tera::{Context, Tera};
 use crate::entity::user::{Role, UserStatus};
 use crate::middleware::auth::UserCache;
 use crate::middleware::permissions::{AdminOnly, Require};
+use crate::models::error::AuthError;
 use crate::models::error::is_unique_violation;
-use crate::models::user::{AuthError, User};
+use crate::models::user::User;
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
 
@@ -234,7 +235,7 @@ pub async fn create_user(
 
     match User::create(db.get_ref(), email, name, password, role).await {
         Ok(_) => reload_users_list(tera.get_ref(), &user, db.get_ref(), "created").await,
-        Err(AuthError::DatabaseError(ref e)) if is_unique_violation(e) => {
+        Err(AuthError::Database(ref e)) if is_unique_violation(e) => {
             render_user_form(FormContext {
                 roles: ROLE_LABELS,
                 tera: tera.get_ref(),
@@ -386,7 +387,7 @@ pub async fn update_user(
         .await
     {
         Ok(_) => reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "updated").await,
-        Err(AuthError::DatabaseError(ref e)) if is_unique_violation(e) => {
+        Err(AuthError::Database(ref e)) if is_unique_violation(e) => {
             render_user_form(FormContext {
                 roles: ROLE_LABELS,
                 tera: tera.get_ref(),
