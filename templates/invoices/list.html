@@ -136,20 +136,6 @@
                 >
                   View
                 </a>
-                {% if current_user.role | can(set="finance") %}
-                  {% if invoice.status == "Draft" %}
-                    <form
-                      action="/invoices/{{ invoice.id }}/void"
-                      method="post"
-                      class="inline"
-                      onsubmit="return confirm('Void this invoice?');"
-                    >
-                      <button type="submit" class="btn btn-xs btn-error">
-                        Void
-                      </button>
-                    </form>
-                  {% endif %}
-                {% endif %}
               </td>
             </tr>
           {% endfor %}

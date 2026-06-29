@@ -4,7 +4,6 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
     Order, QueryFilter, QueryOrder, QuerySelect, Set,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line::EntrySide;
@@ -15,58 +14,7 @@ use crate::models::error::{AppError, PaymentCreateError};
 use crate::models::posting::{JournalEntryLineInput, PostingService};
 use crate::models::util::like_pattern;
 
-/// A payment with enrichment (party name, created-by name).
-#[derive(Serialize)]
-pub struct PaymentDetail {
-    pub id: i32,
-    pub payment_direction: PaymentDirection,
-    pub payment_date: NaiveDate,
-    pub party_name: Option<String>,
-    pub amount: Decimal,
-    pub remarks: Option<String>,
-    pub created_at: chrono::NaiveDateTime,
-    pub created_by_name: Option<String>,
-}
-
-impl PaymentDirection {
-    /// Parse a payment direction string into a `PaymentDirection`.
-    pub fn parse(s: &str) -> Option<Self> {
-        match s.trim().to_uppercase().as_str() {
-            "IN" => Some(PaymentDirection::In),
-            "OUT" => Some(PaymentDirection::Out),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct Payment {
-    pub id: i32,
-    pub invoice_id: Option<i32>,
-    pub party_id: Option<i32>,
-    pub created_by_user_id: i32,
-    pub payment_direction: PaymentDirection,
-    pub amount: Decimal,
-    pub payment_date: NaiveDate,
-    pub remarks: Option<String>,
-    pub created_at: chrono::NaiveDateTime,
-}
-
-impl From<payment_entity::Model> for Payment {
-    fn from(m: payment_entity::Model) -> Self {
-        Payment {
-            id: m.id,
-            invoice_id: m.invoice_id,
-            party_id: m.party_id,
-            created_by_user_id: m.created_by_user_id,
-            payment_direction: m.payment_direction,
-            amount: m.amount,
-            payment_date: m.payment_date,
-            remarks: m.remarks,
-            created_at: m.created_at,
-        }
-    }
-}
+use super::types::{Payment, PaymentDetail};
 
 impl Payment {
     async fn find_model_by_id(
@@ -218,15 +166,11 @@ impl Payment {
         db: &DatabaseConnection,
         party_id: i32,
     ) -> Result<Decimal, AppError> {
-        use sea_orm::sea_query::Expr;
-        let total: Option<Decimal> = payment_entity::Entity::find()
+        let payments = payment_entity::Entity::find()
             .filter(payment_entity::Column::PartyId.eq(party_id))
-            .select_only()
-            .expr(Expr::col(payment_entity::Column::Amount).sum())
-            .into_tuple()
-            .one(db)
+            .all(db)
             .await?;
-        Ok(total.unwrap_or(Decimal::ZERO))
+        Ok(payments.into_iter().map(|p| p.amount).sum())
     }
 
     /// List all payments linked to an invoice, newest first.

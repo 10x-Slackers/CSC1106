@@ -12,9 +12,9 @@ use crate::models::invoice::Invoice;
 use crate::models::party::Party;
 use crate::models::payment::Payment;
 use crate::models::util::{is_unique_violation, non_empty};
-use crate::routes::utils::insert_nav_context;
-use crate::routes::utils::render;
-use crate::routes::utils::{find_or_404, require_non_empty, validate_email};
+use crate::routes::utils::{
+    find_or_404, insert_nav_context, render, require_non_empty, validate_email,
+};
 
 #[derive(Deserialize)]
 pub struct PartyForm {

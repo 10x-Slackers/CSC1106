@@ -2,8 +2,7 @@ use actix_web::{Responder, get, web};
 use tera::Context;
 
 use crate::middleware::permissions::{Finance, Require};
-use crate::routes::utils::insert_nav_context;
-use crate::routes::utils::render;
+use crate::routes::utils::{insert_nav_context, render};
 
 #[get("/reports")]
 pub async fn reports(user: Require<Finance>, tera: web::Data<tera::Tera>) -> impl Responder {

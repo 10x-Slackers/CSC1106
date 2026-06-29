@@ -14,8 +14,7 @@ use actix_web::middleware::ErrorHandlers;
 use actix_web::{App, HttpServer, web};
 use tera::Tera;
 
-use crate::middleware::auth::UserCache;
-use crate::middleware::auth::show_unauthorized_page;
+use crate::middleware::auth::{UserCache, show_unauthorized_page};
 use crate::middleware::permissions::forbidden_page;
 use crate::middleware::tera_filters;
 
