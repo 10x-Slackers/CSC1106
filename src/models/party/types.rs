@@ -7,10 +7,13 @@ use crate::entity::party::{PartyStatus, PartyType};
 impl PartyType {
     /// Parse a party type string into a `PartyType`.
     pub fn parse(s: &str) -> Option<Self> {
-        match s.trim().to_lowercase().as_str() {
-            "customer" => Some(PartyType::Customer),
-            "vendor" => Some(PartyType::Vendor),
-            _ => None,
+        let s = s.trim();
+        if s.eq_ignore_ascii_case("customer") {
+            Some(PartyType::Customer)
+        } else if s.eq_ignore_ascii_case("vendor") {
+            Some(PartyType::Vendor)
+        } else {
+            None
         }
     }
 }
@@ -18,14 +21,18 @@ impl PartyType {
 impl PartyStatus {
     /// Parse a party status string into a `PartyStatus`.
     pub fn parse(s: &str) -> Option<Self> {
-        match s.trim().to_lowercase().as_str() {
-            "active" => Some(PartyStatus::Active),
-            "inactive" => Some(PartyStatus::Inactive),
-            _ => None,
+        let s = s.trim();
+        if s.eq_ignore_ascii_case("active") {
+            Some(PartyStatus::Active)
+        } else if s.eq_ignore_ascii_case("inactive") {
+            Some(PartyStatus::Inactive)
+        } else {
+            None
         }
     }
 }
 
+/// Application-level party model.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Party {
     pub id: i32,

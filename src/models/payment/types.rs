@@ -21,10 +21,13 @@ pub struct PaymentDetail {
 impl PaymentDirection {
     /// Parse a payment direction string into a `PaymentDirection`.
     pub fn parse(s: &str) -> Option<Self> {
-        match s.trim().to_uppercase().as_str() {
-            "IN" => Some(PaymentDirection::In),
-            "OUT" => Some(PaymentDirection::Out),
-            _ => None,
+        let s = s.trim();
+        if s.eq_ignore_ascii_case("in") {
+            Some(PaymentDirection::In)
+        } else if s.eq_ignore_ascii_case("out") {
+            Some(PaymentDirection::Out)
+        } else {
+            None
         }
     }
 }
