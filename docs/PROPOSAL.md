@@ -42,7 +42,7 @@ Shared search/filter system applied across modules. Each module supports text se
 
 | Module          | Search By                               | Filter By                                        |
 | --------------- | --------------------------------------- | ------------------------------------------------ |
-| Invoices        | invoice number, party name              | party, status, issue date, due date              |
+| Invoices        | invoice number                          | party, status, issue date, due date              |
 | Payments        | party name, remarks                     | direction (IN/OUT), party, date range            |
 | Claims          | employee name, claim title, category    | date range, employee, category, status           |
 | Parties         | name, company                           | type (customer/vendor), status (active/inactive) |
@@ -50,11 +50,7 @@ Shared search/filter system applied across modules. Each module supports text se
 
 ### Table Views
 
-All list pages share a consistent table view with:
-
-- Sortable columns
-- Row totals for current filtered view
-- Pagination
+All list pages share a consistent table view with pagination.
 
 ### PDF Export (Stretch Goal)
 
@@ -95,16 +91,16 @@ Allow Admin/Accountant to create, edit, and deactivate accounts beyond the seede
 
 ### Role Gates
 
-| Action                                  | Admin | Accountant | Staff |
-| --------------------------------------- | ----- | ---------- | ----- |
-| Create/edit invoices                    | ✓     | ✓          | ✓     |
-| Submit claims                           | ✓     | ✓          | ✓     |
-| Void invoices                           | ✓     | ✓          | ✗     |
-| Record payments                         | ✓     | ✓          | ✗     |
-| Approve/reject claims                   | ✓     | ✓          | ✗     |
-| Post to ledger (manual journal entries) | ✓     | ✓          | ✗     |
-| Access financial reports                | ✓     | ✓          | ✗     |
-| Manage users                            | ✓     | ✗          | ✗     |
+| Action                                  | Admin | Accountant | Staff    |
+| --------------------------------------- | ----- | ---------- | -------- |
+| Create/edit invoices                    | ✓     | ✓          | ✓        |
+| Submit claims                           | ✓     | ✓          | ✓        |
+| Void invoices                           | ✓     | ✓          | own only |
+| Record payments                         | ✓     | ✓          | ✗        |
+| Approve/reject claims                   | ✓     | ✓          | ✗        |
+| Post to ledger (manual journal entries) | ✓     | ✓          | ✗        |
+| Access financial reports                | ✓     | ✓          | ✗        |
+| Manage users                            | ✓     | ✗          | ✗        |
 
 ---
 
@@ -136,9 +132,8 @@ _Includes tax calculation._
 
 ### CRUD Operations
 
-- Create, view, edit, void/delete invoices
+- Create, view, edit, void invoices
 - Auto-generated invoice numbers
-- Invoice preview and print-ready layout
 
 ### Statuses & State Transitions
 
