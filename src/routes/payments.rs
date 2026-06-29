@@ -13,8 +13,10 @@ use crate::models::error::PaymentCreateError;
 use crate::models::party::Party;
 use crate::models::payment::Payment;
 use crate::models::util::non_empty;
-use crate::routes::nav::insert_nav_context;
-use crate::routes::render::render;
+use crate::routes::utils::find_or_404;
+use crate::routes::utils::insert_nav_context;
+use crate::routes::utils::parse_field;
+use crate::routes::utils::render;
 
 #[derive(Deserialize)]
 struct PaymentForm {
@@ -180,12 +182,12 @@ pub async fn create_payment(
         .and_then(non_empty)
         .map(str::to_string);
 
-    let mut errors: Vec<&str> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
 
     let direction = match PaymentDirection::parse(payment_direction) {
         Some(d) => d,
         None => {
-            errors.push("Direction must be IN or OUT.");
+            errors.push("Direction must be IN or OUT.".into());
             PaymentDirection::In
         }
     };
@@ -193,34 +195,19 @@ pub async fn create_payment(
     let amount = match amount_str.parse::<Decimal>() {
         Ok(a) if a > Decimal::ZERO => a,
         _ => {
-            errors.push("Amount must be a positive number.");
+            errors.push("Amount must be a positive number.".into());
             Decimal::ZERO
         }
     };
 
-    let payment_date = match payment_date_str.parse::<NaiveDate>() {
-        Ok(d) => d,
-        Err(_) => {
-            errors.push("Payment date is invalid.");
-            chrono::Utc::now().naive_utc().date()
-        }
-    };
-
-    let from_account_id = match from_account_id_str.parse::<i32>() {
-        Ok(id) => id,
-        Err(_) => {
-            errors.push("Invalid from account.");
-            0
-        }
-    };
-
-    let to_account_id = match to_account_id_str.parse::<i32>() {
-        Ok(id) => id,
-        Err(_) => {
-            errors.push("Invalid to account.");
-            0
-        }
-    };
+    let payment_date = parse_field(
+        payment_date_str,
+        &mut errors,
+        "Payment date is invalid.",
+        chrono::Utc::now().naive_utc().date(),
+    );
+    let from_account_id = parse_field(from_account_id_str, &mut errors, "Invalid from account.", 0);
+    let to_account_id = parse_field(to_account_id_str, &mut errors, "Invalid to account.", 0);
 
     let party_id = party_id_str.and_then(|s| s.parse::<i32>().ok());
 
@@ -312,13 +299,10 @@ pub async fn show_payment(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    let detail = match Payment::find_with_linked(db.get_ref(), id).await {
-        Ok(Some(d)) => d,
-        Ok(None) => return HttpResponse::NotFound().body("Payment not found."),
-        Err(e) => {
-            eprintln!("Failed to find payment {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
+    let detail = match find_or_404(Payment::find_with_linked(db.get_ref(), id), id, "Payment").await
+    {
+        Ok(d) => d,
+        Err(resp) => return resp,
     };
 
     let mut ctx = Context::new();
