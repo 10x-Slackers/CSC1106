@@ -8,6 +8,7 @@ use crate::entity::party::{PartyStatus, PartyType};
 use crate::middleware::auth::Authenticated;
 use crate::middleware::permissions::{Finance, Require};
 use crate::models::error::AppError;
+use crate::models::invoice::Invoice;
 use crate::models::party::Party;
 use crate::models::payment::Payment;
 use crate::models::util::{is_unique_violation, non_empty};
@@ -428,8 +429,13 @@ pub async fn show_party(
         }
     };
 
-    // TODO: replace with Invoice::count_for_party(db, id) once the invoice model lands
-    let invoice_count: u64 = 0;
+    let invoice_count = match Invoice::count_for_party(db.get_ref(), id).await {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to load invoice count for party {id}: {e}");
+            0
+        }
+    };
 
     let total_spending = match Payment::total_for_party(db.get_ref(), id).await {
         Ok(total) => total.to_string(),

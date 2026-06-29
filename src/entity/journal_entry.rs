@@ -15,8 +15,8 @@ pub struct Model {
 
 /// Each journal entry traces back to only one source document.
 ///
-/// `Claim`, `Invoice`, and `Manual` variants are unused until claim/invoice
-/// posting is implemented; they are kept here so the enum is complete.
+/// `Claim` and `Manual` variants are unused until claim posting / manual
+/// journal entries are implemented; they are kept here so the enum is complete.
 #[derive(Clone)]
 #[allow(dead_code)]
 pub enum SourceDocument {

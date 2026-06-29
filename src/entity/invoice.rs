@@ -1,5 +1,6 @@
 use std::fmt;
 
+use sea_orm::Iterable;
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -25,9 +26,29 @@ impl fmt::Display for InvoiceStatus {
         match self {
             InvoiceStatus::Draft => write!(f, "Draft"),
             InvoiceStatus::Sent => write!(f, "Sent"),
-            InvoiceStatus::PartiallyPaid => write!(f, "PartiallyPaid"),
+            InvoiceStatus::PartiallyPaid => write!(f, "Partially Paid"),
             InvoiceStatus::Paid => write!(f, "Paid"),
             InvoiceStatus::Voided => write!(f, "Voided"),
+        }
+    }
+}
+
+impl InvoiceStatus {
+    /// Return all status variant labels in declaration order.
+    pub fn labels() -> Vec<String> {
+        Self::iter().map(|v| v.to_string()).collect()
+    }
+
+    /// Parse a status string (case-insensitive) into an `InvoiceStatus`.
+    pub fn parse(s: &str) -> Option<Self> {
+        let key = s.trim().to_lowercase().replace(' ', "");
+        match key.as_str() {
+            "draft" => Some(InvoiceStatus::Draft),
+            "sent" => Some(InvoiceStatus::Sent),
+            "partiallypaid" => Some(InvoiceStatus::PartiallyPaid),
+            "paid" => Some(InvoiceStatus::Paid),
+            "voided" => Some(InvoiceStatus::Voided),
+            _ => None,
         }
     }
 }

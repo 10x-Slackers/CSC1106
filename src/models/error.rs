@@ -130,4 +130,70 @@ impl From<PostingError> for PaymentCreateError {
     }
 }
 
+impl From<InvoiceError> for PaymentCreateError {
+    fn from(e: InvoiceError) -> Self {
+        match e {
+            InvoiceError::Posting(e) => PaymentCreateError::Posting(e),
+            InvoiceError::Database(e) => PaymentCreateError::Database(e),
+            other => PaymentCreateError::Database(sea_orm::DbErr::Custom(format!("{other}"))),
+        }
+    }
+}
+
 impl std::error::Error for PaymentCreateError {}
+
+#[derive(Debug)]
+pub enum InvoiceError {
+    NotEditable,
+    InvalidStatusTransition { from: String, to: String },
+    NoLineItems,
+    VoidWithPayments,
+    AlreadyVoided,
+    ValidationError(String),
+    Posting(PostingError),
+    Database(DbErr),
+}
+
+impl std::fmt::Display for InvoiceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InvoiceError::NotEditable => write!(f, "Invoice is not editable in its current status"),
+            InvoiceError::InvalidStatusTransition { from, to } => {
+                write!(f, "Cannot transition from {from} to {to}")
+            }
+            InvoiceError::NoLineItems => write!(f, "Invoice must have at least one line item"),
+            InvoiceError::VoidWithPayments => {
+                write!(f, "Cannot void invoice with existing payments")
+            }
+            InvoiceError::AlreadyVoided => write!(f, "Invoice is already voided"),
+            InvoiceError::ValidationError(msg) => write!(f, "{msg}"),
+            InvoiceError::Posting(e) => write!(f, "Posting failed: {e}"),
+            InvoiceError::Database(e) => write!(f, "Database error: {e}"),
+        }
+    }
+}
+
+impl From<DbErr> for InvoiceError {
+    fn from(e: DbErr) -> Self {
+        InvoiceError::Database(e)
+    }
+}
+
+impl From<PostingError> for InvoiceError {
+    fn from(e: PostingError) -> Self {
+        InvoiceError::Posting(e)
+    }
+}
+
+impl From<AppError> for InvoiceError {
+    fn from(e: AppError) -> Self {
+        match e {
+            AppError::Database(db_err) => InvoiceError::Database(db_err),
+            AppError::NotFound => {
+                InvoiceError::Database(sea_orm::DbErr::RecordNotFound("not found".into()))
+            }
+        }
+    }
+}
+
+impl std::error::Error for InvoiceError {}

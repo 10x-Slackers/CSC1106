@@ -11,7 +11,6 @@ use crate::entity::journal_entry_line::EntrySide;
 use crate::entity::party as party_entity;
 use crate::entity::payment as payment_entity;
 use crate::entity::payment::PaymentDirection;
-use crate::entity::user as user_entity;
 use crate::models::error::{AppError, PaymentCreateError};
 use crate::models::posting::{JournalEntryLineInput, PostingService};
 use crate::models::util::like_pattern;
@@ -98,10 +97,8 @@ impl Payment {
             None => None,
         };
 
-        let created_by_name = user_entity::Entity::find_by_id(payment.created_by_user_id)
-            .one(db)
-            .await?
-            .map(|u| u.name);
+        let created_by_name =
+            crate::models::user::name_by_id(db, payment.created_by_user_id).await?;
 
         Ok(Some(PaymentDetail {
             id: payment.id,
@@ -206,6 +203,13 @@ impl Payment {
         };
         PostingService::post_entry_in(db, lines, source, payment.created_by_user_id).await?;
 
+        // Recompute invoice status if this payment is linked to an invoice
+        if let Some(invoice_id) = payment.invoice_id {
+            crate::models::invoice::Invoice::recompute_status_for(db, invoice_id)
+                .await
+                .map_err(PaymentCreateError::from)?;
+        }
+
         Ok(payment)
     }
 
@@ -223,6 +227,23 @@ impl Payment {
             .one(db)
             .await?;
         Ok(total.unwrap_or(Decimal::ZERO))
+    }
+
+    /// List all payments linked to an invoice, newest first.
+    pub async fn list_for_invoice(
+        db: &DatabaseConnection,
+        invoice_id: i32,
+    ) -> Result<Vec<Payment>, AppError> {
+        let payments = payment_entity::Entity::find()
+            .filter(payment_entity::Column::InvoiceId.eq(invoice_id))
+            .order_by_desc(payment_entity::Column::PaymentDate)
+            .all(db)
+            .await
+            .map_err(AppError::from)?
+            .into_iter()
+            .map(Payment::from)
+            .collect();
+        Ok(payments)
     }
 
     /// Most recent payments for a given party.

@@ -1,0 +1,181 @@
+{% extends "partials/layout.html" %}
+{% import "macros/invoice.html" as invoice_macro %}
+
+{% block title %}Invoice {{ invoice.invoice_no }}{% endblock %}
+{% block page_content %}
+  <div class="mb-6">
+    <a href="/invoices" class="btn btn-ghost btn-sm">Back to Invoices</a>
+  </div>
+
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex flex-wrap items-center gap-3">
+      <h1 class="text-3xl font-bold">{{ invoice.invoice_no }}</h1>
+      {{ invoice_macro::status_badge(status=invoice.status) }}
+    </div>
+
+    {% if current_user.role | can(set="finance") %}
+      <div class="flex gap-2">
+        {% if invoice.status == "Draft" %}
+          <a
+            href="/invoices/{{ invoice.id }}/edit"
+            class="btn btn-primary btn-sm"
+          >
+            Edit
+          </a>
+          <form
+            action="/invoices/{{ invoice.id }}/send"
+            method="post"
+            class="inline"
+            onsubmit="return confirm('Send this invoice and post to ledger? This cannot be undone.');"
+          >
+            <button type="submit" class="btn btn-sm btn-primary">Send</button>
+          </form>
+          <form
+            action="/invoices/{{ invoice.id }}/void"
+            method="post"
+            class="inline"
+            onsubmit="return confirm('Void this invoice?');"
+          >
+            <button type="submit" class="btn btn-sm btn-error">Void</button>
+          </form>
+        {% elif invoice.status == "Sent" %}
+          <form
+            action="/invoices/{{ invoice.id }}/void"
+            method="post"
+            class="inline"
+            onsubmit="return confirm('Void this invoice?');"
+          >
+            <button type="submit" class="btn btn-sm btn-error">Void</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if message != "" %}
+    <div
+      role="alert"
+      class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %} mb-4"
+    >
+      <span>{{ message }}</span>
+    </div>
+  {% endif %}
+
+  <div class="card card-border bg-base-100 mb-6">
+    <div class="card-body">
+      <h2 class="card-title text-xl">Invoice Details</h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <p class="text-base-content/70 text-sm">Invoice No</p>
+          <p class="font-medium">{{ invoice.invoice_no }}</p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Party</p>
+          <p class="font-medium">
+            {% if party %}
+              <a href="/parties/{{ party.id }}" class="link">
+                {{ party.name }}
+              </a>
+            {% else %}
+              —
+            {% endif %}
+          </p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Issue Date</p>
+          <p class="font-medium">{{ invoice.issue_date }}</p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Due Date</p>
+          <p class="font-medium">{{ invoice.due_date }}</p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Created By</p>
+          <p class="font-medium">
+            {{ invoice.created_by_name | default(value="—") }}
+          </p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Created At</p>
+          <p class="font-medium">{{ invoice.created_at | datetime }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-border bg-base-100 mb-6">
+    <div class="card-body">
+      <h2 class="card-title text-xl">Line Items</h2>
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>GST Rate</th>
+              <th>Line Total</th>
+              <th>GST Amount</th>
+              <th>Total w/ GST</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in line_items %}
+              <tr>
+                <td>{{ item.description }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.unit_price | money }}</td>
+                <td>{{ item.gst_rate }}</td>
+                <td>{{ item.line_total | money }}</td>
+                <td>{{ item.line_gst_amount | money }}</td>
+                <td>{{ item.line_total_with_gst | money }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="text-right font-medium">Subtotal</td>
+              <td class="font-medium">{{ subtotal | money }}</td>
+              <td class="font-medium">{{ gst_total | money }}</td>
+              <td class="font-bold">{{ grand_total | money }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-border bg-base-100">
+    <div class="card-body">
+      <h2 class="card-title text-xl">Payment History</h2>
+      {% if payments | length == 0 %}
+        <div role="alert" class="alert">
+          <span>No payments recorded yet.</span>
+        </div>
+      {% else %}
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Direction</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for payment in payments %}
+                <tr>
+                  <td>{{ payment.payment_date }}</td>
+                  <td>{{ payment.amount | money }}</td>
+                  <td>{{ payment.payment_direction }}</td>
+                  <td>{{ payment.remarks | default(value="—") }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

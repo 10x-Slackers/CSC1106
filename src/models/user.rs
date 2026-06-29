@@ -5,8 +5,8 @@ use argon2::password_hash::{
 };
 use chrono::NaiveDateTime;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, Order, QueryFilter,
-    QueryOrder, Set,
+    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
+    Order, QueryFilter, QueryOrder, Set,
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +14,7 @@ use crate::entity::user as user_entity;
 use crate::entity::user::{Role, UserStatus};
 use crate::middleware::auth::UserCache;
 
-use crate::models::error::AuthError;
+use crate::models::error::{AppError, AuthError};
 use crate::models::util::like_pattern;
 
 /// Application-level user model with authentication support.
@@ -230,6 +230,15 @@ impl User {
             _ => Err(AuthError::InvalidCredentials),
         }
     }
+}
+
+/// Look up a user's display name by ID. Returns `None` if the user does not exist.
+pub async fn name_by_id<C: ConnectionTrait>(db: &C, id: i32) -> Result<Option<String>, AppError> {
+    let user = user_entity::Entity::find_by_id(id)
+        .one(db)
+        .await
+        .map_err(AppError::from)?;
+    Ok(user.map(|u| u.name))
 }
 
 /// Hash a plaintext password using Argon2 with a random salt.

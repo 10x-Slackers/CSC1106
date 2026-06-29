@@ -1,0 +1,158 @@
+{% extends "partials/form_page.html" %}
+
+{% block form_fields %}
+  {% if mode == "new" %}
+    <label class="label" for="party_id">Party</label>
+    <select id="party_id" name="party_id" class="select w-full" required>
+      <option value="">Select a party</option>
+      {% for party in parties %}
+        <option
+          value="{{ party.id }}"
+          {% if invoice and invoice.party_id == party.id %}selected{% endif %}
+        >
+          {{ party.name }}
+        </option>
+      {% endfor %}
+    </select>
+  {% else %}
+    <label class="label">Party</label>
+    <p class="py-2">
+      {% if invoice %}{{ invoice.party_name | default(value="Unknown") }}{% else %}Unknown{% endif %}
+    </p>
+  {% endif %}
+
+  <label class="label" for="issue_date">Issue Date</label>
+  <input
+    type="date"
+    id="issue_date"
+    name="issue_date"
+    value="{% if invoice %}{{ invoice.issue_date }}{% endif %}"
+    class="input w-full"
+    required
+  />
+
+  <label class="label" for="due_date">Due Date</label>
+  <input
+    type="date"
+    id="due_date"
+    name="due_date"
+    value="{% if invoice %}{{ invoice.due_date }}{% endif %}"
+    class="input w-full"
+    required
+  />
+
+  <div class="mt-4">
+    <h3 class="text-lg font-semibold">Line Items</h3>
+    <p class="text-sm opacity-70">Leave blank rows unused.</p>
+    <div class="mt-2 overflow-x-auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>GST Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set items = line_items | default(value=[]) %}
+          {% set existing_count = items | length %}
+          {% for item in items %}
+            <tr>
+              <td>
+                <input
+                  type="text"
+                  name="items[{{ loop.index0 }}][description]"
+                  value="{{ item.description }}"
+                  class="input input-sm w-full"
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  name="items[{{ loop.index0 }}][quantity]"
+                  value="{{ item.quantity }}"
+                  min="1"
+                  step="1"
+                  class="input input-sm w-24"
+                  required
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  name="items[{{ loop.index0 }}][unit_price]"
+                  value="{{ item.unit_price }}"
+                  min="0"
+                  step="0.01"
+                  class="input input-sm w-32"
+                  required
+                />
+              </td>
+              <td>
+                <select
+                  name="items[{{ loop.index0 }}][gst_rate]"
+                  class="select select-sm"
+                >
+                  {% for rate in gst_rates %}
+                    <option
+                      value="{{ rate }}"
+                      {% if item.gst_rate == rate %}selected{% endif %}
+                    >
+                      {{ rate }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </td>
+            </tr>
+          {% endfor %}
+          {% if existing_count < 5 %}
+            {% for i in range(end=5 - existing_count) %}
+              <tr>
+                <td>
+                  <input
+                    type="text"
+                    name="items[{{ existing_count + i }}][description]"
+                    class="input input-sm w-full"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    name="items[{{ existing_count + i }}][quantity]"
+                    value="1"
+                    min="1"
+                    step="1"
+                    class="input input-sm w-24"
+                    required
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    name="items[{{ existing_count + i }}][unit_price]"
+                    value="0.00"
+                    min="0"
+                    step="0.01"
+                    class="input input-sm w-32"
+                    required
+                  />
+                </td>
+                <td>
+                  <select
+                    name="items[{{ existing_count + i }}][gst_rate]"
+                    class="select select-sm"
+                  >
+                    {% for rate in gst_rates %}
+                      <option value="{{ rate }}">{{ rate }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

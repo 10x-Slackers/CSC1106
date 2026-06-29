@@ -30,6 +30,8 @@ This is a **university coursework project** done by undergraduates. It is not a 
 
 ## UI posture
 
+- The app is pure SSR (Tera templates, no client framework). Avoid JavaScript. No client-side calculations or SPA behavior — the server validates and computes everything on submit. Prefer plain HTML forms and full-page reloads.
+- Prioritise simplicity over UX. Sacrifice polish (dynamic behavior, persistent UI state) for less code.
 - Prefer DaisyUI components over Tailwind utilities. Don't replicate them with Tailwind.
 - Use DaisyUI color names over raw Tailwind.
 - When doing HTML/UI design, reference: https://daisyui.com/llms.txt

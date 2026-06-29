@@ -1,0 +1,160 @@
+{% extends "partials/layout.html" %}
+{% import "macros/invoice.html" as invoice_macro %}
+
+{% block title %}Invoices{% endblock %}
+{% block page_content %}
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="text-3xl font-bold">Invoices</h1>
+    {% if current_user.role | can(set="finance") %}
+      <a href="/invoices/new" class="btn btn-primary">New Invoice</a>
+    {% endif %}
+  </div>
+
+  {% if message != "" %}
+    <div
+      role="alert"
+      class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %} mb-4"
+    >
+      <span>{{ message }}</span>
+    </div>
+  {% endif %}
+
+  <form action="/invoices" method="get" class="flex flex-wrap items-end gap-2">
+    <label class="input w-full grow sm:w-auto">
+      <span class="label">Search</span>
+      <input
+        type="text"
+        name="q"
+        placeholder="Search invoice no..."
+        value="{{ q | default(value="") }}"
+        class="input"
+      />
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Status</span>
+      <select name="status" class="select select-sm">
+        <option value="">All</option>
+        {% for opt in statuses %}
+          <option value="{{ opt }}" {% if status == opt %}selected{% endif %}>
+            {{ opt }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Party</span>
+      <select name="party_id" class="select select-sm">
+        <option value="">All</option>
+        {% for party in parties %}
+          <option
+            value="{{ party.id }}"
+            {% if party_id == party.id %}selected{% endif %}
+          >
+            {{ party.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Issue From</span>
+      <input
+        type="date"
+        name="from_issue"
+        value="{{ from_issue | default(value="") }}"
+        class="input input-sm"
+      />
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Issue To</span>
+      <input
+        type="date"
+        name="to_issue"
+        value="{{ to_issue | default(value="") }}"
+        class="input input-sm"
+      />
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Due From</span>
+      <input
+        type="date"
+        name="from_due"
+        value="{{ from_due | default(value="") }}"
+        class="input input-sm"
+      />
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Due To</span>
+      <input
+        type="date"
+        name="to_due"
+        value="{{ to_due | default(value="") }}"
+        class="input input-sm"
+      />
+    </label>
+
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    <a href="/invoices" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+
+  <div class="mt-6 overflow-x-auto">
+    {% if invoices | length == 0 %}
+      <div role="alert" class="alert">
+        <span>No invoices found.</span>
+      </div>
+    {% else %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Invoice No</th>
+            <th>Party</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Total</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invoice in invoices %}
+            <tr>
+              <td>{{ invoice.invoice_no }}</td>
+              <td>{{ invoice.party_name | default(value="—") }}</td>
+              <td>{{ invoice.issue_date }}</td>
+              <td>{{ invoice.due_date }}</td>
+              <td>{{ invoice_macro::status_badge(status=invoice.status) }}</td>
+              <td>{{ invoice.grand_total | money }}</td>
+              <td>
+                <a
+                  href="/invoices/{{ invoice.id }}"
+                  class="btn btn-xs btn-ghost"
+                >
+                  View
+                </a>
+                {% if current_user.role | can(set="finance") %}
+                  {% if invoice.status == "Draft" %}
+                    <form
+                      action="/invoices/{{ invoice.id }}/void"
+                      method="post"
+                      class="inline"
+                      onsubmit="return confirm('Void this invoice?');"
+                    >
+                      <button type="submit" class="btn btn-xs btn-error">
+                        Void
+                      </button>
+                    </form>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+{% endblock %}
