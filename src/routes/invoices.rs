@@ -415,7 +415,7 @@ pub async fn create_invoice(
                 None,
                 None,
                 &parties,
-                &format!("Failed to create invoice: {e}"),
+                "Failed to create invoice due to an internal error.",
                 "error",
             )
         }
@@ -575,7 +575,7 @@ pub async fn update_invoice(
                 Some(&existing_invoice),
                 Some(&existing_items),
                 &parties,
-                &format!("Failed to update invoice: {e}"),
+                "Failed to update invoice due to an internal error.",
                 "error",
             )
         }

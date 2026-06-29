@@ -1,18 +1,23 @@
 {% extends "partials/form_page.html" %}
 
 {% block form_fields %}
-  <label class="label" for="party_id">Party</label>
-  <select id="party_id" name="party_id" class="select w-full" required>
-    <option value="">Select a party</option>
-    {% for party in parties %}
-      <option
-        value="{{ party.id }}"
-        {% if invoice and invoice.party_id == party.id %}selected{% endif %}
-      >
-        {{ party.name }}
-      </option>
-    {% endfor %}
-  </select>
+  {% if mode == "new" %}
+    <label class="label" for="party_id">Party</label>
+    <select id="party_id" name="party_id" class="select w-full" required>
+      <option value="">Select a party</option>
+      {% for party in parties %}
+        <option
+          value="{{ party.id }}"
+          {% if invoice and invoice.party_id == party.id %}selected{% endif %}
+        >
+          {{ party.name }}
+        </option>
+      {% endfor %}
+    </select>
+  {% else %}
+    <label class="label">Party</label>
+    <p class="py-2">{{ invoice.party_name | default(value="Unknown") }}</p>
+  {% endif %}
 
   <label class="label" for="issue_date">Issue Date</label>
   <input

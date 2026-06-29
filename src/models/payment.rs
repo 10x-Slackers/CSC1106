@@ -205,7 +205,7 @@ impl Payment {
 
         // Recompute invoice status if this payment is linked to an invoice
         if let Some(invoice_id) = payment.invoice_id {
-            crate::models::invoice::Invoice::recompute_status_for(db, invoice_id, payment.amount)
+            crate::models::invoice::Invoice::recompute_status_for(db, invoice_id)
                 .await
                 .map_err(PaymentCreateError::from)?;
         }

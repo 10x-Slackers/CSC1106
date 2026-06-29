@@ -49,7 +49,7 @@ impl From<invoice_entity::Model> for Invoice {
 }
 
 /// Invoice line item with precomputed totals for display.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InvoiceLineItem {
     pub invoice_id: i32,
     pub description: String,
@@ -79,7 +79,7 @@ impl From<line_item_entity::Model> for InvoiceLineItem {
 }
 
 /// Input for a single line item when creating or updating an invoice.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LineItemInput {
     pub description: String,
     pub quantity: i32,

@@ -2,7 +2,8 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, DbErr,
-    EntityTrait, Order, PaginatorTrait, QueryFilter, QueryOrder, Set, TransactionTrait,
+    EntityTrait, Order, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    TransactionTrait,
 };
 
 use crate::entity::invoice as invoice_entity;
@@ -30,7 +31,7 @@ impl Invoice {
             due_date: Set(self.due_date),
             status: Set(self.status.clone()),
             created_at: Set(self.created_at),
-            updated_at: Set(chrono::Utc::now().naive_utc()),
+            updated_at: sea_orm::ActiveValue::NotSet, // set by ActiveModelBehavior::before_save
         }
     }
 
@@ -147,6 +148,10 @@ impl Invoice {
             .all(db)
             .await
             .map_err(AppError::from)?;
+
+        if invoices.is_empty() {
+            return Ok(vec![]);
+        }
 
         // Enrich with party names and compute grand totals
         let party_ids: Vec<i32> = invoices.iter().map(|i| i.party_id).collect();
@@ -334,6 +339,16 @@ impl Invoice {
             }
         }
 
+        // Check party is still active
+        let party = Party::find_by_id(db, self.party_id).await?.ok_or_else(|| {
+            InvoiceError::Database(sea_orm::DbErr::RecordNotFound("party".into()))
+        })?;
+        if party.status != crate::entity::party::PartyStatus::Active {
+            return Err(InvoiceError::ValidationError(
+                "Selected party is not active".into(),
+            ));
+        }
+
         let txn = db.begin().await?;
 
         // Delete existing line items
@@ -379,16 +394,21 @@ impl Invoice {
         db: &DatabaseConnection,
         user_id: i32,
     ) -> Result<Invoice, InvoiceError> {
-        if self.status != InvoiceStatus::Draft {
+        let txn = db.begin().await?;
+
+        let current = Self::reload(&txn, self.id).await?;
+        if current.status != InvoiceStatus::Draft {
+            txn.rollback().await?;
             return Err(InvoiceError::InvalidStatusTransition {
-                from: self.status.to_string(),
+                from: current.status.to_string(),
                 to: InvoiceStatus::Sent.to_string(),
             });
         }
 
-        let total = self.load_grand_total(db).await?;
-
-        let txn = db.begin().await?;
+        let total = current
+            .load_grand_total(&txn)
+            .await
+            .map_err(InvoiceError::from)?;
 
         let (ar, sales) = crate::models::account::find_ar_and_sr(&txn).await?;
 
@@ -397,13 +417,13 @@ impl Invoice {
                 account_id: ar.id,
                 entry_side: EntrySide::Debit,
                 amount: total,
-                description: Some(format!("Invoice {}", self.invoice_no)),
+                description: Some(format!("Invoice {}", current.invoice_no)),
             },
             JournalEntryLineInput {
                 account_id: sales.id,
                 entry_side: EntrySide::Credit,
                 amount: total,
-                description: Some(format!("Invoice {}", self.invoice_no)),
+                description: Some(format!("Invoice {}", current.invoice_no)),
             },
         ];
 
@@ -411,13 +431,13 @@ impl Invoice {
             &txn,
             lines,
             SourceDocument::Invoice {
-                invoice_id: self.id,
+                invoice_id: current.id,
             },
             user_id,
         )
         .await?;
 
-        let mut am = self.to_active_model();
+        let mut am = current.to_active_model();
         am.status = Set(InvoiceStatus::Sent);
         am.update(&txn).await?;
 
@@ -449,9 +469,21 @@ impl Invoice {
             }
             InvoiceStatus::Sent => {
                 // Reversal entry: DR Sales Revenue, CR Accounts Receivable
-                let total = self.load_grand_total(db).await?;
-
                 let txn = db.begin().await?;
+
+                let current = Self::reload(&txn, self.id).await?;
+                if current.status != InvoiceStatus::Sent {
+                    txn.rollback().await?;
+                    return Err(InvoiceError::InvalidStatusTransition {
+                        from: current.status.to_string(),
+                        to: InvoiceStatus::Voided.to_string(),
+                    });
+                }
+
+                let total = current
+                    .load_grand_total(&txn)
+                    .await
+                    .map_err(InvoiceError::from)?;
 
                 let (ar, sales) = crate::models::account::find_ar_and_sr(&txn).await?;
 
@@ -460,13 +492,13 @@ impl Invoice {
                         account_id: sales.id,
                         entry_side: EntrySide::Debit,
                         amount: total,
-                        description: Some(format!("Void invoice {}", self.invoice_no)),
+                        description: Some(format!("Void invoice {}", current.invoice_no)),
                     },
                     JournalEntryLineInput {
                         account_id: ar.id,
                         entry_side: EntrySide::Credit,
                         amount: total,
-                        description: Some(format!("Void invoice {}", self.invoice_no)),
+                        description: Some(format!("Void invoice {}", current.invoice_no)),
                     },
                 ];
 
@@ -474,13 +506,13 @@ impl Invoice {
                     &txn,
                     lines,
                     SourceDocument::Invoice {
-                        invoice_id: self.id,
+                        invoice_id: current.id,
                     },
                     user_id,
                 )
                 .await?;
 
-                let mut am = self.to_active_model();
+                let mut am = current.to_active_model();
                 am.status = Set(InvoiceStatus::Voided);
                 am.update(&txn).await?;
 
@@ -523,19 +555,29 @@ impl Invoice {
         }
     }
 
-    /// Load an invoice by ID and recompute its status from the total paid.
+    /// Load an invoice by ID and recompute its status from cumulative payments.
     pub async fn recompute_status_for<C: ConnectionTrait>(
         db: &C,
         invoice_id: i32,
-        total_paid: Decimal,
     ) -> Result<(), InvoiceError> {
-        let Some(model) = invoice_entity::Entity::find_by_id(invoice_id)
+        let model = invoice_entity::Entity::find_by_id(invoice_id)
             .one(db)
             .await?
-        else {
-            return Ok(());
-        };
+            .ok_or_else(|| {
+                InvoiceError::Database(sea_orm::DbErr::RecordNotFound("invoice".into()))
+            })?;
         let invoice = Invoice::from(model);
+
+        let total_paid: Decimal = crate::entity::payment::Entity::find()
+            .filter(crate::entity::payment::Column::InvoiceId.eq(invoice_id))
+            .select_only()
+            .expr(sea_orm::sea_query::Expr::col(crate::entity::payment::Column::Amount).sum())
+            .into_tuple()
+            .one(db)
+            .await
+            .map_err(InvoiceError::from)?
+            .unwrap_or(Decimal::ZERO);
+
         invoice.recompute_status(db, total_paid).await?;
         Ok(())
     }
