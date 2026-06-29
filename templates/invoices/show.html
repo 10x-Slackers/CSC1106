@@ -1,4 +1,5 @@
 {% extends "partials/layout.html" %}
+{% import "macros/invoice.html" as invoice_macro %}
 
 {% block title %}Invoice {{ invoice.invoice_no }}{% endblock %}
 {% block page_content %}
@@ -9,17 +10,7 @@
   <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-3xl font-bold">{{ invoice.invoice_no }}</h1>
-      {% if invoice.status == "Draft" %}
-        <span class="badge badge-neutral">Draft</span>
-      {% elif invoice.status == "Sent" %}
-        <span class="badge badge-primary">Sent</span>
-      {% elif invoice.status == "Partially Paid" %}
-        <span class="badge badge-warning">Partially Paid</span>
-      {% elif invoice.status == "Paid" %}
-        <span class="badge badge-success">Paid</span>
-      {% elif invoice.status == "Voided" %}
-        <span class="badge badge-error">Voided</span>
-      {% endif %}
+      {{ invoice_macro::status_badge(status=invoice.status) }}
     </div>
 
     {% if current_user.role | can(set="finance") %}

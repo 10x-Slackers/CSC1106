@@ -132,7 +132,11 @@ impl From<PostingError> for PaymentCreateError {
 
 impl From<InvoiceError> for PaymentCreateError {
     fn from(e: InvoiceError) -> Self {
-        PaymentCreateError::Database(sea_orm::DbErr::Custom(format!("{e}")))
+        match e {
+            InvoiceError::Posting(e) => PaymentCreateError::Posting(e),
+            InvoiceError::Database(e) => PaymentCreateError::Database(e),
+            other => PaymentCreateError::Database(sea_orm::DbErr::Custom(format!("{other}"))),
+        }
     }
 }
 

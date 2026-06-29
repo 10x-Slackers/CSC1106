@@ -229,6 +229,23 @@ impl Payment {
         Ok(total.unwrap_or(Decimal::ZERO))
     }
 
+    /// List all payments linked to an invoice, newest first.
+    pub async fn list_for_invoice(
+        db: &DatabaseConnection,
+        invoice_id: i32,
+    ) -> Result<Vec<Payment>, AppError> {
+        let payments = payment_entity::Entity::find()
+            .filter(payment_entity::Column::InvoiceId.eq(invoice_id))
+            .order_by_desc(payment_entity::Column::PaymentDate)
+            .all(db)
+            .await
+            .map_err(AppError::from)?
+            .into_iter()
+            .map(Payment::from)
+            .collect();
+        Ok(payments)
+    }
+
     /// Most recent payments for a given party.
     pub async fn recent_for_party(
         db: &DatabaseConnection,

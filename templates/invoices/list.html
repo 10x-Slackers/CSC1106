@@ -1,4 +1,5 @@
 {% extends "partials/layout.html" %}
+{% import "macros/invoice.html" as invoice_macro %}
 
 {% block title %}Invoices{% endblock %}
 {% block page_content %}
@@ -126,19 +127,7 @@
               <td>{{ invoice.party_name | default(value="—") }}</td>
               <td>{{ invoice.issue_date }}</td>
               <td>{{ invoice.due_date }}</td>
-              <td>
-                {% if invoice.status == "Draft" %}
-                  <span class="badge badge-neutral">Draft</span>
-                {% elif invoice.status == "Sent" %}
-                  <span class="badge badge-primary">Sent</span>
-                {% elif invoice.status == "Partially Paid" %}
-                  <span class="badge badge-warning">Partially Paid</span>
-                {% elif invoice.status == "Paid" %}
-                  <span class="badge badge-success">Paid</span>
-                {% elif invoice.status == "Voided" %}
-                  <span class="badge badge-error">Voided</span>
-                {% endif %}
-              </td>
+              <td>{{ invoice_macro::status_badge(status=invoice.status) }}</td>
               <td>{{ invoice.grand_total | money }}</td>
               <td>
                 <a

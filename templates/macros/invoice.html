@@ -1,0 +1,22 @@
+{#
+Usage:
+{% import "macros/invoice.html" as invoice_macro %}
+{{ invoice_macro::status_badge(status=invoice.status) }}
+
+Parameters:
+status - InvoiceStatus display string ("Draft", "Sent", "Partially Paid", "Paid", "Voided")
+#}
+
+{% macro status_badge(status) %}
+  {% if status == "Draft" %}
+    <span class="badge badge-neutral">Draft</span>
+  {% elif status == "Sent" %}
+    <span class="badge badge-primary">Sent</span>
+  {% elif status == "Partially Paid" %}
+    <span class="badge badge-warning">Partially Paid</span>
+  {% elif status == "Paid" %}
+    <span class="badge badge-success">Paid</span>
+  {% elif status == "Voided" %}
+    <span class="badge badge-error">Voided</span>
+  {% endif %}
+{% endmacro %}

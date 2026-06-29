@@ -16,6 +16,7 @@ use crate::models::invoice::{
     Invoice, InvoiceLineItem, LineItemInput, grand_total, gst_total, subtotal,
 };
 use crate::models::party::Party;
+use crate::models::payment::Payment;
 use crate::routes::nav::insert_nav_context;
 use crate::routes::render::render;
 
@@ -35,7 +36,7 @@ pub struct InvoiceForm {
     items: Vec<InvoiceLineItemForm>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct InvoiceFilter {
     q: Option<String>,
     status: Option<String>,
@@ -142,20 +143,11 @@ async fn reload_invoices_list(
     db: &DatabaseConnection,
     verb: &str,
 ) -> HttpResponse {
-    let empty_filter = InvoiceFilter {
-        q: None,
-        status: None,
-        party_id: None,
-        from_issue: None,
-        to_issue: None,
-        from_due: None,
-        to_due: None,
-    };
     reload_invoices_list_with(
         tera,
         user,
         db,
-        &empty_filter,
+        &InvoiceFilter::default(),
         &format!("Invoice {verb}."),
         "success",
     )
@@ -242,12 +234,14 @@ fn render_invoice_form(
     render(tera, "invoices/form.html", &context)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_invoice_show(
     tera: &Tera,
     user: &Authenticated,
     invoice: &Invoice,
     line_items: &[InvoiceLineItem],
     party: Option<&Party>,
+    payments: &[Payment],
     message: &str,
     message_kind: &str,
 ) -> HttpResponse {
@@ -255,8 +249,7 @@ fn render_invoice_show(
     context.insert("invoice", invoice);
     context.insert("line_items", line_items);
     context.insert("party", &party);
-    let empty_payments: Vec<crate::models::payment::Payment> = Vec::new();
-    context.insert("payments", &empty_payments);
+    context.insert("payments", payments);
     context.insert("subtotal", &subtotal(line_items));
     context.insert("gst_total", &gst_total(line_items));
     context.insert("grand_total", &grand_total(line_items));
@@ -449,12 +442,17 @@ pub async fn show_invoice(
         .await
         .unwrap_or(None);
 
+    let payments = Payment::list_for_invoice(db.get_ref(), invoice.id)
+        .await
+        .unwrap_or_default();
+
     render_invoice_show(
         tera.get_ref(),
         &user,
         &invoice,
         &line_items,
         party.as_ref(),
+        &payments,
         "",
         "",
     )
@@ -601,25 +599,20 @@ pub async fn send_invoice(
         }
     };
 
+    if let Err(resp) = check_ownership(&user, &invoice) {
+        return resp;
+    }
+
     match invoice.send(db.get_ref(), user.id).await {
         Ok(_) => reload_invoices_list(tera.get_ref(), &user, db.get_ref(), "sent").await,
         Err(e) => {
             eprintln!("Failed to send invoice {id}: {e}");
-            let empty_filter = InvoiceFilter {
-                q: None,
-                status: None,
-                party_id: None,
-                from_issue: None,
-                to_issue: None,
-                from_due: None,
-                to_due: None,
-            };
             reload_invoices_list_with(
                 tera.get_ref(),
                 &user,
                 db.get_ref(),
-                &empty_filter,
-                &format!("Failed to send invoice: {e}"),
+                &InvoiceFilter::default(),
+                "Failed to send invoice due to an internal error.",
                 "error",
             )
             .await
@@ -646,25 +639,20 @@ pub async fn void_invoice(
         }
     };
 
+    if let Err(resp) = check_ownership(&user, &invoice) {
+        return resp;
+    }
+
     match invoice.void(db.get_ref(), user.id).await {
         Ok(_) => reload_invoices_list(tera.get_ref(), &user, db.get_ref(), "voided").await,
         Err(e) => {
             eprintln!("Failed to void invoice {id}: {e}");
-            let empty_filter = InvoiceFilter {
-                q: None,
-                status: None,
-                party_id: None,
-                from_issue: None,
-                to_issue: None,
-                from_due: None,
-                to_due: None,
-            };
             reload_invoices_list_with(
                 tera.get_ref(),
                 &user,
                 db.get_ref(),
-                &empty_filter,
-                &format!("Failed to void invoice: {e}"),
+                &InvoiceFilter::default(),
+                "Failed to void invoice due to an internal error.",
                 "error",
             )
             .await
