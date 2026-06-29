@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait,
-    PaginatorTrait, QueryFilter, QuerySelect, Set, TransactionTrait,
+    PaginatorTrait, QueryFilter, Set, TransactionTrait,
 };
 
 use crate::entity::invoice as invoice_entity;
@@ -418,13 +418,12 @@ impl Invoice {
 
         let total_paid: Decimal = crate::entity::payment::Entity::find()
             .filter(crate::entity::payment::Column::InvoiceId.eq(invoice_id))
-            .select_only()
-            .expr(sea_orm::sea_query::Expr::col(crate::entity::payment::Column::Amount).sum())
-            .into_tuple()
-            .one(db)
+            .all(db)
             .await
             .map_err(InvoiceError::from)?
-            .unwrap_or(Decimal::ZERO);
+            .into_iter()
+            .map(|p| p.amount)
+            .sum();
 
         invoice.apply_recomputed_status(db, total_paid).await?;
         Ok(())

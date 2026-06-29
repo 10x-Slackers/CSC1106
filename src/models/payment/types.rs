@@ -6,7 +6,7 @@ use crate::entity::payment as payment_entity;
 pub use crate::entity::payment::PaymentDirection;
 
 /// A payment with enrichment (party name, created-by name).
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct PaymentDetail {
     pub id: i32,
     pub payment_direction: PaymentDirection,

@@ -166,15 +166,11 @@ impl Payment {
         db: &DatabaseConnection,
         party_id: i32,
     ) -> Result<Decimal, AppError> {
-        use sea_orm::sea_query::Expr;
-        let total: Option<Decimal> = payment_entity::Entity::find()
+        let payments = payment_entity::Entity::find()
             .filter(payment_entity::Column::PartyId.eq(party_id))
-            .select_only()
-            .expr(Expr::col(payment_entity::Column::Amount).sum())
-            .into_tuple()
-            .one(db)
+            .all(db)
             .await?;
-        Ok(total.unwrap_or(Decimal::ZERO))
+        Ok(payments.into_iter().map(|p| p.amount).sum())
     }
 
     /// List all payments linked to an invoice, newest first.

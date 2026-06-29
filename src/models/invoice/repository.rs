@@ -1,8 +1,8 @@
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
-    ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, Order,
-    PaginatorTrait, QueryFilter, QueryOrder,
+    ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, Order, PaginatorTrait,
+    QueryFilter, QueryOrder,
 };
 
 use crate::entity::invoice as invoice_entity;
@@ -45,8 +45,8 @@ impl Invoice {
         Ok(Invoice::from(inv))
     }
 
-    async fn find_model_by_id(
-        db: &DatabaseConnection,
+    async fn find_model_by_id<C: ConnectionTrait>(
+        db: &C,
         id: i32,
     ) -> Result<Option<invoice_entity::Model>, AppError> {
         invoice_entity::Entity::find_by_id(id)
@@ -56,8 +56,8 @@ impl Invoice {
     }
 
     /// Load an invoice with its line items and creator name.
-    pub async fn find_by_id(
-        db: &DatabaseConnection,
+    pub async fn find_by_id<C: ConnectionTrait>(
+        db: &C,
         id: i32,
     ) -> Result<Option<(Invoice, Vec<InvoiceLineItem>)>, AppError> {
         let inv = match Self::find_model_by_id(db, id).await? {
@@ -82,8 +82,8 @@ impl Invoice {
 
     /// List invoices with optional filters and staff scoping.
     #[allow(clippy::too_many_arguments)]
-    pub async fn list(
-        db: &DatabaseConnection,
+    pub async fn list<C: ConnectionTrait>(
+        db: &C,
         q: Option<&str>,
         status: Option<InvoiceStatus>,
         party_id: Option<i32>,
