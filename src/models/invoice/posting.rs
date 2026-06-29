@@ -262,6 +262,14 @@ impl Invoice {
         Ok(result)
     }
 
+    /// Count invoices for a given party.
+    pub async fn count_for_party<C: ConnectionTrait>(db: &C, party_id: i32) -> Result<u64, DbErr> {
+        invoice_entity::Entity::find()
+            .filter(invoice_entity::Column::PartyId.eq(party_id))
+            .count(db)
+            .await
+    }
+
     /// Generate the next invoice number: INV-YYYYMM-XXXX
     async fn generate_invoice_no<C: ConnectionTrait>(
         db: &C,
