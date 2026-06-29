@@ -2,8 +2,8 @@ use actix_web::{Responder, get, web};
 use tera::Context;
 
 use crate::middleware::auth::Authenticated;
-use crate::routes::nav::insert_nav_context;
-use crate::routes::render::render;
+use crate::routes::utils::insert_nav_context;
+use crate::routes::utils::render;
 
 #[get("/claims")]
 pub async fn claims(user: Authenticated, tera: web::Data<tera::Tera>) -> impl Responder {

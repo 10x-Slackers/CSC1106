@@ -12,8 +12,9 @@ use crate::models::invoice::Invoice;
 use crate::models::party::Party;
 use crate::models::payment::Payment;
 use crate::models::util::{is_unique_violation, non_empty};
-use crate::routes::nav::insert_nav_context;
-use crate::routes::render::render;
+use crate::routes::utils::insert_nav_context;
+use crate::routes::utils::render;
+use crate::routes::utils::{find_or_404, require_non_empty, validate_email};
 
 #[derive(Deserialize)]
 pub struct PartyForm {
@@ -148,25 +149,15 @@ pub async fn create_party(
     let party_type_str = form.party_type.trim();
     let company = form.company.as_deref().and_then(non_empty);
 
-    let mut errors = Vec::new();
-    if name.is_empty() {
-        errors.push("Name is required.");
-    }
-    if email.is_empty() {
-        errors.push("Email is required.");
-    } else if !email.contains('@') {
-        errors.push("Email must contain '@'.");
-    }
-    if phone.is_empty() {
-        errors.push("Phone is required.");
-    }
-    if address.is_empty() {
-        errors.push("Address is required.");
-    }
+    let mut errors: Vec<String> = Vec::new();
+    require_non_empty(name, &mut errors, "Name");
+    validate_email(email, &mut errors);
+    require_non_empty(phone, &mut errors, "Phone");
+    require_non_empty(address, &mut errors, "Address");
     let party_type = match PartyType::parse(party_type_str) {
         Some(pt) => pt,
         None => {
-            errors.push("Party type must be Customer or Vendor.");
+            errors.push("Party type must be Customer or Vendor.".into());
             PartyType::Customer
         }
     };
@@ -226,15 +217,9 @@ pub async fn edit_party(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    match Party::find_by_id(db.get_ref(), id).await {
-        Ok(Some(existing)) => {
-            render_party_form(tera.get_ref(), &user, "edit", Some(&existing), "", "")
-        }
-        Ok(None) => HttpResponse::NotFound().body("Party not found."),
-        Err(e) => {
-            eprintln!("Failed to find party {id}: {e}");
-            HttpResponse::InternalServerError().finish()
-        }
+    match find_or_404(Party::find_by_id(db.get_ref(), id), id, "Party").await {
+        Ok(existing) => render_party_form(tera.get_ref(), &user, "edit", Some(&existing), "", ""),
+        Err(resp) => resp,
     }
 }
 
@@ -255,34 +240,20 @@ pub async fn update_party(
     let party_type_str = form.party_type.trim();
     let company = form.company.as_deref().and_then(non_empty);
 
-    let existing = match Party::find_by_id(db.get_ref(), id).await {
-        Ok(Some(p)) => p,
-        Ok(None) => return HttpResponse::NotFound().body("Party not found."),
-        Err(e) => {
-            eprintln!("Failed to find party {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
+    let existing = match find_or_404(Party::find_by_id(db.get_ref(), id), id, "Party").await {
+        Ok(p) => p,
+        Err(resp) => return resp,
     };
 
-    let mut errors = Vec::new();
-    if name.is_empty() {
-        errors.push("Name is required.");
-    }
-    if email.is_empty() {
-        errors.push("Email is required.");
-    } else if !email.contains('@') {
-        errors.push("Email must contain '@'.");
-    }
-    if phone.is_empty() {
-        errors.push("Phone is required.");
-    }
-    if address.is_empty() {
-        errors.push("Address is required.");
-    }
+    let mut errors: Vec<String> = Vec::new();
+    require_non_empty(name, &mut errors, "Name");
+    validate_email(email, &mut errors);
+    require_non_empty(phone, &mut errors, "Phone");
+    require_non_empty(address, &mut errors, "Address");
     let party_type = match PartyType::parse(party_type_str) {
         Some(pt) => pt,
         None => {
-            errors.push("Party type must be Customer or Vendor.");
+            errors.push("Party type must be Customer or Vendor.".into());
             PartyType::Customer
         }
     };
@@ -343,13 +314,9 @@ pub async fn deactivate_party(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    let existing = match Party::find_by_id(db.get_ref(), id).await {
-        Ok(Some(p)) => p,
-        Ok(None) => return HttpResponse::NotFound().body("Party not found."),
-        Err(e) => {
-            eprintln!("Failed to find party {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
+    let existing = match find_or_404(Party::find_by_id(db.get_ref(), id), id, "Party").await {
+        Ok(p) => p,
+        Err(resp) => return resp,
     };
 
     match existing
@@ -383,13 +350,9 @@ pub async fn activate_party(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    let existing = match Party::find_by_id(db.get_ref(), id).await {
-        Ok(Some(p)) => p,
-        Ok(None) => return HttpResponse::NotFound().body("Party not found."),
-        Err(e) => {
-            eprintln!("Failed to find party {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
+    let existing = match find_or_404(Party::find_by_id(db.get_ref(), id), id, "Party").await {
+        Ok(p) => p,
+        Err(resp) => return resp,
     };
 
     match existing.set_status(db.get_ref(), PartyStatus::Active).await {
@@ -420,13 +383,9 @@ pub async fn show_party(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    let party = match Party::find_by_id(db.get_ref(), id).await {
-        Ok(Some(p)) => p,
-        Ok(None) => return HttpResponse::NotFound().body("Party not found."),
-        Err(e) => {
-            eprintln!("Failed to find party {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
+    let party = match find_or_404(Party::find_by_id(db.get_ref(), id), id, "Party").await {
+        Ok(p) => p,
+        Err(resp) => return resp,
     };
 
     let invoice_count = match Invoice::count_for_party(db.get_ref(), id).await {

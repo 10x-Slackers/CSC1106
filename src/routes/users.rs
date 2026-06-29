@@ -9,8 +9,10 @@ use crate::middleware::permissions::{AdminOnly, Require};
 use crate::models::error::AuthError;
 use crate::models::user::User;
 use crate::models::util::is_unique_violation;
-use crate::routes::nav::insert_nav_context;
-use crate::routes::render::render;
+use crate::routes::utils::find_or_404;
+use crate::routes::utils::insert_nav_context;
+use crate::routes::utils::render;
+use crate::routes::utils::{require_non_empty, validate_email};
 
 #[derive(Deserialize)]
 pub struct UserForm {
@@ -128,22 +130,14 @@ pub async fn create_user(
     let role_str = form.role.trim();
     let password = form.password.as_deref().unwrap_or_default().trim();
 
-    let mut errors = Vec::new();
-    if name.is_empty() {
-        errors.push("Name is required.");
-    }
-    if email.is_empty() {
-        errors.push("Email is required.");
-    } else if !email.contains('@') {
-        errors.push("Email must contain '@'.");
-    }
-    if password.is_empty() {
-        errors.push("Password is required.");
-    }
+    let mut errors: Vec<String> = Vec::new();
+    require_non_empty(name, &mut errors, "Name");
+    validate_email(email, &mut errors);
+    require_non_empty(password, &mut errors, "Password");
     let role = match Role::parse(role_str) {
         Some(r) => r,
         None => {
-            errors.push("Role must be Admin, Accountant, or Staff.");
+            errors.push("Role must be Admin, Accountant, or Staff.".into());
             Role::Staff
         }
     };
@@ -193,15 +187,9 @@ pub async fn edit_user(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    match User::find_by_id(db.get_ref(), id).await {
-        Ok(Some(existing)) => {
-            render_user_form(tera.get_ref(), &user, "edit", Some(&existing), "", "")
-        }
-        Ok(None) => HttpResponse::NotFound().body("User not found."),
-        Err(e) => {
-            eprintln!("Failed to find user {id}: {e}");
-            HttpResponse::InternalServerError().finish()
-        }
+    match find_or_404(User::find_by_id(db.get_ref(), id), id, "User").await {
+        Ok(existing) => render_user_form(tera.get_ref(), &user, "edit", Some(&existing), "", ""),
+        Err(resp) => resp,
     }
 }
 
@@ -235,28 +223,18 @@ pub async fn update_user(
         );
     }
 
-    let existing = match User::find_by_id(db.get_ref(), id).await {
-        Ok(Some(u)) => u,
-        Ok(None) => return HttpResponse::NotFound().body("User not found."),
-        Err(e) => {
-            eprintln!("Failed to find user {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
+    let existing = match find_or_404(User::find_by_id(db.get_ref(), id), id, "User").await {
+        Ok(u) => u,
+        Err(resp) => return resp,
     };
 
-    let mut errors = Vec::new();
-    if name.is_empty() {
-        errors.push("Name is required.");
-    }
-    if email.is_empty() {
-        errors.push("Email is required.");
-    } else if !email.contains('@') {
-        errors.push("Email must contain '@'.");
-    }
+    let mut errors: Vec<String> = Vec::new();
+    require_non_empty(name, &mut errors, "Name");
+    validate_email(email, &mut errors);
     let role = match Role::parse(role_str) {
         Some(r) => r,
         None => {
-            errors.push("Role must be Admin, Accountant, or Staff.");
+            errors.push("Role must be Admin, Accountant, or Staff.".into());
             Role::Staff
         }
     };
@@ -332,13 +310,9 @@ pub async fn disable_user(
         );
     }
 
-    let existing = match User::find_by_id(db.get_ref(), id).await {
-        Ok(Some(u)) => u,
-        Ok(None) => return HttpResponse::NotFound().body("User not found."),
-        Err(e) => {
-            eprintln!("Failed to find user {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
+    let existing = match find_or_404(User::find_by_id(db.get_ref(), id), id, "User").await {
+        Ok(u) => u,
+        Err(resp) => return resp,
     };
 
     match existing
@@ -373,13 +347,9 @@ pub async fn enable_user(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    let existing = match User::find_by_id(db.get_ref(), id).await {
-        Ok(Some(u)) => u,
-        Ok(None) => return HttpResponse::NotFound().body("User not found."),
-        Err(e) => {
-            eprintln!("Failed to find user {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
+    let existing = match find_or_404(User::find_by_id(db.get_ref(), id), id, "User").await {
+        Ok(u) => u,
+        Err(resp) => return resp,
     };
 
     match existing

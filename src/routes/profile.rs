@@ -7,8 +7,10 @@ use crate::middleware::auth::{Authenticated, UserCache};
 use crate::models::error::AuthError;
 use crate::models::user::User;
 use crate::models::util::is_unique_violation;
-use crate::routes::nav::insert_nav_context;
-use crate::routes::render::render;
+use crate::routes::utils::find_or_404;
+use crate::routes::utils::insert_nav_context;
+use crate::routes::utils::render;
+use crate::routes::utils::{require_non_empty, validate_email};
 
 #[derive(Deserialize)]
 pub struct ProfileForm {
@@ -63,13 +65,10 @@ pub async fn update_profile(
     let name = form.name.trim();
     let email = form.email.trim();
 
-    let existing = match User::find_by_id(db.get_ref(), user.id).await {
-        Ok(Some(u)) => u,
-        Ok(None) => return HttpResponse::NotFound().body("User not found."),
-        Err(e) => {
-            eprintln!("Failed to find user {}: {e}", user.id);
-            return HttpResponse::InternalServerError().finish();
-        }
+    let existing = match find_or_404(User::find_by_id(db.get_ref(), user.id), user.id, "User").await
+    {
+        Ok(u) => u,
+        Err(resp) => return resp,
     };
 
     // Require current password to authorize self-edit.
@@ -87,21 +86,15 @@ pub async fn update_profile(
         );
     }
 
-    let mut errors = Vec::new();
-    if name.is_empty() {
-        errors.push("Name is required.");
-    }
-    if email.is_empty() {
-        errors.push("Email is required.");
-    } else if !email.contains('@') {
-        errors.push("Email must contain '@'.");
-    }
+    let mut errors: Vec<String> = Vec::new();
+    require_non_empty(name, &mut errors, "Name");
+    validate_email(email, &mut errors);
 
     let password_opt = form.password.as_deref().filter(|p| !p.trim().is_empty());
     if let Some(pw) = password_opt {
         let confirm = form.confirm_password.as_deref().unwrap_or_default().trim();
         if pw != confirm {
-            errors.push("New password and confirmation do not match.");
+            errors.push("New password and confirmation do not match.".into());
         }
     }
 

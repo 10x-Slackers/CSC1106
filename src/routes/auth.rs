@@ -7,7 +7,8 @@ use tera::{Context, Tera};
 use crate::middleware::auth::UserCache;
 use crate::models::error::AuthError;
 use crate::models::user::User;
-use crate::routes::render::render;
+use crate::routes::utils::redirect;
+use crate::routes::utils::render;
 
 /// Form data for the login page.
 #[derive(Deserialize)]
@@ -20,9 +21,7 @@ pub struct LoginForm {
 #[get("/login")]
 pub async fn show_login(user: Option<Identity>, tera: web::Data<Tera>) -> impl Responder {
     if user.is_some() {
-        return HttpResponse::Found()
-            .append_header(("Location", "/"))
-            .finish();
+        return redirect("/");
     }
 
     render_login(tera.get_ref(), "")
@@ -46,9 +45,7 @@ pub async fn process_login(
 
             cache.insert(&user);
 
-            HttpResponse::Found()
-                .append_header(("Location", "/"))
-                .finish()
+            redirect("/")
         }
         Err(AuthError::InvalidCredentials) => {
             render_login(tera.get_ref(), "Wrong email or password.")
@@ -67,9 +64,7 @@ pub async fn logout(user: Option<Identity>, cache: web::Data<UserCache>) -> impl
         identity.logout();
     }
 
-    HttpResponse::Found()
-        .append_header(("Location", "/login"))
-        .finish()
+    redirect("/login")
 }
 
 /// Helper function to render the login template with an optional status message.

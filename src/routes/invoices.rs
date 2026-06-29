@@ -17,8 +17,10 @@ use crate::models::invoice::{
 };
 use crate::models::party::Party;
 use crate::models::payment::Payment;
-use crate::routes::nav::insert_nav_context;
-use crate::routes::render::render;
+use crate::routes::utils::find_or_404;
+use crate::routes::utils::insert_nav_context;
+use crate::routes::utils::parse_field;
+use crate::routes::utils::render;
 
 #[derive(Deserialize, Debug)]
 pub struct InvoiceLineItemForm {
@@ -328,27 +330,19 @@ pub async fn create_invoice(
 ) -> HttpResponse {
     let mut errors: Vec<String> = Vec::new();
 
-    let party_id: i32 = match form.party_id.trim().parse() {
-        Ok(id) => id,
-        Err(_) => {
-            errors.push("Party is required.".into());
-            0
-        }
-    };
-    let issue_date: NaiveDate = match form.issue_date.trim().parse() {
-        Ok(d) => d,
-        Err(_) => {
-            errors.push("Issue date is invalid.".into());
-            NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()
-        }
-    };
-    let due_date: NaiveDate = match form.due_date.trim().parse() {
-        Ok(d) => d,
-        Err(_) => {
-            errors.push("Due date is invalid.".into());
-            NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()
-        }
-    };
+    let party_id: i32 = parse_field(&form.party_id, &mut errors, "Party is required.", 0);
+    let issue_date: NaiveDate = parse_field(
+        &form.issue_date,
+        &mut errors,
+        "Issue date is invalid.",
+        NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
+    );
+    let due_date: NaiveDate = parse_field(
+        &form.due_date,
+        &mut errors,
+        "Due date is invalid.",
+        NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
+    );
 
     if due_date < issue_date {
         errors.push("Due date must be on or after issue date.".into());
@@ -438,14 +432,11 @@ pub async fn show_invoice(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    let (invoice, line_items) = match Invoice::find_by_id(db.get_ref(), id).await {
-        Ok(Some(result)) => result,
-        Ok(None) => return HttpResponse::NotFound().body("Invoice not found."),
-        Err(e) => {
-            eprintln!("Failed to find invoice {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
+    let (invoice, line_items) =
+        match find_or_404(Invoice::find_by_id(db.get_ref(), id), id, "Invoice").await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
 
     if let Err(resp) = check_ownership(&user, &invoice) {
         return resp;
@@ -481,14 +472,11 @@ pub async fn edit_invoice(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    let (invoice, line_items) = match Invoice::find_by_id(db.get_ref(), id).await {
-        Ok(Some(result)) => result,
-        Ok(None) => return HttpResponse::NotFound().body("Invoice not found."),
-        Err(e) => {
-            eprintln!("Failed to find invoice {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
+    let (invoice, line_items) =
+        match find_or_404(Invoice::find_by_id(db.get_ref(), id), id, "Invoice").await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
 
     if let Err(resp) = check_ownership(&user, &invoice) {
         return resp;
@@ -518,34 +506,29 @@ pub async fn update_invoice(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    let (existing_invoice, existing_items) = match Invoice::find_by_id(db.get_ref(), id).await {
-        Ok(Some(result)) => result,
-        Ok(None) => return HttpResponse::NotFound().body("Invoice not found."),
-        Err(e) => {
-            eprintln!("Failed to find invoice {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
+    let (existing_invoice, existing_items) =
+        match find_or_404(Invoice::find_by_id(db.get_ref(), id), id, "Invoice").await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
 
     if let Err(resp) = check_ownership(&user, &existing_invoice) {
         return resp;
     }
 
     let mut errors: Vec<String> = Vec::new();
-    let issue_date: NaiveDate = match form.issue_date.trim().parse() {
-        Ok(d) => d,
-        Err(_) => {
-            errors.push("Issue date is invalid.".into());
-            NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()
-        }
-    };
-    let due_date: NaiveDate = match form.due_date.trim().parse() {
-        Ok(d) => d,
-        Err(_) => {
-            errors.push("Due date is invalid.".into());
-            NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()
-        }
-    };
+    let issue_date: NaiveDate = parse_field(
+        &form.issue_date,
+        &mut errors,
+        "Issue date is invalid.",
+        NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
+    );
+    let due_date: NaiveDate = parse_field(
+        &form.due_date,
+        &mut errors,
+        "Due date is invalid.",
+        NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
+    );
 
     if due_date < issue_date {
         errors.push("Due date must be on or after issue date.".into());
@@ -616,13 +599,10 @@ pub async fn send_invoice(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    let (invoice, _) = match Invoice::find_by_id(db.get_ref(), id).await {
-        Ok(Some(result)) => result,
-        Ok(None) => return HttpResponse::NotFound().body("Invoice not found."),
-        Err(e) => {
-            eprintln!("Failed to find invoice {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
+    let (invoice, _) = match find_or_404(Invoice::find_by_id(db.get_ref(), id), id, "Invoice").await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
 
     if let Err(resp) = check_ownership(&user, &invoice) {
@@ -656,13 +636,10 @@ pub async fn void_invoice(
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    let (invoice, _) = match Invoice::find_by_id(db.get_ref(), id).await {
-        Ok(Some(result)) => result,
-        Ok(None) => return HttpResponse::NotFound().body("Invoice not found."),
-        Err(e) => {
-            eprintln!("Failed to find invoice {id}: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
+    let (invoice, _) = match find_or_404(Invoice::find_by_id(db.get_ref(), id), id, "Invoice").await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
 
     if let Err(resp) = check_ownership(&user, &invoice) {
