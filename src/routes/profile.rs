@@ -7,10 +7,9 @@ use crate::middleware::auth::{Authenticated, UserCache};
 use crate::models::error::AuthError;
 use crate::models::user::User;
 use crate::models::util::is_unique_violation;
-use crate::routes::utils::find_or_404;
-use crate::routes::utils::insert_nav_context;
-use crate::routes::utils::render;
-use crate::routes::utils::{require_non_empty, validate_email};
+use crate::routes::utils::{
+    find_or_404, insert_nav_context, render, require_non_empty, validate_email,
+};
 
 #[derive(Deserialize)]
 pub struct ProfileForm {

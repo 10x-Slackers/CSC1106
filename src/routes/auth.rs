@@ -7,8 +7,7 @@ use tera::{Context, Tera};
 use crate::middleware::auth::UserCache;
 use crate::models::error::AuthError;
 use crate::models::user::User;
-use crate::routes::utils::redirect;
-use crate::routes::utils::render;
+use crate::routes::utils::{redirect, render};
 
 /// Form data for the login page.
 #[derive(Deserialize)]

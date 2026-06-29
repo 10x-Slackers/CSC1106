@@ -17,10 +17,7 @@ use crate::models::invoice::{
 };
 use crate::models::party::Party;
 use crate::models::payment::Payment;
-use crate::routes::utils::find_or_404;
-use crate::routes::utils::insert_nav_context;
-use crate::routes::utils::parse_field;
-use crate::routes::utils::render;
+use crate::routes::utils::{find_or_404, insert_nav_context, parse_field, render};
 
 #[derive(Deserialize, Debug)]
 pub struct InvoiceLineItemForm {
