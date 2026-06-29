@@ -17,13 +17,24 @@ pub enum GstRate {
 impl fmt::Display for GstRate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GstRate::None => write!(f, "None"),
-            GstRate::Standard => write!(f, "Standard"),
+            GstRate::None => write!(f, "None (0%)"),
+            GstRate::Standard => write!(f, "Standard (9%)"),
         }
     }
 }
 
 impl GstRate {
+    /// Singapore GST standard rate (9%).
+    pub const STANDARD_RATE: Decimal = rust_decimal::dec!(0.09);
+
+    /// Return the decimal rate applied for this variant.
+    pub fn rate(&self) -> Decimal {
+        match self {
+            GstRate::None => Decimal::ZERO,
+            GstRate::Standard => Self::STANDARD_RATE,
+        }
+    }
+
     /// Return all GST rate variant labels in declaration order.
     pub fn labels() -> Vec<String> {
         Self::iter().map(|v| v.to_string()).collect()

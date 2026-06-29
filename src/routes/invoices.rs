@@ -398,6 +398,19 @@ pub async fn create_invoice(
                 "error",
             )
         }
+        Err(InvoiceError::ValidationError(msg)) => {
+            let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+            render_invoice_form(
+                tera.get_ref(),
+                &user,
+                "new",
+                None,
+                None,
+                &parties,
+                &msg,
+                "error",
+            )
+        }
         Err(e) => {
             eprintln!("Failed to create invoice: {e}");
             let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
@@ -563,6 +576,19 @@ pub async fn update_invoice(
         .await
     {
         Ok(_) => reload_invoices_list(tera.get_ref(), &user, db.get_ref(), "updated").await,
+        Err(InvoiceError::ValidationError(msg)) => {
+            let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+            render_invoice_form(
+                tera.get_ref(),
+                &user,
+                "edit",
+                Some(&existing_invoice),
+                Some(&existing_items),
+                &parties,
+                &msg,
+                "error",
+            )
+        }
         Err(e) => {
             eprintln!("Failed to update invoice {id}: {e}");
             let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();

@@ -572,8 +572,8 @@ impl Invoice {
     }
 
     /// Load an invoice by ID and recompute its status from cumulative payments.
-    /// The caller is expected to wrap this in a transaction (e.g. `Payment::create`
-    /// already does so) so the read and the status update are atomic.
+    /// The caller is responsible for transactional wrapping (e.g. the payment
+    /// create route wraps this in `db.transaction`).
     pub async fn recompute_status_for<C: ConnectionTrait>(
         db: &C,
         invoice_id: i32,

@@ -16,7 +16,9 @@
     </select>
   {% else %}
     <label class="label">Party</label>
-    <p class="py-2">{{ invoice.party_name | default(value="Unknown") }}</p>
+    <p class="py-2">
+      {% if invoice %}{{ invoice.party_name | default(value="Unknown") }}{% else %}Unknown{% endif %}
+    </p>
   {% endif %}
 
   <label class="label" for="issue_date">Issue Date</label>

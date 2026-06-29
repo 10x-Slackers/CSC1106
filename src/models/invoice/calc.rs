@@ -1,6 +1,6 @@
 use rust_decimal::Decimal;
 
-use super::types::{GST_STANDARD_RATE, InvoiceLineItem};
+use super::types::InvoiceLineItem;
 use crate::entity::invoice_line_item::GstRate;
 
 /// Line total before GST.
@@ -10,10 +10,7 @@ pub fn line_total(quantity: i32, unit_price: Decimal) -> Decimal {
 
 /// GST amount for a line rounded to 4 decimal places.
 pub fn line_gst_amount(quantity: i32, unit_price: Decimal, gst_rate: &GstRate) -> Decimal {
-    match gst_rate {
-        GstRate::Standard => (line_total(quantity, unit_price) * GST_STANDARD_RATE).round_dp(4),
-        GstRate::None => Decimal::ZERO,
-    }
+    (line_total(quantity, unit_price) * gst_rate.rate()).round_dp(4)
 }
 
 /// Sum of line totals before GST.

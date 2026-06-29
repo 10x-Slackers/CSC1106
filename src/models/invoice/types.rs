@@ -9,8 +9,6 @@ use crate::entity::invoice_line_item::GstRate;
 
 use super::calc::{line_gst_amount, line_total};
 
-pub const GST_STANDARD_RATE: Decimal = rust_decimal::dec!(0.09);
-
 /// Application-level invoice model with enrichment fields for rendering.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Invoice {
