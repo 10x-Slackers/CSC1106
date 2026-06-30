@@ -124,8 +124,6 @@ pub fn parse_field<T: FromStr>(v: &str, errors: &mut Vec<String>, err_msg: &str,
     }
 }
 
-pub const PER_PAGE: u64 = 10;
-
 #[derive(Clone, Copy, serde::Serialize)]
 pub struct Pagination {
     pub current: u32,
@@ -134,13 +132,6 @@ pub struct Pagination {
 
 pub fn parse_page(raw: Option<u32>) -> u32 {
     raw.unwrap_or(1).max(1)
-}
-
-/// Clamp `page` to a valid 1-indexed range given SeaORM's `num_pages` (u64).
-pub fn clamp_pagination(page: u32, num_pages: u64) -> (u32, u32) {
-    let total_pages = num_pages.min(u32::MAX as u64) as u32;
-    let total_pages = total_pages.max(1);
-    (total_pages, page.min(total_pages))
 }
 
 /// Serialize `filter` to a query string, then strip any `page=...` pair.

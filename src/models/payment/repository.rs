@@ -14,8 +14,7 @@ use crate::models::error::{AppError, PaymentCreateError};
 use crate::models::invoice::Invoice;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
 use crate::models::user::name_by_id;
-use crate::models::util::like_pattern;
-use crate::routes::utils::{PER_PAGE, clamp_pagination};
+use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::{Payment, PaymentDetail};
 

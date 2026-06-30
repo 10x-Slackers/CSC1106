@@ -23,3 +23,14 @@ pub fn non_empty(s: &str) -> Option<&str> {
 pub fn is_unique_violation(err: &DbErr) -> bool {
     err.to_string().contains("UNIQUE constraint failed")
 }
+
+/// Number of rows shown per page in list views.
+pub const PER_PAGE: u64 = 10;
+
+/// Clamp `page` to a valid 1-indexed range given SeaORM's `num_pages` (u64).
+/// Returns `(total_pages, current_page)`, both guaranteed `>= 1`.
+pub fn clamp_pagination(page: u32, num_pages: u64) -> (u32, u32) {
+    let total_pages = num_pages.min(u32::MAX as u64) as u32;
+    let total_pages = total_pages.max(1);
+    (total_pages, page.min(total_pages))
+}

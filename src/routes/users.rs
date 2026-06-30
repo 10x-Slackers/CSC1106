@@ -61,22 +61,28 @@ async fn reload_users_list(
     db: &DatabaseConnection,
     verb: &str,
 ) -> HttpResponse {
-    let pagination = Pagination {
-        current: 1,
-        total_pages: 1,
-    };
     match User::list(db, None, None, None, 1).await {
-        Ok((users, _, _)) => render_users_list(
-            tera,
-            user,
-            &users,
-            &pagination,
-            "",
-            &format!("User {verb}."),
-            "success",
-        ),
+        Ok((users, total_pages, current_page)) => {
+            let pagination = Pagination {
+                current: current_page,
+                total_pages,
+            };
+            render_users_list(
+                tera,
+                user,
+                &users,
+                &pagination,
+                "",
+                &format!("User {verb}."),
+                "success",
+            )
+        }
         Err(e) => {
             eprintln!("Failed to list users after {verb}: {e}");
+            let pagination = Pagination {
+                current: 1,
+                total_pages: 1,
+            };
             render_users_list(
                 tera,
                 user,
@@ -307,7 +313,6 @@ pub async fn update_user(
     match existing
         .update(
             db.get_ref(),
-            cache.get_ref(),
             Some(email),
             Some(name),
             password_opt,
@@ -315,7 +320,10 @@ pub async fn update_user(
         )
         .await
     {
-        Ok(_) => reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "updated").await,
+        Ok(_) => {
+            cache.invalidate(&existing.email);
+            reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "updated").await
+        }
         Err(AuthError::Database(ref e)) if is_unique_violation(e) => render_user_form(
             tera.get_ref(),
             &current_user,
@@ -350,12 +358,12 @@ pub async fn disable_user(
     let id = path.into_inner();
 
     if id == current_user.id {
-        let (users, _, _) = User::list(db.get_ref(), None, None, None, 1)
+        let (users, total_pages, current_page) = User::list(db.get_ref(), None, None, None, 1)
             .await
             .unwrap_or_default();
         let pagination = Pagination {
-            current: 1,
-            total_pages: 1,
+            current: current_page,
+            total_pages,
         };
         return render_users_list(
             tera.get_ref(),
@@ -373,19 +381,19 @@ pub async fn disable_user(
         Err(resp) => return resp,
     };
 
-    match existing
-        .set_disabled(db.get_ref(), cache.get_ref(), true)
-        .await
-    {
-        Ok(_) => reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "disabled").await,
+    match existing.set_disabled(db.get_ref(), true).await {
+        Ok(_) => {
+            cache.invalidate(&existing.email);
+            reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "disabled").await
+        }
         Err(e) => {
             eprintln!("Failed to disable user {id}: {e}");
-            let (users, _, _) = User::list(db.get_ref(), None, None, None, 1)
+            let (users, total_pages, current_page) = User::list(db.get_ref(), None, None, None, 1)
                 .await
                 .unwrap_or_default();
             let pagination = Pagination {
-                current: 1,
-                total_pages: 1,
+                current: current_page,
+                total_pages,
             };
             render_users_list(
                 tera.get_ref(),
@@ -416,19 +424,19 @@ pub async fn enable_user(
         Err(resp) => return resp,
     };
 
-    match existing
-        .set_disabled(db.get_ref(), cache.get_ref(), false)
-        .await
-    {
-        Ok(_) => reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "enabled").await,
+    match existing.set_disabled(db.get_ref(), false).await {
+        Ok(_) => {
+            cache.invalidate(&existing.email);
+            reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "enabled").await
+        }
         Err(e) => {
             eprintln!("Failed to enable user {id}: {e}");
-            let (users, _, _) = User::list(db.get_ref(), None, None, None, 1)
+            let (users, total_pages, current_page) = User::list(db.get_ref(), None, None, None, 1)
                 .await
                 .unwrap_or_default();
             let pagination = Pagination {
-                current: 1,
-                total_pages: 1,
+                current: current_page,
+                total_pages,
             };
             render_users_list(
                 tera.get_ref(),

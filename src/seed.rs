@@ -4,7 +4,6 @@ use sea_orm::{DatabaseConnection, EntityTrait, Set};
 use crate::entity::account::{AccountCategory, NormalBalance};
 use crate::entity::party::{PartyStatus, PartyType};
 use crate::entity::user::Role;
-use crate::middleware::auth::UserCache;
 use crate::models::user::User;
 
 /// Insert default users if the database is empty.
@@ -42,13 +41,12 @@ pub async fn seed_users(db: &DatabaseConnection) {
         ),
     ];
 
-    let cache = UserCache::new();
     for (email, name, password, role, disabled) in users {
         let user = User::create(db, email, name, password, role)
             .await
             .expect("Failed to seed user");
         if disabled {
-            user.set_disabled(db, &cache, true)
+            user.set_disabled(db, true)
                 .await
                 .expect("Failed to disable seeded user");
         }

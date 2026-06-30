@@ -10,11 +10,8 @@ use sea_orm::{
 
 use crate::entity::user as user_entity;
 use crate::entity::user::{Role, UserStatus};
-use crate::middleware::auth::UserCache;
-
 use crate::models::error::{AppError, AuthError};
-use crate::models::util::like_pattern;
-use crate::routes::utils::{PER_PAGE, clamp_pagination};
+use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::User;
 
@@ -134,11 +131,10 @@ impl User {
         Ok((users, total_pages, page))
     }
 
-    /// Update user fields, re-hashing password if provided; invalidates cache.
+    /// Update user fields, re-hashing password if provided.
     pub async fn update(
         &self,
         db: &DatabaseConnection,
-        cache: &UserCache,
         email: Option<&str>,
         name: Option<&str>,
         password: Option<&str>,
@@ -168,17 +164,13 @@ impl User {
 
         let updated = user.update(db).await.map_err(AuthError::from)?;
 
-        // Invalidate cache since user info changed
-        cache.invalidate(&self.email);
-
         Ok(User::from(updated))
     }
 
-    /// Enable or disable a user account; invalidates cache.
+    /// Enable or disable a user account.
     pub async fn set_disabled(
         &self,
         db: &DatabaseConnection,
-        cache: &UserCache,
         disabled: bool,
     ) -> Result<User, AuthError> {
         let user_model = Self::find_model_by_id(db, self.id)
@@ -190,9 +182,6 @@ impl User {
         user.updated_at = Set(chrono::Utc::now().naive_utc());
 
         let updated = user.update(db).await.map_err(AuthError::from)?;
-
-        // Remove user from cache
-        cache.invalidate(&self.email);
 
         Ok(User::from(updated))
     }

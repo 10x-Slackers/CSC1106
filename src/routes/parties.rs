@@ -67,22 +67,28 @@ async fn reload_parties_list(
     db: &DatabaseConnection,
     verb: &str,
 ) -> HttpResponse {
-    let pagination = Pagination {
-        current: 1,
-        total_pages: 1,
-    };
     match Party::list(db, None, None, None, 1).await {
-        Ok((parties, _, _)) => render_parties_list(
-            tera,
-            user,
-            &parties,
-            &pagination,
-            "",
-            &format!("Party {verb}."),
-            "success",
-        ),
+        Ok((parties, total_pages, current_page)) => {
+            let pagination = Pagination {
+                current: current_page,
+                total_pages,
+            };
+            render_parties_list(
+                tera,
+                user,
+                &parties,
+                &pagination,
+                "",
+                &format!("Party {verb}."),
+                "success",
+            )
+        }
         Err(e) => {
             eprintln!("Failed to list parties after {verb}: {e}");
+            let pagination = Pagination {
+                current: 1,
+                total_pages: 1,
+            };
             render_parties_list(
                 tera,
                 user,
@@ -371,12 +377,13 @@ pub async fn deactivate_party(
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "deactivated").await,
         Err(e) => {
             eprintln!("Failed to deactivate party {id}: {e}");
-            let (parties, _, _) = Party::list(db.get_ref(), None, None, None, 1)
-                .await
-                .unwrap_or_default();
+            let (parties, total_pages, current_page) =
+                Party::list(db.get_ref(), None, None, None, 1)
+                    .await
+                    .unwrap_or_default();
             let pagination = Pagination {
-                current: 1,
-                total_pages: 1,
+                current: current_page,
+                total_pages,
             };
             render_parties_list(
                 tera.get_ref(),
@@ -410,12 +417,13 @@ pub async fn activate_party(
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "activated").await,
         Err(e) => {
             eprintln!("Failed to activate party {id}: {e}");
-            let (parties, _, _) = Party::list(db.get_ref(), None, None, None, 1)
-                .await
-                .unwrap_or_default();
+            let (parties, total_pages, current_page) =
+                Party::list(db.get_ref(), None, None, None, 1)
+                    .await
+                    .unwrap_or_default();
             let pagination = Pagination {
-                current: 1,
-                total_pages: 1,
+                current: current_page,
+                total_pages,
             };
             render_parties_list(
                 tera.get_ref(),

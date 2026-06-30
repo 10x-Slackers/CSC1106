@@ -12,8 +12,7 @@ use crate::entity::party as party_entity;
 use crate::entity::user::Role;
 use crate::models::error::{AppError, InvoiceError};
 use crate::models::user::name_by_id;
-use crate::models::util::like_pattern;
-use crate::routes::utils::{PER_PAGE, clamp_pagination};
+use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::calc::grand_total;
 use super::types::{Invoice, InvoiceLineItem};
