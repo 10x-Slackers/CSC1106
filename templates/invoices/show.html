@@ -26,7 +26,7 @@
             action="/invoices/{{ invoice.id }}/send"
             method="post"
             class="inline"
-            onsubmit="return confirm('Send this invoice and post to ledger? This cannot be undone.');"
+            data-confirm="Send this invoice and post to ledger? This cannot be undone."
           >
             <button type="submit" class="btn btn-sm btn-primary">Send</button>
           </form>
@@ -34,7 +34,7 @@
             action="/invoices/{{ invoice.id }}/void"
             method="post"
             class="inline"
-            onsubmit="return confirm('Void this invoice?');"
+            data-confirm="Void this invoice?"
           >
             <button type="submit" class="btn btn-sm btn-error">Void</button>
           </form>
@@ -43,7 +43,7 @@
             action="/invoices/{{ invoice.id }}/void"
             method="post"
             class="inline"
-            onsubmit="return confirm('Void this invoice?');"
+            data-confirm="Void this invoice?"
           >
             <button type="submit" class="btn btn-sm btn-error">Void</button>
           </form>
