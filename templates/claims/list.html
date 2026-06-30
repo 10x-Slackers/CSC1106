@@ -9,6 +9,29 @@
     <a href="/claims/new" class="btn btn-primary btn-sm">Submit Claim</a>
   </div>
 
+  {% if current_user.role | can(set="finance") and stats %}
+    <div class="stats stats-vertical sm:stats-horizontal mb-6 w-full shadow">
+      <div class="stat">
+        <div class="stat-title">Pending Claims</div>
+        <div class="stat-value">{{ stats.pending_count }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-title">Pending Amount</div>
+        <div class="stat-value">{{ stats.pending_amount | money }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-title">Rejection Rate</div>
+        <div class="stat-value">
+          {{ stats.rejection_rate | round(precision=1) }}%
+        </div>
+      </div>
+      <div class="stat">
+        <div class="stat-title">Avg Claim Amount</div>
+        <div class="stat-value">{{ stats.avg_claim_amount | money }}</div>
+      </div>
+    </div>
+  {% endif %}
+
   {% if message != "" %}
     <div
       role="alert"
