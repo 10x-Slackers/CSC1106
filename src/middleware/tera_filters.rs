@@ -38,7 +38,7 @@ pub fn money(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
         return Ok(value.clone());
     };
     match s.parse::<rust_decimal::Decimal>() {
-        Ok(d) => Ok(Value::String(format!("{:.2}", d))),
+        Ok(d) => Ok(Value::String(format!("S${:.2}", d))),
         Err(_) => Ok(value.clone()),
     }
 }

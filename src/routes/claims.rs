@@ -8,8 +8,8 @@ use tera::{Context, Tera};
 use crate::entity::claim_category;
 use crate::entity::user::Role;
 use crate::middleware::auth::Authenticated;
-use crate::middleware::permissions::{Finance, Require};
-use crate::models::claim::{Claim, ClaimFilter, ClaimForm};
+use crate::middleware::permissions::{Finance, Require, RoleSet};
+use crate::models::claim::{Claim, ClaimFilter, ClaimForm, ClaimStats};
 use crate::models::error::ClaimError;
 use crate::routes::utils::{
     Pagination, base_query_string, insert_nav_context, parse_page, redirect, render,
@@ -79,6 +79,18 @@ async fn render_claims_list(
         None
     };
 
+    let stats = if Finance::ROLES.contains(&user.role) {
+        match ClaimStats::compute(db).await {
+            Ok(s) => Some(s),
+            Err(e) => {
+                eprintln!("Failed to compute claim stats: {e}");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     let page = parse_page(filter.page);
     let mut list_filter = filter.clone();
     list_filter.page = Some(page);
@@ -106,6 +118,9 @@ async fn render_claims_list(
     ctx.insert("filter", filter);
     ctx.insert("message", message);
     ctx.insert("message_kind", message_kind);
+    if let Some(ref s) = stats {
+        ctx.insert("stats", s);
+    }
     insert_nav_context(&mut ctx, user);
     render(tera, "claims/list.html", &ctx)
 }
