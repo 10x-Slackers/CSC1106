@@ -13,7 +13,7 @@ use crate::models::party::Party;
 use crate::models::payment::Payment;
 use crate::models::util::{is_unique_violation, non_empty};
 use crate::routes::utils::{
-    Pagination, base_query_string, clamp_page, find_or_404, insert_nav_context, parse_page, render,
+    Pagination, base_query_string, find_or_404, insert_nav_context, parse_page, render,
     require_non_empty, validate_email,
 };
 
@@ -71,8 +71,8 @@ async fn reload_parties_list(
         current: 1,
         total_pages: 1,
     };
-    match Party::list(db, None, None, None, 0).await {
-        Ok((parties, _)) => render_parties_list(
+    match Party::list(db, None, None, None, 1).await {
+        Ok((parties, _, _)) => render_parties_list(
             tera,
             user,
             &parties,
@@ -139,14 +139,13 @@ pub async fn list_parties(
     let page = parse_page(filter.page);
     let base_query = base_query_string(&filter);
     let pagination_default = Pagination {
-        current: page,
+        current: 1,
         total_pages: 1,
     };
-    match Party::list(db.get_ref(), q, party_type, status, (page - 1) as u64).await {
-        Ok((parties, total_pages)) => {
-            let page = clamp_page(page, total_pages);
+    match Party::list(db.get_ref(), q, party_type, status, page).await {
+        Ok((parties, total_pages, current_page)) => {
             let pagination = Pagination {
-                current: page,
+                current: current_page,
                 total_pages,
             };
             render_parties_list(
@@ -372,7 +371,7 @@ pub async fn deactivate_party(
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "deactivated").await,
         Err(e) => {
             eprintln!("Failed to deactivate party {id}: {e}");
-            let (parties, _) = Party::list(db.get_ref(), None, None, None, 0)
+            let (parties, _, _) = Party::list(db.get_ref(), None, None, None, 1)
                 .await
                 .unwrap_or_default();
             let pagination = Pagination {
@@ -411,7 +410,7 @@ pub async fn activate_party(
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "activated").await,
         Err(e) => {
             eprintln!("Failed to activate party {id}: {e}");
-            let (parties, _) = Party::list(db.get_ref(), None, None, None, 0)
+            let (parties, _, _) = Party::list(db.get_ref(), None, None, None, 1)
                 .await
                 .unwrap_or_default();
             let pagination = Pagination {

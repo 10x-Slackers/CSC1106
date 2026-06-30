@@ -7,7 +7,7 @@ use crate::entity::party as party_entity;
 use crate::entity::party::{PartyStatus, PartyType};
 use crate::models::error::AppError;
 use crate::models::util::like_pattern;
-use crate::routes::utils::PER_PAGE;
+use crate::routes::utils::{PER_PAGE, clamp_pagination};
 
 use super::types::Party;
 
@@ -47,8 +47,8 @@ impl Party {
         q: Option<&str>,
         party_type: Option<PartyType>,
         status: Option<PartyStatus>,
-        page: u64,
-    ) -> Result<(Vec<Party>, u32), AppError> {
+        page: u32,
+    ) -> Result<(Vec<Party>, u32, u32), AppError> {
         let mut conditions = Condition::all();
 
         if let Some(query) = q
@@ -73,16 +73,17 @@ impl Party {
             .filter(conditions)
             .order_by(party_entity::Column::CreatedAt, Order::Desc)
             .paginate(db, PER_PAGE);
-        let total_pages = paginator.num_pages().await.map_err(AppError::from)? as u32;
+        let num_pages = paginator.num_pages().await.map_err(AppError::from)?;
+        let (total_pages, page) = clamp_pagination(page, num_pages);
         let parties = paginator
-            .fetch_page(page)
+            .fetch_page((page - 1) as u64)
             .await
             .map_err(AppError::from)?
             .into_iter()
             .map(Party::from)
             .collect();
 
-        Ok((parties, total_pages))
+        Ok((parties, total_pages, page))
     }
 
     /// List all parties ordered by name.

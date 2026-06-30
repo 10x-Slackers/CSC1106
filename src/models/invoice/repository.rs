@@ -5,14 +5,15 @@ use sea_orm::{
     QueryFilter, QueryOrder,
 };
 
-use crate::routes::utils::PER_PAGE;
-
 use crate::entity::invoice as invoice_entity;
 use crate::entity::invoice::InvoiceStatus;
 use crate::entity::invoice_line_item as line_item_entity;
 use crate::entity::party as party_entity;
+use crate::entity::user::Role;
 use crate::models::error::{AppError, InvoiceError};
+use crate::models::user::name_by_id;
 use crate::models::util::like_pattern;
+use crate::routes::utils::{PER_PAGE, clamp_pagination};
 
 use super::calc::grand_total;
 use super::types::{Invoice, InvoiceLineItem};
@@ -77,8 +78,7 @@ impl Invoice {
             .collect();
 
         let mut invoice = Invoice::from(inv);
-        invoice.created_by_name =
-            crate::models::user::name_by_id(db, invoice.created_by_user_id).await?;
+        invoice.created_by_name = name_by_id(db, invoice.created_by_user_id).await?;
         Ok(Some((invoice, items)))
     }
 
@@ -94,9 +94,9 @@ impl Invoice {
         from_due: Option<NaiveDate>,
         to_due: Option<NaiveDate>,
         viewer_user_id: i32,
-        viewer_role: &crate::entity::user::Role,
-        page: u64,
-    ) -> Result<(Vec<Invoice>, u32), AppError> {
+        viewer_role: &Role,
+        page: u32,
+    ) -> Result<(Vec<Invoice>, u32, u32), AppError> {
         let mut conditions = Condition::all();
 
         if let Some(query) = q
@@ -127,7 +127,7 @@ impl Invoice {
         }
 
         // Staff scoping
-        if *viewer_role == crate::entity::user::Role::Staff {
+        if *viewer_role == Role::Staff {
             conditions = conditions.add(invoice_entity::Column::CreatedByUserId.eq(viewer_user_id));
         }
 
@@ -136,8 +136,12 @@ impl Invoice {
             .order_by(invoice_entity::Column::IssueDate, Order::Desc)
             .order_by(invoice_entity::Column::Id, Order::Desc)
             .paginate(db, PER_PAGE);
-        let total_pages = paginator.num_pages().await.map_err(AppError::from)? as u32;
-        let invoices = paginator.fetch_page(page).await.map_err(AppError::from)?;
+        let num_pages = paginator.num_pages().await.map_err(AppError::from)?;
+        let (total_pages, page) = clamp_pagination(page, num_pages);
+        let invoices = paginator
+            .fetch_page((page - 1) as u64)
+            .await
+            .map_err(AppError::from)?;
 
         let result = if invoices.is_empty() {
             Vec::new()
@@ -181,7 +185,7 @@ impl Invoice {
                 .collect()
         };
 
-        Ok((result, total_pages))
+        Ok((result, total_pages, page))
     }
 
     /// Count invoices for a given party.

@@ -11,6 +11,7 @@ use std::sync::RwLock;
 use std::time::{Duration, Instant};
 use tera::{Context, Tera};
 
+use crate::entity::user::Role;
 use crate::models::user::User;
 
 const CACHE_TTL: Duration = Duration::from_secs(300); // 5 minutes
@@ -76,7 +77,7 @@ pub struct Authenticated {
     pub id: i32,
     pub name: String,
     pub email: String,
-    pub role: crate::entity::user::Role,
+    pub role: Role,
 }
 
 impl FromRequest for Authenticated {

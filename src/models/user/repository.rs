@@ -14,7 +14,7 @@ use crate::middleware::auth::UserCache;
 
 use crate::models::error::{AppError, AuthError};
 use crate::models::util::like_pattern;
-use crate::routes::utils::PER_PAGE;
+use crate::routes::utils::{PER_PAGE, clamp_pagination};
 
 use super::types::User;
 
@@ -95,8 +95,8 @@ impl User {
         q: Option<&str>,
         role: Option<Role>,
         status: Option<UserStatus>,
-        page: u64,
-    ) -> Result<(Vec<User>, u32), AuthError> {
+        page: u32,
+    ) -> Result<(Vec<User>, u32, u32), AuthError> {
         let mut conditions = Condition::all();
 
         if let Some(query) = q
@@ -121,16 +121,17 @@ impl User {
             .filter(conditions)
             .order_by(user_entity::Column::CreatedAt, Order::Desc)
             .paginate(db, PER_PAGE);
-        let total_pages = paginator.num_pages().await.map_err(AuthError::from)? as u32;
+        let num_pages = paginator.num_pages().await.map_err(AuthError::from)?;
+        let (total_pages, page) = clamp_pagination(page, num_pages);
         let users = paginator
-            .fetch_page(page)
+            .fetch_page((page - 1) as u64)
             .await
             .map_err(AuthError::from)?
             .into_iter()
             .map(User::from)
             .collect();
 
-        Ok((users, total_pages))
+        Ok((users, total_pages, page))
     }
 
     /// Update user fields, re-hashing password if provided; invalidates cache.

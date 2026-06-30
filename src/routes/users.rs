@@ -10,7 +10,7 @@ use crate::models::error::AuthError;
 use crate::models::user::User;
 use crate::models::util::is_unique_violation;
 use crate::routes::utils::{
-    Pagination, base_query_string, clamp_page, find_or_404, insert_nav_context, parse_page, render,
+    Pagination, base_query_string, find_or_404, insert_nav_context, parse_page, render,
     require_non_empty, validate_email,
 };
 
@@ -65,8 +65,8 @@ async fn reload_users_list(
         current: 1,
         total_pages: 1,
     };
-    match User::list(db, None, None, None, 0).await {
-        Ok((users, _)) => render_users_list(
+    match User::list(db, None, None, None, 1).await {
+        Ok((users, _, _)) => render_users_list(
             tera,
             user,
             &users,
@@ -128,15 +128,14 @@ pub async fn list_users(
     let page = parse_page(filter.page);
     let base_query = base_query_string(&filter);
     let pagination_default = Pagination {
-        current: page,
+        current: 1,
         total_pages: 1,
     };
 
-    match User::list(db.get_ref(), q, role, status, (page - 1) as u64).await {
-        Ok((users, total_pages)) => {
-            let page = clamp_page(page, total_pages);
+    match User::list(db.get_ref(), q, role, status, page).await {
+        Ok((users, total_pages, current_page)) => {
             let pagination = Pagination {
-                current: page,
+                current: current_page,
                 total_pages,
             };
             render_users_list(
@@ -351,7 +350,7 @@ pub async fn disable_user(
     let id = path.into_inner();
 
     if id == current_user.id {
-        let (users, _) = User::list(db.get_ref(), None, None, None, 0)
+        let (users, _, _) = User::list(db.get_ref(), None, None, None, 1)
             .await
             .unwrap_or_default();
         let pagination = Pagination {
@@ -381,7 +380,7 @@ pub async fn disable_user(
         Ok(_) => reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "disabled").await,
         Err(e) => {
             eprintln!("Failed to disable user {id}: {e}");
-            let (users, _) = User::list(db.get_ref(), None, None, None, 0)
+            let (users, _, _) = User::list(db.get_ref(), None, None, None, 1)
                 .await
                 .unwrap_or_default();
             let pagination = Pagination {
@@ -424,7 +423,7 @@ pub async fn enable_user(
         Ok(_) => reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "enabled").await,
         Err(e) => {
             eprintln!("Failed to enable user {id}: {e}");
-            let (users, _) = User::list(db.get_ref(), None, None, None, 0)
+            let (users, _, _) = User::list(db.get_ref(), None, None, None, 1)
                 .await
                 .unwrap_or_default();
             let pagination = Pagination {

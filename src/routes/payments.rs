@@ -13,7 +13,9 @@ use crate::models::error::PaymentCreateError;
 use crate::models::party::Party;
 use crate::models::payment::Payment;
 use crate::models::util::non_empty;
-use crate::routes::utils::{find_or_404, insert_nav_context, parse_field, render};
+use crate::routes::utils::{
+    Pagination, base_query_string, find_or_404, insert_nav_context, parse_field, parse_page, render,
+};
 
 #[derive(Deserialize)]
 struct PaymentForm {
@@ -88,8 +90,8 @@ async fn render_payments_list(
 ) -> HttpResponse {
     let parties = Party::list_all(db).await.unwrap_or_default();
     let party_map = Party::name_map(db).await.unwrap_or_default();
-    let page = crate::routes::utils::parse_page(filter.page);
-    let (payments, total_pages) = match Payment::list(
+    let page = parse_page(filter.page);
+    let (payments, total_pages, current_page) = match Payment::list(
         db,
         filter.q.as_deref().and_then(non_empty),
         filter
@@ -108,22 +110,21 @@ async fn render_payments_list(
             .to_date
             .as_deref()
             .and_then(|s| s.parse::<NaiveDate>().ok()),
-        (page - 1) as u64,
+        page,
     )
     .await
     {
-        Ok((p, tp)) => (enrich_payments(&p, &party_map), tp),
+        Ok((p, tp, cp)) => (enrich_payments(&p, &party_map), tp, cp),
         Err(e) => {
             eprintln!("Failed to list payments: {e}");
-            (Vec::new(), 1)
+            (Vec::new(), 1, 1)
         }
     };
-    let page = crate::routes::utils::clamp_page(page, total_pages);
-    let pagination = crate::routes::utils::Pagination {
-        current: page,
+    let pagination = Pagination {
+        current: current_page,
         total_pages,
     };
-    let base_query = crate::routes::utils::base_query_string(filter);
+    let base_query = base_query_string(filter);
 
     let mut ctx = Context::new();
     ctx.insert("payments", &payments);

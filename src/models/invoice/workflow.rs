@@ -10,6 +10,9 @@ use crate::entity::invoice::InvoiceStatus;
 use crate::entity::invoice_line_item as line_item_entity;
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line::EntrySide;
+use crate::entity::party::PartyStatus;
+use crate::entity::payment as payment_entity;
+use crate::models::account::find_ar_and_sr;
 use crate::models::error::InvoiceError;
 use crate::models::party::Party;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
@@ -92,7 +95,7 @@ impl Invoice {
         let party = Party::find_by_id(db, party_id).await?.ok_or_else(|| {
             InvoiceError::Database(sea_orm::DbErr::RecordNotFound("party".into()))
         })?;
-        if party.status != crate::entity::party::PartyStatus::Active {
+        if party.status != PartyStatus::Active {
             return Err(InvoiceError::ValidationError(
                 "Selected party is not active".into(),
             ));
@@ -127,7 +130,7 @@ impl Invoice {
             .await
             .map_err(InvoiceError::from)?;
 
-        let (ar, sales) = crate::models::account::find_ar_and_sr(txn).await?;
+        let (ar, sales) = find_ar_and_sr(txn).await?;
 
         let (ar_side, sales_side) = if debit_ar {
             (EntrySide::Debit, EntrySide::Credit)
@@ -416,8 +419,8 @@ impl Invoice {
             })?;
         let invoice = Invoice::from(model);
 
-        let total_paid: Decimal = crate::entity::payment::Entity::find()
-            .filter(crate::entity::payment::Column::InvoiceId.eq(invoice_id))
+        let total_paid: Decimal = payment_entity::Entity::find()
+            .filter(payment_entity::Column::InvoiceId.eq(invoice_id))
             .all(db)
             .await
             .map_err(InvoiceError::from)?

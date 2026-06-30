@@ -17,9 +17,9 @@ use crate::models::invoice::{
 };
 use crate::models::party::Party;
 use crate::models::payment::Payment;
+use crate::models::util::is_unique_violation;
 use crate::routes::utils::{
-    Pagination, base_query_string, clamp_page, find_or_404, insert_nav_context, parse_field,
-    parse_page, render,
+    Pagination, base_query_string, find_or_404, insert_nav_context, parse_field, parse_page, render,
 };
 
 #[derive(Deserialize, Debug)]
@@ -180,10 +180,6 @@ async fn reload_invoices_list_with(
 ) -> HttpResponse {
     let viewer_role = &user.role;
     let viewer_user_id = user.id;
-    let pagination = Pagination {
-        current: 1,
-        total_pages: 1,
-    };
     let base_query = base_query_string(filter);
     match Invoice::list(
         db,
@@ -196,11 +192,15 @@ async fn reload_invoices_list_with(
         filter.to_due,
         viewer_user_id,
         viewer_role,
-        0,
+        1,
     )
     .await
     {
-        Ok((invoices, _total_pages)) => {
+        Ok((invoices, total_pages, current_page)) => {
+            let pagination = Pagination {
+                current: current_page,
+                total_pages,
+            };
             let parties = Party::list_all(db).await.unwrap_or_default();
             render_invoices_list(
                 tera,
@@ -216,6 +216,10 @@ async fn reload_invoices_list_with(
         }
         Err(e) => {
             eprintln!("Failed to list invoices: {e}");
+            let pagination = Pagination {
+                current: 1,
+                total_pages: 1,
+            };
             let parties = Party::list_all(db).await.unwrap_or_default();
             render_invoices_list(
                 tera,
@@ -312,14 +316,13 @@ pub async fn list_invoices(
         filter.to_due,
         viewer_user_id,
         viewer_role,
-        (page - 1) as u64,
+        page,
     )
     .await
     {
-        Ok((invoices, total_pages)) => {
-            let page = clamp_page(page, total_pages);
+        Ok((invoices, total_pages, current_page)) => {
             let pagination = Pagination {
-                current: page,
+                current: current_page,
                 total_pages,
             };
             let parties = Party::list_all(db.get_ref()).await.unwrap_or_default();
@@ -338,7 +341,7 @@ pub async fn list_invoices(
         Err(e) => {
             eprintln!("Failed to list invoices: {e}");
             let pagination = Pagination {
-                current: page,
+                current: 1,
                 total_pages: 1,
             };
             let parties = Party::list_all(db.get_ref()).await.unwrap_or_default();
@@ -427,7 +430,7 @@ pub async fn create_invoice(
     .await
     {
         Ok(_) => reload_invoices_list(tera.get_ref(), &user, db.get_ref(), "created").await,
-        Err(InvoiceError::Database(ref e)) if crate::models::util::is_unique_violation(e) => {
+        Err(InvoiceError::Database(ref e)) if is_unique_violation(e) => {
             let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
             render_invoice_form(
                 tera.get_ref(),

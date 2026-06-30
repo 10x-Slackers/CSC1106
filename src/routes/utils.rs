@@ -136,13 +136,14 @@ pub fn parse_page(raw: Option<u32>) -> u32 {
     raw.unwrap_or(1).max(1)
 }
 
-pub fn clamp_page(page: u32, total_pages: u32) -> u32 {
-    page.min(total_pages.max(1))
+/// Clamp `page` to a valid 1-indexed range given SeaORM's `num_pages` (u64).
+pub fn clamp_pagination(page: u32, num_pages: u64) -> (u32, u32) {
+    let total_pages = num_pages.min(u32::MAX as u64) as u32;
+    let total_pages = total_pages.max(1);
+    (total_pages, page.min(total_pages))
 }
 
 /// Serialize `filter` to a query string, then strip any `page=...` pair.
-/// Returns `""` if the result is empty or only contained `page`.
-/// The returned string has no leading `?` and no trailing `&`.
 pub fn base_query_string<T: serde::Serialize>(filter: &T) -> String {
     let qs = match serde_qs::to_string(filter) {
         Ok(s) => s,
