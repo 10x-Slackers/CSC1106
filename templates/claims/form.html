@@ -84,13 +84,5 @@
     </div>
   </div>
 
-  <script>
-    document.querySelectorAll("[data-confirm]").forEach(function (form) {
-      form.addEventListener("submit", function (e) {
-        if (!confirm(form.dataset.confirm)) {
-          e.preventDefault();
-        }
-      });
-    });
-  </script>
+  {% include "partials/confirm.html" %}
 {% endblock %}

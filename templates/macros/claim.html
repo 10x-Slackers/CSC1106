@@ -1,0 +1,18 @@
+{#
+Usage:
+{% import "macros/claim.html" as claim_macro %}
+{{ claim_macro::status_badge(status=claim.status) }}
+
+Parameters:
+status - ClaimStatus display string ("Pending", "Approved", "Rejected")
+#}
+
+{% macro status_badge(status) %}
+  {% if status == "Pending" %}
+    <span class="badge badge-warning">Pending</span>
+  {% elif status == "Approved" %}
+    <span class="badge badge-success">Approved</span>
+  {% elif status == "Rejected" %}
+    <span class="badge badge-error">Rejected</span>
+  {% endif %}
+{% endmacro %}

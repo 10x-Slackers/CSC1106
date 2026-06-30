@@ -204,8 +204,6 @@ pub enum ClaimError {
     Database(DbErr),
     Posting(PostingError),
     InvalidStatus,
-    #[allow(dead_code)]
-    NotReviewer,
     NotOwner,
 }
 
@@ -218,7 +216,6 @@ impl std::fmt::Display for ClaimError {
             ClaimError::InvalidStatus => {
                 write!(f, "Claim is not in a valid status for this action")
             }
-            ClaimError::NotReviewer => write!(f, "User is not the assigned reviewer"),
             ClaimError::NotOwner => write!(f, "User is not the owner of this claim"),
         }
     }

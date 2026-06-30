@@ -7,11 +7,11 @@ use sea_orm::{
 
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line::EntrySide;
-use crate::entity::party as party_entity;
 use crate::entity::payment as payment_entity;
 use crate::entity::payment::PaymentDirection;
 use crate::models::error::{AppError, PaymentCreateError};
 use crate::models::invoice::Invoice;
+use crate::models::party::Party;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
 use crate::models::user::name_by_id;
 use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
@@ -40,10 +40,7 @@ impl Payment {
         };
 
         let party_name = match payment.party_id {
-            Some(pid) => party_entity::Entity::find_by_id(pid)
-                .one(db)
-                .await?
-                .map(|p| p.name),
+            Some(pid) => Party::find_name_by_id(db, pid).await?,
             None => None,
         };
 
@@ -174,6 +171,18 @@ impl Payment {
     ) -> Result<Decimal, AppError> {
         let payments = payment_entity::Entity::find()
             .filter(payment_entity::Column::PartyId.eq(party_id))
+            .all(db)
+            .await?;
+        Ok(payments.into_iter().map(|p| p.amount).sum())
+    }
+
+    /// Sum of all payment amounts for a given invoice.
+    pub async fn total_for_invoice<C: ConnectionTrait>(
+        db: &C,
+        invoice_id: i32,
+    ) -> Result<Decimal, AppError> {
+        let payments = payment_entity::Entity::find()
+            .filter(payment_entity::Column::InvoiceId.eq(invoice_id))
             .all(db)
             .await?;
         Ok(payments.into_iter().map(|p| p.amount).sum())

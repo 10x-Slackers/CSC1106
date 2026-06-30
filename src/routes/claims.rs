@@ -1,5 +1,5 @@
 use actix_web::{HttpResponse, get, post, web};
-use chrono::Utc;
+use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{DatabaseConnection, EntityTrait};
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,7 @@ use crate::middleware::permissions::{Finance, Require};
 use crate::models::claim::{Claim, ClaimFilter, ClaimForm};
 use crate::models::error::ClaimError;
 use crate::routes::utils::{
-    Pagination, base_query_string, insert_nav_context, parse_field, parse_page, redirect, render,
+    Pagination, base_query_string, insert_nav_context, parse_page, redirect, render,
     require_non_empty,
 };
 
@@ -24,6 +24,7 @@ struct CategoryOption {
 
 #[derive(Deserialize)]
 struct RejectForm {
+    #[serde(default)]
     rejection_reason: String,
 }
 
@@ -171,20 +172,17 @@ pub async fn create_claim(
     require_non_empty(title, &mut errors, "Title");
     require_non_empty(description, &mut errors, "Description");
 
-    let _amount = match amount_str.parse::<Decimal>() {
-        Ok(a) if a > Decimal::ZERO => a,
-        _ => {
-            errors.push("Amount must be a positive number.".into());
-            Decimal::ZERO
-        }
-    };
+    if !amount_str
+        .parse::<Decimal>()
+        .map(|a| a > Decimal::ZERO)
+        .unwrap_or(false)
+    {
+        errors.push("Amount must be a positive number.".into());
+    }
 
-    let _purchase_date = parse_field(
-        purchase_date_str,
-        &mut errors,
-        "Purchase date is invalid.",
-        Utc::now().naive_utc().date(),
-    );
+    if NaiveDate::parse_from_str(purchase_date_str, "%Y-%m-%d").is_err() {
+        errors.push("Purchase date is invalid.".into());
+    }
 
     if !errors.is_empty() {
         return render_claim_form(

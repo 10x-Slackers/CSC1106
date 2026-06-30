@@ -1,5 +1,6 @@
 {% extends "partials/layout.html" %}
 {% import "partials/pagination.html" as pagination %}
+{% import "macros/claim.html" as claim_macro %}
 
 {% block title %}Claims{% endblock %}
 {% block page_content %}
@@ -129,15 +130,7 @@
               <td>{{ claim.category_name }}</td>
               <td>{{ claim.amount | money }}</td>
               <td>{{ claim.purchase_date }}</td>
-              <td>
-                {% if claim.status == "Pending" %}
-                  <span class="badge badge-warning">Pending</span>
-                {% elif claim.status == "Approved" %}
-                  <span class="badge badge-success">Approved</span>
-                {% elif claim.status == "Rejected" %}
-                  <span class="badge badge-error">Rejected</span>
-                {% endif %}
-              </td>
+              <td>{{ claim_macro::status_badge(status=claim.status) }}</td>
               <td>
                 <a href="/claims/{{ claim.id }}" class="btn btn-xs btn-ghost"
                   >View</a

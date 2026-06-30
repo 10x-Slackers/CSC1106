@@ -7,13 +7,15 @@ use sea_orm::{
 
 use crate::entity::claim as claim_entity;
 use crate::entity::claim::ClaimStatus;
-use crate::entity::claim_category as claim_category_entity;
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line::EntrySide;
 use crate::models::account::find_oe_and_ap;
+use crate::models::claim_category::{
+    find_name_by_id as category_name_by_id, name_map_by_ids as category_name_map_by_ids,
+};
 use crate::models::error::ClaimError;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
-use crate::models::user::name_by_id;
+use crate::models::user::{name_by_id, name_map_by_ids};
 use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::{Claim, ClaimDetail, ClaimFilter, ClaimForm, ClaimRow};
@@ -46,10 +48,8 @@ impl Claim {
             None => None,
         };
 
-        let category_name = claim_category_entity::Entity::find_by_id(claim.category_id)
-            .one(db)
+        let category_name = category_name_by_id(db, claim.category_id)
             .await?
-            .map(|c| c.name)
             .unwrap_or_default();
 
         Ok(ClaimDetail {
@@ -103,12 +103,10 @@ impl Claim {
             conditions = conditions.add(claim_entity::Column::CategoryId.eq(cat_id));
         }
 
-        if let Some(uid) = filter.submitted_by_user_id {
-            conditions = conditions.add(claim_entity::Column::SubmittedByUserId.eq(uid));
-        }
-
         if let Some(scope) = scope_user_id {
             conditions = conditions.add(claim_entity::Column::SubmittedByUserId.eq(scope));
+        } else if let Some(uid) = filter.submitted_by_user_id {
+            conditions = conditions.add(claim_entity::Column::SubmittedByUserId.eq(uid));
         }
 
         if let Some(ref from_str) = filter.from
@@ -136,27 +134,34 @@ impl Claim {
             .await
             .map_err(ClaimError::from)?;
 
-        let mut rows = Vec::with_capacity(models.len());
-        for m in models {
-            let submitter_name = name_by_id(db, m.submitted_by_user_id)
-                .await?
-                .unwrap_or_default();
-            let category_name = claim_category_entity::Entity::find_by_id(m.category_id)
-                .one(db)
-                .await?
-                .map(|c| c.name)
-                .unwrap_or_default();
+        let rows = if models.is_empty() {
+            Vec::new()
+        } else {
+            let user_ids: Vec<i32> = models.iter().map(|m| m.submitted_by_user_id).collect();
+            let user_map = name_map_by_ids(db, user_ids).await?;
 
-            rows.push(ClaimRow {
-                id: m.id,
-                title: m.title,
-                submitter_name,
-                category_name,
-                amount: m.amount,
-                purchase_date: m.purchase_date,
-                status: m.status.to_string(),
-            });
-        }
+            let category_ids: Vec<i32> = models.iter().map(|m| m.category_id).collect();
+            let category_map = category_name_map_by_ids(db, category_ids).await?;
+
+            models
+                .into_iter()
+                .map(|m| ClaimRow {
+                    submitter_name: user_map
+                        .get(&m.submitted_by_user_id)
+                        .cloned()
+                        .unwrap_or_default(),
+                    category_name: category_map
+                        .get(&m.category_id)
+                        .cloned()
+                        .unwrap_or_default(),
+                    id: m.id,
+                    title: m.title,
+                    amount: m.amount,
+                    purchase_date: m.purchase_date,
+                    status: m.status.to_string(),
+                })
+                .collect()
+        };
 
         Ok((rows, total_pages, current_page))
     }
@@ -236,11 +241,11 @@ impl Claim {
         let mut am: claim_entity::ActiveModel = model.into();
         am.status = Set(ClaimStatus::Approved);
         am.reviewed_by_user_id = Set(Some(reviewer_id));
-        am.update(&txn).await?;
+        let updated = am.update(&txn).await?;
 
         txn.commit().await?;
 
-        Self::find_model_by_id(db, id).await
+        Ok(updated)
     }
 
     /// Reject a claim: Pending → Rejected, no posting.
@@ -262,11 +267,11 @@ impl Claim {
         am.status = Set(ClaimStatus::Rejected);
         am.reviewed_by_user_id = Set(Some(reviewer_id));
         am.rejection_reason = Set(Some(reason));
-        am.update(&txn).await?;
+        let updated = am.update(&txn).await?;
 
         txn.commit().await?;
 
-        Self::find_model_by_id(db, id).await
+        Ok(updated)
     }
 
     /// Withdraw a claim: delete if owned by the caller and still Pending.

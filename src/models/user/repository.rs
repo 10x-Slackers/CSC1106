@@ -208,6 +208,21 @@ pub async fn name_by_id<C: ConnectionTrait>(db: &C, id: i32) -> Result<Option<St
     Ok(user.map(|u| u.name))
 }
 
+/// Build a map of user ID → display name for the given IDs.
+pub async fn name_map_by_ids<C: ConnectionTrait>(
+    db: &C,
+    ids: Vec<i32>,
+) -> Result<std::collections::HashMap<i32, String>, AppError> {
+    if ids.is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+    let users = user_entity::Entity::find()
+        .filter(user_entity::Column::Id.is_in(ids))
+        .all(db)
+        .await?;
+    Ok(users.into_iter().map(|u| (u.id, u.name)).collect())
+}
+
 /// Hash a plaintext password using Argon2 with a random salt.
 fn hash_password(password: &str) -> Result<String, HashError> {
     let salt = SaltString::generate(&mut OsRng);
