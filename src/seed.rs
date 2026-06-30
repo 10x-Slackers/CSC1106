@@ -129,6 +129,36 @@ pub async fn seed_accounts(db: &DatabaseConnection) {
     }
 }
 
+/// Insert default claim categories, skipping duplicates.
+pub async fn seed_claim_categories(db: &DatabaseConnection) {
+    use crate::entity::claim_category as claim_category_entity;
+
+    let categories = ["Travel", "Meals", "Supplies", "Misc"];
+
+    let active_models: Vec<claim_category_entity::ActiveModel> = categories
+        .into_iter()
+        .map(|name| claim_category_entity::ActiveModel {
+            name: Set(name.to_string()),
+            ..Default::default()
+        })
+        .collect();
+
+    let result = claim_category_entity::Entity::insert_many(active_models)
+        .on_conflict(
+            OnConflict::column(claim_category_entity::Column::Name)
+                .do_nothing()
+                .to_owned(),
+        )
+        .exec(db)
+        .await;
+
+    match result {
+        Ok(_) => {}
+        Err(sea_orm::DbErr::RecordNotInserted) => {}
+        Err(e) => panic!("Failed to seed claim categories: {e}"),
+    }
+}
+
 /// Insert sample parties if the database is empty.
 pub async fn seed_parties(db: &DatabaseConnection) {
     use crate::models::party::Party;

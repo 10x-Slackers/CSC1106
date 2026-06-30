@@ -38,6 +38,21 @@ pub async fn find_ar_and_sr<C: ConnectionTrait>(
     Ok((ar, sales))
 }
 
+/// Find the "Operating Expenses" and "Accounts Payable" accounts for posting claim journal entries.
+pub async fn find_oe_and_ap<C: ConnectionTrait>(
+    db: &C,
+) -> Result<(account::Model, account::Model), AppError> {
+    let oe = find_by_name(db, "Operating Expenses")
+        .await?
+        .ok_or_else(|| {
+            AppError::Database(sea_orm::DbErr::RecordNotFound("Operating Expenses".into()))
+        })?;
+    let ap = find_by_name(db, "Accounts Payable").await?.ok_or_else(|| {
+        AppError::Database(sea_orm::DbErr::RecordNotFound("Accounts Payable".into()))
+    })?;
+    Ok((oe, ap))
+}
+
 /// List all accounts ordered by name, for use in payment form dropdowns.
 pub async fn list_accounts(db: &DatabaseConnection) -> Result<Vec<AccountOption>, AppError> {
     let accounts = account::Entity::find()

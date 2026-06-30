@@ -197,3 +197,52 @@ impl From<AppError> for InvoiceError {
 }
 
 impl std::error::Error for InvoiceError {}
+
+#[derive(Debug)]
+pub enum ClaimError {
+    NotFound,
+    Database(DbErr),
+    Posting(PostingError),
+    InvalidStatus,
+    #[allow(dead_code)]
+    NotReviewer,
+    NotOwner,
+}
+
+impl std::fmt::Display for ClaimError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClaimError::NotFound => write!(f, "Claim not found"),
+            ClaimError::Database(e) => write!(f, "Database error: {e}"),
+            ClaimError::Posting(e) => write!(f, "Posting failed: {e}"),
+            ClaimError::InvalidStatus => {
+                write!(f, "Claim is not in a valid status for this action")
+            }
+            ClaimError::NotReviewer => write!(f, "User is not the assigned reviewer"),
+            ClaimError::NotOwner => write!(f, "User is not the owner of this claim"),
+        }
+    }
+}
+
+impl From<DbErr> for ClaimError {
+    fn from(e: DbErr) -> Self {
+        ClaimError::Database(e)
+    }
+}
+
+impl From<PostingError> for ClaimError {
+    fn from(e: PostingError) -> Self {
+        ClaimError::Posting(e)
+    }
+}
+
+impl From<AppError> for ClaimError {
+    fn from(e: AppError) -> Self {
+        match e {
+            AppError::Database(db_err) => ClaimError::Database(db_err),
+            AppError::NotFound => ClaimError::NotFound,
+        }
+    }
+}
+
+impl std::error::Error for ClaimError {}

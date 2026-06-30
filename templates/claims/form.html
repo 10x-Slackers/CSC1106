@@ -1,0 +1,96 @@
+{% extends "partials/layout.html" %}
+
+{% block title %}Submit Claim{% endblock %}
+{% block page_content %}
+  <div class="mx-auto max-w-lg">
+    <div class="card card-border">
+      <div class="card-body">
+        <h2 class="card-title justify-center text-2xl">Submit Claim</h2>
+
+        {% if message != "" %}
+          <div
+            role="alert"
+            class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %}"
+          >
+            <span>{{ message }}</span>
+          </div>
+        {% endif %}
+
+        <form
+          action="/claims"
+          method="post"
+          data-confirm="Submit this claim for approval?"
+        >
+          <fieldset class="fieldset">
+            <label class="label" for="title">Title</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              class="input w-full"
+              required
+            />
+
+            <label class="label" for="category_id">Category</label>
+            <select
+              id="category_id"
+              name="category_id"
+              class="select w-full"
+              required
+            >
+              <option value="">Select category...</option>
+              {% for c in categories %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+              {% endfor %}
+            </select>
+
+            <label class="label" for="description">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              class="textarea w-full"
+              required
+            ></textarea>
+
+            <label class="label" for="amount">Amount</label>
+            <input
+              type="number"
+              id="amount"
+              name="amount"
+              step="0.0001"
+              min="0"
+              class="input w-full"
+              required
+            />
+
+            <label class="label" for="purchase_date">Purchase Date</label>
+            <input
+              type="date"
+              id="purchase_date"
+              name="purchase_date"
+              class="input w-full"
+              required
+            />
+
+            <div class="mt-4 flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                Submit Claim
+              </button>
+              <a href="/claims" class="btn btn-ghost">Cancel</a>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll("[data-confirm]").forEach(function (form) {
+      form.addEventListener("submit", function (e) {
+        if (!confirm(form.dataset.confirm)) {
+          e.preventDefault();
+        }
+      });
+    });
+  </script>
+{% endblock %}
