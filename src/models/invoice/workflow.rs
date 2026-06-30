@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait,
     PaginatorTrait, QueryFilter, Set, TransactionTrait,
 };
 
@@ -92,9 +92,9 @@ impl Invoice {
         db: &DatabaseConnection,
         party_id: i32,
     ) -> Result<(), InvoiceError> {
-        let party = Party::find_by_id(db, party_id).await?.ok_or_else(|| {
-            InvoiceError::Database(sea_orm::DbErr::RecordNotFound("party".into()))
-        })?;
+        let party = Party::find_by_id(db, party_id)
+            .await?
+            .ok_or_else(|| InvoiceError::NotFound)?;
         if party.status != PartyStatus::Active {
             return Err(InvoiceError::ValidationError(
                 "Selected party is not active".into(),
@@ -107,7 +107,7 @@ impl Invoice {
     async fn generate_invoice_no<C: ConnectionTrait>(
         db: &C,
         issue_date: NaiveDate,
-    ) -> Result<String, DbErr> {
+    ) -> Result<String, InvoiceError> {
         let prefix = format!("INV-{}", issue_date.format("%Y%m"));
         let count: u64 = invoice_entity::Entity::find()
             .filter(invoice_entity::Column::InvoiceNo.starts_with(&prefix))
@@ -125,10 +125,7 @@ impl Invoice {
         debit_ar: bool,
         user_id: i32,
     ) -> Result<(), InvoiceError> {
-        let total = current
-            .load_grand_total(txn)
-            .await
-            .map_err(InvoiceError::from)?;
+        let total = current.load_grand_total(txn).await?;
 
         let (ar, sales) = find_ar_and_sr(txn).await?;
 
@@ -414,9 +411,7 @@ impl Invoice {
         let model = invoice_entity::Entity::find_by_id(invoice_id)
             .one(db)
             .await?
-            .ok_or_else(|| {
-                InvoiceError::Database(sea_orm::DbErr::RecordNotFound("invoice".into()))
-            })?;
+            .ok_or_else(|| InvoiceError::NotFound)?;
         let invoice = Invoice::from(model);
 
         let total_paid = Payment::total_for_invoice(db, invoice_id).await?;

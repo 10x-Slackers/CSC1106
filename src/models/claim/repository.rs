@@ -174,18 +174,13 @@ impl Claim {
         form: ClaimForm,
         submitted_by_user_id: i32,
     ) -> Result<claim_entity::Model, ClaimError> {
-        let amount: Decimal = form.amount.parse().map_err(|_| {
-            ClaimError::Database(sea_orm::DbErr::Custom(format!(
-                "Invalid amount: {}",
-                form.amount
-            )))
-        })?;
+        let amount: Decimal = form
+            .amount
+            .parse()
+            .map_err(|_| ClaimError::InvalidInput(format!("Invalid amount: {}", form.amount)))?;
         let purchase_date =
             NaiveDate::parse_from_str(&form.purchase_date, "%Y-%m-%d").map_err(|_| {
-                ClaimError::Database(sea_orm::DbErr::Custom(format!(
-                    "Invalid purchase date: {}",
-                    form.purchase_date
-                )))
+                ClaimError::InvalidInput(format!("Invalid purchase date: {}", form.purchase_date))
             })?;
 
         let model = claim_entity::ActiveModel {

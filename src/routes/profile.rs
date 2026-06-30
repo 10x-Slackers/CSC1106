@@ -6,7 +6,6 @@ use tera::{Context, Tera};
 use crate::middleware::auth::{Authenticated, UserCache};
 use crate::models::error::AuthError;
 use crate::models::user::User;
-use crate::models::util::is_unique_violation;
 use crate::routes::utils::{
     find_or_404, insert_nav_context, render, require_non_empty, validate_email,
 };
@@ -123,7 +122,7 @@ pub async fn update_profile(
                 "success",
             )
         }
-        Err(AuthError::Database(ref e)) if is_unique_violation(e) => render_profile(
+        Err(AuthError::Duplicate) => render_profile(
             tera.get_ref(),
             &user,
             name,
