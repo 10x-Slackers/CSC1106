@@ -88,7 +88,7 @@ async fn render_payments_list(
 ) -> HttpResponse {
     let parties = Party::list_all(db).await.unwrap_or_default();
     let party_map = Party::name_map(db).await.unwrap_or_default();
-    let page = crate::routes::pagination::parse_page(filter.page);
+    let page = crate::routes::utils::parse_page(filter.page);
     let (payments, total_pages) = match Payment::list(
         db,
         filter.q.as_deref().and_then(non_empty),
@@ -118,12 +118,12 @@ async fn render_payments_list(
             (Vec::new(), 1)
         }
     };
-    let page = crate::routes::pagination::clamp_page(page, total_pages);
-    let pagination = crate::routes::pagination::Pagination {
+    let page = crate::routes::utils::clamp_page(page, total_pages);
+    let pagination = crate::routes::utils::Pagination {
         current: page,
         total_pages,
     };
-    let base_query = crate::routes::pagination::base_query_string(filter);
+    let base_query = crate::routes::utils::base_query_string(filter);
 
     let mut ctx = Context::new();
     ctx.insert("payments", &payments);

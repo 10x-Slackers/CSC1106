@@ -7,7 +7,7 @@ use crate::entity::party as party_entity;
 use crate::entity::party::{PartyStatus, PartyType};
 use crate::models::error::AppError;
 use crate::models::util::like_pattern;
-use crate::routes::pagination::PER_PAGE;
+use crate::routes::utils::PER_PAGE;
 
 use super::types::Party;
 

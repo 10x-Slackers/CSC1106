@@ -12,9 +12,9 @@ use crate::models::invoice::Invoice;
 use crate::models::party::Party;
 use crate::models::payment::Payment;
 use crate::models::util::{is_unique_violation, non_empty};
-use crate::routes::pagination::{Pagination, base_query_string, clamp_page, parse_page};
 use crate::routes::utils::{
-    find_or_404, insert_nav_context, render, require_non_empty, validate_email,
+    Pagination, base_query_string, clamp_page, find_or_404, insert_nav_context, parse_page, render,
+    require_non_empty, validate_email,
 };
 
 #[derive(Deserialize)]

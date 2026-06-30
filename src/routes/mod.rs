@@ -2,7 +2,6 @@ pub mod auth;
 pub mod claims;
 pub mod home;
 pub mod invoices;
-pub mod pagination;
 pub mod parties;
 pub mod payments;
 pub mod profile;

@@ -5,7 +5,7 @@ use sea_orm::{
     QueryFilter, QueryOrder,
 };
 
-use crate::routes::pagination::PER_PAGE;
+use crate::routes::utils::PER_PAGE;
 
 use crate::entity::invoice as invoice_entity;
 use crate::entity::invoice::InvoiceStatus;

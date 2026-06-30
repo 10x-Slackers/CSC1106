@@ -9,9 +9,9 @@ use crate::middleware::permissions::{AdminOnly, Require};
 use crate::models::error::AuthError;
 use crate::models::user::User;
 use crate::models::util::is_unique_violation;
-use crate::routes::pagination::{Pagination, base_query_string, clamp_page, parse_page};
 use crate::routes::utils::{
-    find_or_404, insert_nav_context, render, require_non_empty, validate_email,
+    Pagination, base_query_string, clamp_page, find_or_404, insert_nav_context, parse_page, render,
+    require_non_empty, validate_email,
 };
 
 #[derive(Deserialize)]

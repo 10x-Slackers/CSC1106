@@ -13,7 +13,7 @@ use crate::entity::payment::PaymentDirection;
 use crate::models::error::{AppError, PaymentCreateError};
 use crate::models::posting::{JournalEntryLineInput, PostingService};
 use crate::models::util::like_pattern;
-use crate::routes::pagination::PER_PAGE;
+use crate::routes::utils::PER_PAGE;
 
 use super::types::{Payment, PaymentDetail};
 

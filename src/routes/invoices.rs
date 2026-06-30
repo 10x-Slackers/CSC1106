@@ -17,8 +17,10 @@ use crate::models::invoice::{
 };
 use crate::models::party::Party;
 use crate::models::payment::Payment;
-use crate::routes::pagination::{Pagination, base_query_string, clamp_page, parse_page};
-use crate::routes::utils::{find_or_404, insert_nav_context, parse_field, render};
+use crate::routes::utils::{
+    Pagination, base_query_string, clamp_page, find_or_404, insert_nav_context, parse_field,
+    parse_page, render,
+};
 
 #[derive(Deserialize, Debug)]
 pub struct InvoiceLineItemForm {
