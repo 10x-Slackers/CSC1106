@@ -5,27 +5,25 @@ use std::future::Future;
 use std::pin::Pin;
 use tera::{Context, Tera};
 
+use crate::entity::user::Role;
 use crate::middleware::auth::Authenticated;
 
 pub trait RoleSet {
-    const ROLES: &'static [crate::entity::user::Role];
+    const ROLES: &'static [Role];
 }
 
 pub struct AdminOnly;
 impl RoleSet for AdminOnly {
-    const ROLES: &'static [crate::entity::user::Role] = &[crate::entity::user::Role::Admin];
+    const ROLES: &'static [Role] = &[Role::Admin];
 }
 
 pub struct Finance;
 impl RoleSet for Finance {
-    const ROLES: &'static [crate::entity::user::Role] = &[
-        crate::entity::user::Role::Admin,
-        crate::entity::user::Role::Accountant,
-    ];
+    const ROLES: &'static [Role] = &[Role::Admin, Role::Accountant];
 }
 
 /// Look up a named role set by its short name.
-pub fn role_set(name: &str) -> Option<&'static [crate::entity::user::Role]> {
+pub fn role_set(name: &str) -> Option<&'static [Role]> {
     let name = name.trim();
     if name.eq_ignore_ascii_case("admin") {
         Some(AdminOnly::ROLES)

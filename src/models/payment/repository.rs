@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
-    Order, QueryFilter, QueryOrder, QuerySelect, Set,
+    Order, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
 
 use crate::entity::journal_entry::SourceDocument;
@@ -11,8 +11,10 @@ use crate::entity::party as party_entity;
 use crate::entity::payment as payment_entity;
 use crate::entity::payment::PaymentDirection;
 use crate::models::error::{AppError, PaymentCreateError};
+use crate::models::invoice::Invoice;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
-use crate::models::util::like_pattern;
+use crate::models::user::name_by_id;
+use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::{Payment, PaymentDetail};
 
@@ -45,8 +47,7 @@ impl Payment {
             None => None,
         };
 
-        let created_by_name =
-            crate::models::user::name_by_id(db, payment.created_by_user_id).await?;
+        let created_by_name = name_by_id(db, payment.created_by_user_id).await?;
 
         Ok(Some(PaymentDetail {
             id: payment.id,
@@ -69,7 +70,8 @@ impl Payment {
         party_id: Option<i32>,
         from_date: Option<NaiveDate>,
         to_date: Option<NaiveDate>,
-    ) -> Result<Vec<Payment>, AppError> {
+        page: u32,
+    ) -> Result<(Vec<Payment>, u32, u32), AppError> {
         let mut conditions = Condition::all();
 
         if let Some(query) = q
@@ -93,17 +95,21 @@ impl Payment {
             conditions = conditions.add(payment_entity::Column::PaymentDate.lte(to));
         }
 
-        let payments = payment_entity::Entity::find()
+        let paginator = payment_entity::Entity::find()
             .filter(conditions)
             .order_by(payment_entity::Column::CreatedAt, Order::Desc)
-            .all(db)
+            .paginate(db, PER_PAGE);
+        let num_pages = paginator.num_pages().await.map_err(AppError::from)?;
+        let (total_pages, page) = clamp_pagination(page, num_pages);
+        let payments = paginator
+            .fetch_page((page - 1) as u64)
             .await
             .map_err(AppError::from)?
             .into_iter()
             .map(Payment::from)
             .collect();
 
-        Ok(payments)
+        Ok((payments, total_pages, page))
     }
 
     /// Create a payment and post the linked balanced journal entry.
@@ -153,7 +159,7 @@ impl Payment {
 
         // Recompute invoice status if this payment is linked to an invoice
         if let Some(invoice_id) = payment.invoice_id {
-            crate::models::invoice::Invoice::recompute_status_for(db, invoice_id)
+            Invoice::recompute_status_for(db, invoice_id)
                 .await
                 .map_err(PaymentCreateError::from)?;
         }

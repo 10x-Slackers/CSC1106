@@ -5,15 +5,13 @@ use argon2::password_hash::{
 };
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
-    Order, QueryFilter, QueryOrder, Set,
+    Order, PaginatorTrait, QueryFilter, QueryOrder, Set,
 };
 
 use crate::entity::user as user_entity;
 use crate::entity::user::{Role, UserStatus};
-use crate::middleware::auth::UserCache;
-
 use crate::models::error::{AppError, AuthError};
-use crate::models::util::like_pattern;
+use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::User;
 
@@ -94,7 +92,8 @@ impl User {
         q: Option<&str>,
         role: Option<Role>,
         status: Option<UserStatus>,
-    ) -> Result<Vec<User>, AuthError> {
+        page: u32,
+    ) -> Result<(Vec<User>, u32, u32), AuthError> {
         let mut conditions = Condition::all();
 
         if let Some(query) = q
@@ -115,24 +114,27 @@ impl User {
             conditions = conditions.add(user_entity::Column::Disabled.eq(status.disabled()));
         }
 
-        let users = user_entity::Entity::find()
+        let paginator = user_entity::Entity::find()
             .filter(conditions)
             .order_by(user_entity::Column::CreatedAt, Order::Desc)
-            .all(db)
+            .paginate(db, PER_PAGE);
+        let num_pages = paginator.num_pages().await.map_err(AuthError::from)?;
+        let (total_pages, page) = clamp_pagination(page, num_pages);
+        let users = paginator
+            .fetch_page((page - 1) as u64)
             .await
             .map_err(AuthError::from)?
             .into_iter()
             .map(User::from)
             .collect();
 
-        Ok(users)
+        Ok((users, total_pages, page))
     }
 
-    /// Update user fields, re-hashing password if provided; invalidates cache.
+    /// Update user fields, re-hashing password if provided.
     pub async fn update(
         &self,
         db: &DatabaseConnection,
-        cache: &UserCache,
         email: Option<&str>,
         name: Option<&str>,
         password: Option<&str>,
@@ -162,17 +164,13 @@ impl User {
 
         let updated = user.update(db).await.map_err(AuthError::from)?;
 
-        // Invalidate cache since user info changed
-        cache.invalidate(&self.email);
-
         Ok(User::from(updated))
     }
 
-    /// Enable or disable a user account; invalidates cache.
+    /// Enable or disable a user account.
     pub async fn set_disabled(
         &self,
         db: &DatabaseConnection,
-        cache: &UserCache,
         disabled: bool,
     ) -> Result<User, AuthError> {
         let user_model = Self::find_model_by_id(db, self.id)
@@ -184,9 +182,6 @@ impl User {
         user.updated_at = Set(chrono::Utc::now().naive_utc());
 
         let updated = user.update(db).await.map_err(AuthError::from)?;
-
-        // Remove user from cache
-        cache.invalidate(&self.email);
 
         Ok(User::from(updated))
     }

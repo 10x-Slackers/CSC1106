@@ -1,7 +1,7 @@
 use actix_web::{HttpResponse, get, post, web};
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
 
 use crate::entity::party::{PartyStatus, PartyType};
@@ -13,7 +13,8 @@ use crate::models::party::Party;
 use crate::models::payment::Payment;
 use crate::models::util::{is_unique_violation, non_empty};
 use crate::routes::utils::{
-    find_or_404, insert_nav_context, render, require_non_empty, validate_email,
+    Pagination, base_query_string, find_or_404, insert_nav_context, parse_page, render,
+    require_non_empty, validate_email,
 };
 
 #[derive(Deserialize)]
@@ -26,17 +27,24 @@ pub struct PartyForm {
     address: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct PartyFilter {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     q: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     party_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    page: Option<u32>,
 }
 
 fn render_parties_list(
     tera: &Tera,
     user: &Authenticated,
     parties: &[Party],
+    pagination: &Pagination,
+    base_query: &str,
     message: &str,
     message_kind: &str,
 ) -> HttpResponse {
@@ -44,6 +52,8 @@ fn render_parties_list(
     context.insert("parties", parties);
     context.insert("party_types", &PartyType::labels());
     context.insert("statuses", &PartyStatus::labels());
+    context.insert("pagination", pagination);
+    context.insert("pagination_base_query", base_query);
     context.insert("message", message);
     context.insert("message_kind", message_kind);
     insert_nav_context(&mut context, user);
@@ -57,16 +67,34 @@ async fn reload_parties_list(
     db: &DatabaseConnection,
     verb: &str,
 ) -> HttpResponse {
-    match Party::list(db, None, None, None).await {
-        Ok(parties) => {
-            render_parties_list(tera, user, &parties, &format!("Party {verb}."), "success")
+    match Party::list(db, None, None, None, 1).await {
+        Ok((parties, total_pages, current_page)) => {
+            let pagination = Pagination {
+                current: current_page,
+                total_pages,
+            };
+            render_parties_list(
+                tera,
+                user,
+                &parties,
+                &pagination,
+                "",
+                &format!("Party {verb}."),
+                "success",
+            )
         }
         Err(e) => {
             eprintln!("Failed to list parties after {verb}: {e}");
+            let pagination = Pagination {
+                current: 1,
+                total_pages: 1,
+            };
             render_parties_list(
                 tera,
                 user,
                 &[],
+                &pagination,
+                "",
                 &format!("Party {verb}, but failed to load list."),
                 "error",
             )
@@ -105,22 +133,45 @@ pub async fn list_parties(
     db: web::Data<DatabaseConnection>,
     query: web::Query<PartyFilter>,
 ) -> HttpResponse {
-    let q = query.q.as_deref();
-    let party_type = query.party_type.as_deref().and_then(PartyType::parse);
+    let filter = query.into_inner();
+    let q = filter.q.as_deref();
+    let party_type = filter.party_type.as_deref().and_then(PartyType::parse);
     // Default to active (hide disabled) when no status filter is sent.
-    let status = match query.status.as_deref() {
+    let status = match filter.status.as_deref() {
         None => Some(PartyStatus::Active),
         Some("") => None,
         Some(s) => PartyStatus::parse(s),
     };
-    match Party::list(db.get_ref(), q, party_type, status).await {
-        Ok(parties) => render_parties_list(tera.get_ref(), &user, &parties, "", ""),
+    let page = parse_page(filter.page);
+    let base_query = base_query_string(&filter);
+    let pagination_default = Pagination {
+        current: 1,
+        total_pages: 1,
+    };
+    match Party::list(db.get_ref(), q, party_type, status, page).await {
+        Ok((parties, total_pages, current_page)) => {
+            let pagination = Pagination {
+                current: current_page,
+                total_pages,
+            };
+            render_parties_list(
+                tera.get_ref(),
+                &user,
+                &parties,
+                &pagination,
+                &base_query,
+                "",
+                "",
+            )
+        }
         Err(e) => {
             eprintln!("Failed to list parties: {e}");
             render_parties_list(
                 tera.get_ref(),
                 &user,
                 &[],
+                &pagination_default,
+                &base_query,
                 "Failed to load parties.",
                 "error",
             )
@@ -326,13 +377,20 @@ pub async fn deactivate_party(
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "deactivated").await,
         Err(e) => {
             eprintln!("Failed to deactivate party {id}: {e}");
-            let parties = Party::list(db.get_ref(), None, None, None)
-                .await
-                .unwrap_or_default();
+            let (parties, total_pages, current_page) =
+                Party::list(db.get_ref(), None, None, None, 1)
+                    .await
+                    .unwrap_or_default();
+            let pagination = Pagination {
+                current: current_page,
+                total_pages,
+            };
             render_parties_list(
                 tera.get_ref(),
                 &user,
                 &parties,
+                &pagination,
+                "",
                 "Failed to deactivate party.",
                 "error",
             )
@@ -359,13 +417,20 @@ pub async fn activate_party(
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "activated").await,
         Err(e) => {
             eprintln!("Failed to activate party {id}: {e}");
-            let parties = Party::list(db.get_ref(), None, None, None)
-                .await
-                .unwrap_or_default();
+            let (parties, total_pages, current_page) =
+                Party::list(db.get_ref(), None, None, None, 1)
+                    .await
+                    .unwrap_or_default();
+            let pagination = Pagination {
+                current: current_page,
+                total_pages,
+            };
             render_parties_list(
                 tera.get_ref(),
                 &user,
                 &parties,
+                &pagination,
+                "",
                 "Failed to activate party.",
                 "error",
             )

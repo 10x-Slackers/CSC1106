@@ -27,6 +27,7 @@ This is a **university coursework project** done by undergraduates. It is not a 
 ## Testing
 
 - The server is long-running. Ask the user to start it if not already up; don't start it yourself as it will hang the session
+- Credentials and test data are in `src/seed.rs`
 
 ## UI posture
 

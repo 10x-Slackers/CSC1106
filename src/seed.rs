@@ -41,13 +41,12 @@ pub async fn seed_users(db: &DatabaseConnection) {
         ),
     ];
 
-    let cache = crate::middleware::auth::UserCache::new();
     for (email, name, password, role, disabled) in users {
         let user = User::create(db, email, name, password, role)
             .await
             .expect("Failed to seed user");
         if disabled {
-            user.set_disabled(db, &cache, true)
+            user.set_disabled(db, true)
                 .await
                 .expect("Failed to disable seeded user");
         }

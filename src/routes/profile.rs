@@ -109,24 +109,20 @@ pub async fn update_profile(
     }
 
     match existing
-        .update(
-            db.get_ref(),
-            cache.get_ref(),
-            Some(email),
-            Some(name),
-            password_opt,
-            None,
-        )
+        .update(db.get_ref(), Some(email), Some(name), password_opt, None)
         .await
     {
-        Ok(_) => render_profile(
-            tera.get_ref(),
-            &user,
-            name,
-            email,
-            "Profile updated. If you changed your email, you may need to log in again.",
-            "success",
-        ),
+        Ok(_) => {
+            cache.invalidate(&existing.email);
+            render_profile(
+                tera.get_ref(),
+                &user,
+                name,
+                email,
+                "Profile updated. If you changed your email, you may need to log in again.",
+                "success",
+            )
+        }
         Err(AuthError::Database(ref e)) if is_unique_violation(e) => render_profile(
             tera.get_ref(),
             &user,

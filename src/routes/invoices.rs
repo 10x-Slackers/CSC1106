@@ -2,7 +2,7 @@ use actix_web::{HttpResponse, get, post, web};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_qs::actix::QsForm;
 use tera::{Context, Tera};
 
@@ -17,7 +17,10 @@ use crate::models::invoice::{
 };
 use crate::models::party::Party;
 use crate::models::payment::Payment;
-use crate::routes::utils::{find_or_404, insert_nav_context, parse_field, render};
+use crate::models::util::is_unique_violation;
+use crate::routes::utils::{
+    Pagination, base_query_string, find_or_404, insert_nav_context, parse_field, parse_page, render,
+};
 
 #[derive(Deserialize, Debug)]
 pub struct InvoiceLineItemForm {
@@ -35,15 +38,24 @@ pub struct InvoiceForm {
     items: Vec<InvoiceLineItemForm>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct InvoiceFilter {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     q: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     party_id: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     from_issue: Option<NaiveDate>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     to_issue: Option<NaiveDate>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     from_due: Option<NaiveDate>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     to_due: Option<NaiveDate>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    page: Option<u32>,
 }
 
 /// Parse submitted line items, skipping rows with a blank description.
@@ -110,6 +122,7 @@ fn check_ownership(user: &Authenticated, invoice: &Invoice) -> Result<(), HttpRe
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_invoices_list(
     tera: &Tera,
     user: &Authenticated,
@@ -118,6 +131,8 @@ fn render_invoices_list(
     filter: &InvoiceFilter,
     message: &str,
     message_kind: &str,
+    pagination: &Pagination,
+    base_query: &str,
 ) -> HttpResponse {
     let mut context = Context::new();
     context.insert("invoices", invoices);
@@ -132,6 +147,8 @@ fn render_invoices_list(
     context.insert("to_due", &filter.to_due);
     context.insert("message", message);
     context.insert("message_kind", message_kind);
+    context.insert("pagination", pagination);
+    context.insert("pagination_base_query", base_query);
     insert_nav_context(&mut context, user);
     render(tera, "invoices/list.html", &context)
 }
@@ -163,6 +180,7 @@ async fn reload_invoices_list_with(
 ) -> HttpResponse {
     let viewer_role = &user.role;
     let viewer_user_id = user.id;
+    let base_query = base_query_string(filter);
     match Invoice::list(
         db,
         filter.q.as_deref(),
@@ -174,10 +192,15 @@ async fn reload_invoices_list_with(
         filter.to_due,
         viewer_user_id,
         viewer_role,
+        1,
     )
     .await
     {
-        Ok(invoices) => {
+        Ok((invoices, total_pages, current_page)) => {
+            let pagination = Pagination {
+                current: current_page,
+                total_pages,
+            };
             let parties = Party::list_all(db).await.unwrap_or_default();
             render_invoices_list(
                 tera,
@@ -187,10 +210,16 @@ async fn reload_invoices_list_with(
                 filter,
                 message,
                 message_kind,
+                &pagination,
+                &base_query,
             )
         }
         Err(e) => {
             eprintln!("Failed to list invoices: {e}");
+            let pagination = Pagination {
+                current: 1,
+                total_pages: 1,
+            };
             let parties = Party::list_all(db).await.unwrap_or_default();
             render_invoices_list(
                 tera,
@@ -200,6 +229,8 @@ async fn reload_invoices_list_with(
                 filter,
                 "Failed to load invoices.",
                 "error",
+                &pagination,
+                &base_query,
             )
         }
     }
@@ -271,6 +302,8 @@ pub async fn list_invoices(
     let status = filter.status.as_deref().and_then(InvoiceStatus::parse);
     let viewer_user_id = user.id;
     let viewer_role = &user.role;
+    let page = parse_page(filter.page);
+    let base_query = base_query_string(&filter);
 
     match Invoice::list(
         db.get_ref(),
@@ -283,15 +316,34 @@ pub async fn list_invoices(
         filter.to_due,
         viewer_user_id,
         viewer_role,
+        page,
     )
     .await
     {
-        Ok(invoices) => {
+        Ok((invoices, total_pages, current_page)) => {
+            let pagination = Pagination {
+                current: current_page,
+                total_pages,
+            };
             let parties = Party::list_all(db.get_ref()).await.unwrap_or_default();
-            render_invoices_list(tera.get_ref(), &user, &invoices, &parties, &filter, "", "")
+            render_invoices_list(
+                tera.get_ref(),
+                &user,
+                &invoices,
+                &parties,
+                &filter,
+                "",
+                "",
+                &pagination,
+                &base_query,
+            )
         }
         Err(e) => {
             eprintln!("Failed to list invoices: {e}");
+            let pagination = Pagination {
+                current: 1,
+                total_pages: 1,
+            };
             let parties = Party::list_all(db.get_ref()).await.unwrap_or_default();
             render_invoices_list(
                 tera.get_ref(),
@@ -301,6 +353,8 @@ pub async fn list_invoices(
                 &filter,
                 "Failed to load invoices.",
                 "error",
+                &pagination,
+                &base_query,
             )
         }
     }
@@ -376,7 +430,7 @@ pub async fn create_invoice(
     .await
     {
         Ok(_) => reload_invoices_list(tera.get_ref(), &user, db.get_ref(), "created").await,
-        Err(InvoiceError::Database(ref e)) if crate::models::util::is_unique_violation(e) => {
+        Err(InvoiceError::Database(ref e)) if is_unique_violation(e) => {
             let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
             render_invoice_form(
                 tera.get_ref(),
