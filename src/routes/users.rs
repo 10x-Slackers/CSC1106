@@ -1,6 +1,6 @@
 use actix_web::{HttpResponse, get, post, web};
 use sea_orm::DatabaseConnection;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
 
 use crate::entity::user::{Role, UserStatus};
@@ -9,6 +9,7 @@ use crate::middleware::permissions::{AdminOnly, Require};
 use crate::models::error::AuthError;
 use crate::models::user::User;
 use crate::models::util::is_unique_violation;
+use crate::routes::pagination::{Pagination, base_query_string, clamp_page, parse_page};
 use crate::routes::utils::{
     find_or_404, insert_nav_context, render, require_non_empty, validate_email,
 };
@@ -21,23 +22,32 @@ pub struct UserForm {
     password: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct UserFilter {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     q: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     role: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    page: Option<u32>,
 }
 
 fn render_users_list(
     tera: &Tera,
     user: &Require<AdminOnly>,
     users: &[User],
+    pagination: &Pagination,
+    base_query: &str,
     message: &str,
     message_kind: &str,
 ) -> HttpResponse {
     let mut context = Context::new();
     context.insert("users", users);
     context.insert("roles", &Role::labels());
+    context.insert("pagination", pagination);
+    context.insert("pagination_base_query", base_query);
     context.insert("message", message);
     context.insert("message_kind", message_kind);
     insert_nav_context(&mut context, user);
@@ -51,14 +61,28 @@ async fn reload_users_list(
     db: &DatabaseConnection,
     verb: &str,
 ) -> HttpResponse {
-    match User::list(db, None, None, None).await {
-        Ok(users) => render_users_list(tera, user, &users, &format!("User {verb}."), "success"),
+    let pagination = Pagination {
+        current: 1,
+        total_pages: 1,
+    };
+    match User::list(db, None, None, None, 0).await {
+        Ok((users, _)) => render_users_list(
+            tera,
+            user,
+            &users,
+            &pagination,
+            "",
+            &format!("User {verb}."),
+            "success",
+        ),
         Err(e) => {
             eprintln!("Failed to list users after {verb}: {e}");
             render_users_list(
                 tera,
                 user,
                 &[],
+                &pagination,
+                "",
                 &format!("User {verb}, but failed to load list."),
                 "error",
             )
@@ -97,15 +121,45 @@ pub async fn list_users(
     db: web::Data<DatabaseConnection>,
     query: web::Query<UserFilter>,
 ) -> HttpResponse {
-    let q = query.q.as_deref();
-    let role = query.role.as_deref().and_then(Role::parse);
-    let status = query.status.as_deref().and_then(UserStatus::parse);
+    let filter = query.into_inner();
+    let q = filter.q.as_deref();
+    let role = filter.role.as_deref().and_then(Role::parse);
+    let status = filter.status.as_deref().and_then(UserStatus::parse);
+    let page = parse_page(filter.page);
+    let base_query = base_query_string(&filter);
+    let pagination_default = Pagination {
+        current: page,
+        total_pages: 1,
+    };
 
-    match User::list(db.get_ref(), q, role, status).await {
-        Ok(users) => render_users_list(tera.get_ref(), &user, &users, "", ""),
+    match User::list(db.get_ref(), q, role, status, (page - 1) as u64).await {
+        Ok((users, total_pages)) => {
+            let page = clamp_page(page, total_pages);
+            let pagination = Pagination {
+                current: page,
+                total_pages,
+            };
+            render_users_list(
+                tera.get_ref(),
+                &user,
+                &users,
+                &pagination,
+                &base_query,
+                "",
+                "",
+            )
+        }
         Err(e) => {
             eprintln!("Failed to list users: {e}");
-            render_users_list(tera.get_ref(), &user, &[], "Failed to load users.", "error")
+            render_users_list(
+                tera.get_ref(),
+                &user,
+                &[],
+                &pagination_default,
+                &base_query,
+                "Failed to load users.",
+                "error",
+            )
         }
     }
 }
@@ -297,13 +351,19 @@ pub async fn disable_user(
     let id = path.into_inner();
 
     if id == current_user.id {
-        let users = User::list(db.get_ref(), None, None, None)
+        let (users, _) = User::list(db.get_ref(), None, None, None, 0)
             .await
             .unwrap_or_default();
+        let pagination = Pagination {
+            current: 1,
+            total_pages: 1,
+        };
         return render_users_list(
             tera.get_ref(),
             &current_user,
             &users,
+            &pagination,
+            "",
             "You cannot disable your own account.",
             "error",
         );
@@ -321,13 +381,19 @@ pub async fn disable_user(
         Ok(_) => reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "disabled").await,
         Err(e) => {
             eprintln!("Failed to disable user {id}: {e}");
-            let users = User::list(db.get_ref(), None, None, None)
+            let (users, _) = User::list(db.get_ref(), None, None, None, 0)
                 .await
                 .unwrap_or_default();
+            let pagination = Pagination {
+                current: 1,
+                total_pages: 1,
+            };
             render_users_list(
                 tera.get_ref(),
                 &current_user,
                 &users,
+                &pagination,
+                "",
                 "Failed to disable user.",
                 "error",
             )
@@ -358,13 +424,19 @@ pub async fn enable_user(
         Ok(_) => reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "enabled").await,
         Err(e) => {
             eprintln!("Failed to enable user {id}: {e}");
-            let users = User::list(db.get_ref(), None, None, None)
+            let (users, _) = User::list(db.get_ref(), None, None, None, 0)
                 .await
                 .unwrap_or_default();
+            let pagination = Pagination {
+                current: 1,
+                total_pages: 1,
+            };
             render_users_list(
                 tera.get_ref(),
                 &current_user,
                 &users,
+                &pagination,
+                "",
                 "Failed to enable user.",
                 "error",
             )

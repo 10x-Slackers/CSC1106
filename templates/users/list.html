@@ -1,6 +1,7 @@
 {% extends "partials/layout.html" %}
 {% import "macros/search.html" as search %}
 {% import "macros/table.html" as table %}
+{% import "partials/pagination.html" as pagination %}
 
 {% block title %}Users{% endblock %}
 {% block page_content %}
@@ -128,4 +129,5 @@
       </table>
     {% endif %}
   </div>
+  {{ pagination::render(current=pagination.current, total_pages=pagination.total_pages, base_query=pagination_base_query) }}
 {% endblock %}

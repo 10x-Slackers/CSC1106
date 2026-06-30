@@ -26,13 +26,20 @@ struct PaymentForm {
     remarks: Option<String>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 struct PaymentFilter {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     q: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     direction: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     party_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     from_date: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     to_date: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    page: Option<u32>,
 }
 
 #[derive(Serialize)]
@@ -81,7 +88,8 @@ async fn render_payments_list(
 ) -> HttpResponse {
     let parties = Party::list_all(db).await.unwrap_or_default();
     let party_map = Party::name_map(db).await.unwrap_or_default();
-    let payments = match Payment::list(
+    let page = crate::routes::pagination::parse_page(filter.page);
+    let (payments, total_pages) = match Payment::list(
         db,
         filter.q.as_deref().and_then(non_empty),
         filter
@@ -100,19 +108,28 @@ async fn render_payments_list(
             .to_date
             .as_deref()
             .and_then(|s| s.parse::<NaiveDate>().ok()),
+        (page - 1) as u64,
     )
     .await
     {
-        Ok(p) => enrich_payments(&p, &party_map),
+        Ok((p, tp)) => (enrich_payments(&p, &party_map), tp),
         Err(e) => {
             eprintln!("Failed to list payments: {e}");
-            Vec::new()
+            (Vec::new(), 1)
         }
     };
+    let page = crate::routes::pagination::clamp_page(page, total_pages);
+    let pagination = crate::routes::pagination::Pagination {
+        current: page,
+        total_pages,
+    };
+    let base_query = crate::routes::pagination::base_query_string(filter);
 
     let mut ctx = Context::new();
     ctx.insert("payments", &payments);
     ctx.insert("parties", &parties);
+    ctx.insert("pagination", &pagination);
+    ctx.insert("pagination_base_query", &base_query);
     ctx.insert("message", message);
     ctx.insert("message_kind", message_kind);
     insert_nav_context(&mut ctx, user);

@@ -5,6 +5,8 @@ use sea_orm::{
     QueryFilter, QueryOrder,
 };
 
+use crate::routes::pagination::PER_PAGE;
+
 use crate::entity::invoice as invoice_entity;
 use crate::entity::invoice::InvoiceStatus;
 use crate::entity::invoice_line_item as line_item_entity;
@@ -93,7 +95,8 @@ impl Invoice {
         to_due: Option<NaiveDate>,
         viewer_user_id: i32,
         viewer_role: &crate::entity::user::Role,
-    ) -> Result<Vec<Invoice>, AppError> {
+        page: u64,
+    ) -> Result<(Vec<Invoice>, u32), AppError> {
         let mut conditions = Condition::all();
 
         if let Some(query) = q
@@ -128,57 +131,57 @@ impl Invoice {
             conditions = conditions.add(invoice_entity::Column::CreatedByUserId.eq(viewer_user_id));
         }
 
-        let invoices = invoice_entity::Entity::find()
+        let paginator = invoice_entity::Entity::find()
             .filter(conditions)
             .order_by(invoice_entity::Column::IssueDate, Order::Desc)
             .order_by(invoice_entity::Column::Id, Order::Desc)
-            .all(db)
-            .await
-            .map_err(AppError::from)?;
+            .paginate(db, PER_PAGE);
+        let total_pages = paginator.num_pages().await.map_err(AppError::from)? as u32;
+        let invoices = paginator.fetch_page(page).await.map_err(AppError::from)?;
 
-        if invoices.is_empty() {
-            return Ok(vec![]);
-        }
+        let result = if invoices.is_empty() {
+            Vec::new()
+        } else {
+            // Enrich with party names and compute grand totals
+            let party_ids: Vec<i32> = invoices.iter().map(|i| i.party_id).collect();
+            let parties = party_entity::Entity::find()
+                .filter(party_entity::Column::Id.is_in(party_ids))
+                .all(db)
+                .await
+                .map_err(AppError::from)?;
+            let party_map: std::collections::HashMap<i32, String> =
+                parties.into_iter().map(|p| (p.id, p.name)).collect();
 
-        // Enrich with party names and compute grand totals
-        let party_ids: Vec<i32> = invoices.iter().map(|i| i.party_id).collect();
-        let parties = party_entity::Entity::find()
-            .filter(party_entity::Column::Id.is_in(party_ids))
-            .all(db)
-            .await
-            .map_err(AppError::from)?;
-        let party_map: std::collections::HashMap<i32, String> =
-            parties.into_iter().map(|p| (p.id, p.name)).collect();
+            let invoice_ids: Vec<i32> = invoices.iter().map(|i| i.id).collect();
+            let all_items = line_item_entity::Entity::find()
+                .filter(line_item_entity::Column::InvoiceId.is_in(invoice_ids))
+                .all(db)
+                .await
+                .map_err(AppError::from)?;
 
-        let invoice_ids: Vec<i32> = invoices.iter().map(|i| i.id).collect();
-        let all_items = line_item_entity::Entity::find()
-            .filter(line_item_entity::Column::InvoiceId.is_in(invoice_ids))
-            .all(db)
-            .await
-            .map_err(AppError::from)?;
+            let mut items_by_invoice: std::collections::HashMap<i32, Vec<InvoiceLineItem>> =
+                std::collections::HashMap::new();
+            for item in all_items {
+                items_by_invoice
+                    .entry(item.invoice_id)
+                    .or_default()
+                    .push(InvoiceLineItem::from(item));
+            }
 
-        let mut items_by_invoice: std::collections::HashMap<i32, Vec<InvoiceLineItem>> =
-            std::collections::HashMap::new();
-        for item in all_items {
-            items_by_invoice
-                .entry(item.invoice_id)
-                .or_default()
-                .push(InvoiceLineItem::from(item));
-        }
+            invoices
+                .into_iter()
+                .map(|m| {
+                    let mut inv = Invoice::from(m);
+                    inv.party_name = party_map.get(&inv.party_id).cloned();
+                    if let Some(items) = items_by_invoice.get(&inv.id) {
+                        inv.grand_total = grand_total(items);
+                    }
+                    inv
+                })
+                .collect()
+        };
 
-        let result = invoices
-            .into_iter()
-            .map(|m| {
-                let mut inv = Invoice::from(m);
-                inv.party_name = party_map.get(&inv.party_id).cloned();
-                if let Some(items) = items_by_invoice.get(&inv.id) {
-                    inv.grand_total = grand_total(items);
-                }
-                inv
-            })
-            .collect();
-
-        Ok(result)
+        Ok((result, total_pages))
     }
 
     /// Count invoices for a given party.

@@ -5,7 +5,7 @@ use argon2::password_hash::{
 };
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
-    Order, QueryFilter, QueryOrder, Set,
+    Order, PaginatorTrait, QueryFilter, QueryOrder, Set,
 };
 
 use crate::entity::user as user_entity;
@@ -14,6 +14,7 @@ use crate::middleware::auth::UserCache;
 
 use crate::models::error::{AppError, AuthError};
 use crate::models::util::like_pattern;
+use crate::routes::pagination::PER_PAGE;
 
 use super::types::User;
 
@@ -94,7 +95,8 @@ impl User {
         q: Option<&str>,
         role: Option<Role>,
         status: Option<UserStatus>,
-    ) -> Result<Vec<User>, AuthError> {
+        page: u64,
+    ) -> Result<(Vec<User>, u32), AuthError> {
         let mut conditions = Condition::all();
 
         if let Some(query) = q
@@ -115,17 +117,20 @@ impl User {
             conditions = conditions.add(user_entity::Column::Disabled.eq(status.disabled()));
         }
 
-        let users = user_entity::Entity::find()
+        let paginator = user_entity::Entity::find()
             .filter(conditions)
             .order_by(user_entity::Column::CreatedAt, Order::Desc)
-            .all(db)
+            .paginate(db, PER_PAGE);
+        let total_pages = paginator.num_pages().await.map_err(AuthError::from)? as u32;
+        let users = paginator
+            .fetch_page(page)
             .await
             .map_err(AuthError::from)?
             .into_iter()
             .map(User::from)
             .collect();
 
-        Ok(users)
+        Ok((users, total_pages))
     }
 
     /// Update user fields, re-hashing password if provided; invalidates cache.

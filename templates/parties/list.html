@@ -1,4 +1,5 @@
 {% extends "partials/layout.html" %}
+{% import "partials/pagination.html" as pagination %}
 
 {% block title %}Parties{% endblock %}
 {% block page_content %}
@@ -133,4 +134,5 @@
       </table>
     {% endif %}
   </div>
+  {{ pagination::render(current=pagination.current, total_pages=pagination.total_pages, base_query=pagination_base_query) }}
 {% endblock %}
