@@ -8,7 +8,7 @@ use tera::{Context, Tera};
 use crate::entity::claim_category;
 use crate::entity::user::Role;
 use crate::middleware::auth::Authenticated;
-use crate::middleware::permissions::{Finance, Require};
+use crate::middleware::permissions::{Finance, Require, RoleSet};
 use crate::models::claim::{Claim, ClaimFilter, ClaimForm, ClaimStats};
 use crate::models::error::ClaimError;
 use crate::routes::utils::{
@@ -79,7 +79,7 @@ async fn render_claims_list(
         None
     };
 
-    let stats = if user.role != Role::Staff {
+    let stats = if Finance::ROLES.contains(&user.role) {
         match ClaimStats::compute(db).await {
             Ok(s) => Some(s),
             Err(e) => {

@@ -11,7 +11,7 @@ use crate::models::error::ClaimError;
 pub struct ClaimStats {
     pub pending_count: u64,
     pub pending_amount: Decimal,
-    pub rejection_rate: f64,
+    pub rejection_percentage: f64,
     pub avg_claim_amount: Decimal,
 }
 
@@ -48,7 +48,7 @@ impl ClaimStats {
             .await?;
         let (total_count, avg_amount) = result.unwrap_or((0, None));
 
-        let rejection_rate = if total_count == 0 {
+        let rejection_percentage = if total_count == 0 {
             0.0
         } else {
             (rejected_count as f64 / total_count as f64) * 100.0
@@ -57,7 +57,7 @@ impl ClaimStats {
         Ok(ClaimStats {
             pending_count: pending_count as u64,
             pending_amount: pending_amount.unwrap_or(Decimal::ZERO),
-            rejection_rate,
+            rejection_percentage,
             avg_claim_amount: avg_amount.unwrap_or(Decimal::ZERO),
         })
     }
