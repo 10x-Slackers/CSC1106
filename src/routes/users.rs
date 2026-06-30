@@ -8,7 +8,6 @@ use crate::middleware::auth::UserCache;
 use crate::middleware::permissions::{AdminOnly, Require};
 use crate::models::error::AuthError;
 use crate::models::user::User;
-use crate::models::util::is_unique_violation;
 use crate::routes::utils::{
     Pagination, base_query_string, find_or_404, insert_nav_context, parse_page, render,
     require_non_empty, validate_email,
@@ -213,7 +212,7 @@ pub async fn create_user(
 
     match User::create(db.get_ref(), email, name, password, role).await {
         Ok(_) => reload_users_list(tera.get_ref(), &user, db.get_ref(), "created").await,
-        Err(AuthError::Database(ref e)) if is_unique_violation(e) => render_user_form(
+        Err(AuthError::Duplicate) => render_user_form(
             tera.get_ref(),
             &user,
             "create",
@@ -324,7 +323,7 @@ pub async fn update_user(
             cache.invalidate(&existing.email);
             reload_users_list(tera.get_ref(), &current_user, db.get_ref(), "updated").await
         }
-        Err(AuthError::Database(ref e)) if is_unique_violation(e) => render_user_form(
+        Err(AuthError::Duplicate) => render_user_form(
             tera.get_ref(),
             &current_user,
             "edit",

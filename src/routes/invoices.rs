@@ -17,7 +17,6 @@ use crate::models::invoice::{
 };
 use crate::models::party::Party;
 use crate::models::payment::Payment;
-use crate::models::util::is_unique_violation;
 use crate::routes::utils::{
     Pagination, base_query_string, find_or_404, insert_nav_context, parse_field, parse_page, render,
 };
@@ -430,7 +429,7 @@ pub async fn create_invoice(
     .await
     {
         Ok(_) => reload_invoices_list(tera.get_ref(), &user, db.get_ref(), "created").await,
-        Err(InvoiceError::Database(ref e)) if is_unique_violation(e) => {
+        Err(InvoiceError::Duplicate) => {
             let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
             render_invoice_form(
                 tera.get_ref(),

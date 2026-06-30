@@ -11,7 +11,7 @@ use crate::models::error::AppError;
 use crate::models::invoice::Invoice;
 use crate::models::party::Party;
 use crate::models::payment::Payment;
-use crate::models::util::{is_unique_violation, non_empty};
+use crate::models::util::non_empty;
 use crate::routes::utils::{
     Pagination, base_query_string, find_or_404, insert_nav_context, parse_page, render,
     require_non_empty, validate_email,
@@ -236,7 +236,7 @@ pub async fn create_party(
     .await
     {
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "created").await,
-        Err(AppError::Database(ref e)) if is_unique_violation(e) => render_party_form(
+        Err(AppError::Duplicate) => render_party_form(
             tera.get_ref(),
             &user,
             "create",
@@ -333,7 +333,7 @@ pub async fn update_party(
         .await
     {
         Ok(_) => reload_parties_list(tera.get_ref(), &user, db.get_ref(), "updated").await,
-        Err(AppError::Database(ref e)) if is_unique_violation(e) => render_party_form(
+        Err(AppError::Duplicate) => render_party_form(
             tera.get_ref(),
             &user,
             "edit",

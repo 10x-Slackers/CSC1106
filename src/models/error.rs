@@ -2,10 +2,13 @@ use argon2::password_hash::Error as HashError;
 use rust_decimal::Decimal;
 use sea_orm::DbErr;
 
+use crate::models::util::is_unique_violation;
+
 #[derive(Debug)]
 pub enum AppError {
     Database(DbErr),
     NotFound,
+    Duplicate,
 }
 
 impl std::fmt::Display for AppError {
@@ -13,13 +16,18 @@ impl std::fmt::Display for AppError {
         match self {
             AppError::Database(e) => write!(f, "Database error: {}", e),
             AppError::NotFound => write!(f, "Not found"),
+            AppError::Duplicate => write!(f, "Duplicate record"),
         }
     }
 }
 
 impl From<DbErr> for AppError {
     fn from(e: DbErr) -> Self {
-        AppError::Database(e)
+        if is_unique_violation(&e) {
+            AppError::Duplicate
+        } else {
+            AppError::Database(e)
+        }
     }
 }
 
@@ -30,6 +38,7 @@ pub enum AuthError {
     InvalidCredentials,
     NotFound,
     HashError(HashError),
+    Duplicate,
     Database(DbErr),
 }
 
@@ -39,6 +48,7 @@ impl std::fmt::Display for AuthError {
             AuthError::InvalidCredentials => write!(f, "Invalid credentials"),
             AuthError::NotFound => write!(f, "User not found"),
             AuthError::HashError(e) => write!(f, "Password hash error: {}", e),
+            AuthError::Duplicate => write!(f, "User already exists"),
             AuthError::Database(e) => write!(f, "Database error: {}", e),
         }
     }
@@ -46,7 +56,11 @@ impl std::fmt::Display for AuthError {
 
 impl From<DbErr> for AuthError {
     fn from(e: DbErr) -> Self {
-        AuthError::Database(e)
+        if is_unique_violation(&e) {
+            AuthError::Duplicate
+        } else {
+            AuthError::Database(e)
+        }
     }
 }
 
@@ -102,8 +116,10 @@ impl std::error::Error for PostingError {}
 #[derive(Debug)]
 pub enum PaymentCreateError {
     SameAccount,
+    Duplicate,
     Database(DbErr),
     Posting(PostingError),
+    Invoice(InvoiceError),
 }
 
 impl std::fmt::Display for PaymentCreateError {
@@ -112,15 +128,21 @@ impl std::fmt::Display for PaymentCreateError {
             PaymentCreateError::SameAccount => {
                 write!(f, "From and to accounts must differ")
             }
+            PaymentCreateError::Duplicate => write!(f, "Duplicate record"),
             PaymentCreateError::Database(e) => write!(f, "Database error: {e}"),
             PaymentCreateError::Posting(e) => write!(f, "Posting failed: {e}"),
+            PaymentCreateError::Invoice(e) => write!(f, "Invoice error: {e}"),
         }
     }
 }
 
 impl From<DbErr> for PaymentCreateError {
     fn from(e: DbErr) -> Self {
-        PaymentCreateError::Database(e)
+        if is_unique_violation(&e) {
+            PaymentCreateError::Duplicate
+        } else {
+            PaymentCreateError::Database(e)
+        }
     }
 }
 
@@ -135,7 +157,8 @@ impl From<InvoiceError> for PaymentCreateError {
         match e {
             InvoiceError::Posting(e) => PaymentCreateError::Posting(e),
             InvoiceError::Database(e) => PaymentCreateError::Database(e),
-            other => PaymentCreateError::Database(sea_orm::DbErr::Custom(format!("{other}"))),
+            InvoiceError::Duplicate => PaymentCreateError::Duplicate,
+            other => PaymentCreateError::Invoice(other),
         }
     }
 }
@@ -149,6 +172,8 @@ pub enum InvoiceError {
     NoLineItems,
     VoidWithPayments,
     AlreadyVoided,
+    NotFound,
+    Duplicate,
     ValidationError(String),
     Posting(PostingError),
     Database(DbErr),
@@ -166,6 +191,8 @@ impl std::fmt::Display for InvoiceError {
                 write!(f, "Cannot void invoice with existing payments")
             }
             InvoiceError::AlreadyVoided => write!(f, "Invoice is already voided"),
+            InvoiceError::NotFound => write!(f, "Invoice not found"),
+            InvoiceError::Duplicate => write!(f, "Duplicate invoice"),
             InvoiceError::ValidationError(msg) => write!(f, "{msg}"),
             InvoiceError::Posting(e) => write!(f, "Posting failed: {e}"),
             InvoiceError::Database(e) => write!(f, "Database error: {e}"),
@@ -175,7 +202,11 @@ impl std::fmt::Display for InvoiceError {
 
 impl From<DbErr> for InvoiceError {
     fn from(e: DbErr) -> Self {
-        InvoiceError::Database(e)
+        if is_unique_violation(&e) {
+            InvoiceError::Duplicate
+        } else {
+            InvoiceError::Database(e)
+        }
     }
 }
 
@@ -189,9 +220,8 @@ impl From<AppError> for InvoiceError {
     fn from(e: AppError) -> Self {
         match e {
             AppError::Database(db_err) => InvoiceError::Database(db_err),
-            AppError::NotFound => {
-                InvoiceError::Database(sea_orm::DbErr::RecordNotFound("not found".into()))
-            }
+            AppError::NotFound => InvoiceError::NotFound,
+            AppError::Duplicate => InvoiceError::Duplicate,
         }
     }
 }
@@ -201,6 +231,8 @@ impl std::error::Error for InvoiceError {}
 #[derive(Debug)]
 pub enum ClaimError {
     NotFound,
+    InvalidInput(String),
+    Duplicate,
     Database(DbErr),
     Posting(PostingError),
     InvalidStatus,
@@ -211,6 +243,8 @@ impl std::fmt::Display for ClaimError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ClaimError::NotFound => write!(f, "Claim not found"),
+            ClaimError::InvalidInput(msg) => write!(f, "Invalid input: {msg}"),
+            ClaimError::Duplicate => write!(f, "Duplicate claim"),
             ClaimError::Database(e) => write!(f, "Database error: {e}"),
             ClaimError::Posting(e) => write!(f, "Posting failed: {e}"),
             ClaimError::InvalidStatus => {
@@ -238,6 +272,7 @@ impl From<AppError> for ClaimError {
         match e {
             AppError::Database(db_err) => ClaimError::Database(db_err),
             AppError::NotFound => ClaimError::NotFound,
+            AppError::Duplicate => ClaimError::Duplicate,
         }
     }
 }

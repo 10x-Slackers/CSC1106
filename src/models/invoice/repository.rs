@@ -1,8 +1,8 @@
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
-    ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, Order, PaginatorTrait,
-    QueryFilter, QueryOrder,
+    ColumnTrait, Condition, ConnectionTrait, EntityTrait, Order, PaginatorTrait, QueryFilter,
+    QueryOrder,
 };
 
 use crate::entity::invoice as invoice_entity;
@@ -22,7 +22,7 @@ impl Invoice {
     pub(super) async fn load_grand_total<C: ConnectionTrait>(
         &self,
         db: &C,
-    ) -> Result<Decimal, DbErr> {
+    ) -> Result<Decimal, InvoiceError> {
         let items = line_item_entity::Entity::find()
             .filter(line_item_entity::Column::InvoiceId.eq(self.id))
             .all(db)
@@ -41,9 +41,7 @@ impl Invoice {
         let inv = invoice_entity::Entity::find_by_id(id)
             .one(db)
             .await?
-            .ok_or_else(|| {
-                InvoiceError::Database(sea_orm::DbErr::RecordNotFound("invoice".into()))
-            })?;
+            .ok_or_else(|| InvoiceError::NotFound)?;
         Ok(Invoice::from(inv))
     }
 
@@ -182,10 +180,14 @@ impl Invoice {
     }
 
     /// Count invoices for a given party.
-    pub async fn count_for_party<C: ConnectionTrait>(db: &C, party_id: i32) -> Result<u64, DbErr> {
+    pub async fn count_for_party<C: ConnectionTrait>(
+        db: &C,
+        party_id: i32,
+    ) -> Result<u64, AppError> {
         invoice_entity::Entity::find()
             .filter(invoice_entity::Column::PartyId.eq(party_id))
             .count(db)
             .await
+            .map_err(AppError::from)
     }
 }

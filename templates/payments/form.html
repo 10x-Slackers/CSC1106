@@ -16,7 +16,11 @@
           </div>
         {% endif %}
 
-        <form action="/payments" method="post">
+        <form
+          action="/payments"
+          method="post"
+          data-confirm="Record this payment and post to journal? This cannot be undone."
+        >
           <fieldset class="fieldset">
             <label class="label" for="payment_direction">Direction</label>
             <select
@@ -107,19 +111,4 @@
       </div>
     </div>
   </div>
-
-  <script>
-    document
-      .getElementById("payment-submit-btn")
-      .closest("form")
-      .addEventListener("submit", function (e) {
-        if (
-          !confirm(
-            "Record this payment and post to journal? This cannot be undone.",
-          )
-        ) {
-          e.preventDefault();
-        }
-      });
-  </script>
 {% endblock %}
