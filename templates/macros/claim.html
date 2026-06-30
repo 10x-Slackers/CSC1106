@@ -14,5 +14,7 @@ status - ClaimStatus display string ("Pending", "Approved", "Rejected")
     <span class="badge badge-success">Approved</span>
   {% elif status == "Rejected" %}
     <span class="badge badge-error">Rejected</span>
+  {% else %}
+    <span class="badge badge-ghost">{{ status }}</span>
   {% endif %}
 {% endmacro %}

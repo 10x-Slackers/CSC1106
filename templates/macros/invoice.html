@@ -18,5 +18,7 @@ status - InvoiceStatus display string ("Draft", "Sent", "Partially Paid", "Paid"
     <span class="badge badge-success">Paid</span>
   {% elif status == "Voided" %}
     <span class="badge badge-error">Voided</span>
+  {% else %}
+    <span class="badge badge-ghost">{{ status }}</span>
   {% endif %}
 {% endmacro %}

@@ -91,12 +91,14 @@ impl Claim {
 
         if let Some(ref status_str) = filter.status {
             let status = match status_str.to_uppercase().as_str() {
-                "PENDING" => ClaimStatus::Pending,
-                "APPROVED" => ClaimStatus::Approved,
-                "REJECTED" => ClaimStatus::Rejected,
-                _ => return Ok((vec![], 1, 1)),
+                "PENDING" => Some(ClaimStatus::Pending),
+                "APPROVED" => Some(ClaimStatus::Approved),
+                "REJECTED" => Some(ClaimStatus::Rejected),
+                _ => None,
             };
-            conditions = conditions.add(claim_entity::Column::Status.eq(status));
+            if let Some(status) = status {
+                conditions = conditions.add(claim_entity::Column::Status.eq(status));
+            }
         }
 
         if let Some(cat_id) = filter.category_id {
@@ -121,7 +123,7 @@ impl Claim {
             conditions = conditions.add(claim_entity::Column::PurchaseDate.lte(to));
         }
 
-        let page = filter.page.unwrap_or(1);
+        let page = filter.page.unwrap_or(1).max(1);
 
         let paginator = claim_entity::Entity::find()
             .filter(conditions)
@@ -172,13 +174,18 @@ impl Claim {
         form: ClaimForm,
         submitted_by_user_id: i32,
     ) -> Result<claim_entity::Model, ClaimError> {
-        let amount: Decimal = form
-            .amount
-            .parse()
-            .map_err(|_| ClaimError::Database(sea_orm::DbErr::Custom("Invalid amount".into())))?;
+        let amount: Decimal = form.amount.parse().map_err(|_| {
+            ClaimError::Database(sea_orm::DbErr::Custom(format!(
+                "Invalid amount: {}",
+                form.amount
+            )))
+        })?;
         let purchase_date =
             NaiveDate::parse_from_str(&form.purchase_date, "%Y-%m-%d").map_err(|_| {
-                ClaimError::Database(sea_orm::DbErr::Custom("Invalid purchase date".into()))
+                ClaimError::Database(sea_orm::DbErr::Custom(format!(
+                    "Invalid purchase date: {}",
+                    form.purchase_date
+                )))
             })?;
 
         let model = claim_entity::ActiveModel {

@@ -172,6 +172,10 @@ pub async fn create_claim(
     require_non_empty(title, &mut errors, "Title");
     require_non_empty(description, &mut errors, "Description");
 
+    if title.len() > 255 {
+        errors.push("Title must be at most 255 characters.".into());
+    }
+
     if !amount_str
         .parse::<Decimal>()
         .map(|a| a > Decimal::ZERO)
@@ -182,6 +186,15 @@ pub async fn create_claim(
 
     if NaiveDate::parse_from_str(purchase_date_str, "%Y-%m-%d").is_err() {
         errors.push("Purchase date is invalid.".into());
+    }
+
+    if claim_category::Entity::find_by_id(form.category_id)
+        .one(db.get_ref())
+        .await
+        .map(|c| c.is_none())
+        .unwrap_or(true)
+    {
+        errors.push("Selected category does not exist.".into());
     }
 
     if !errors.is_empty() {
