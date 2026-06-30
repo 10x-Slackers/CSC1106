@@ -11,10 +11,10 @@ use crate::entity::invoice_line_item as line_item_entity;
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line::EntrySide;
 use crate::entity::party::PartyStatus;
-use crate::entity::payment as payment_entity;
 use crate::models::account::find_ar_and_sr;
 use crate::models::error::InvoiceError;
 use crate::models::party::Party;
+use crate::models::payment::Payment;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
 use crate::models::util::is_unique_violation;
 
@@ -419,14 +419,7 @@ impl Invoice {
             })?;
         let invoice = Invoice::from(model);
 
-        let total_paid: Decimal = payment_entity::Entity::find()
-            .filter(payment_entity::Column::InvoiceId.eq(invoice_id))
-            .all(db)
-            .await
-            .map_err(InvoiceError::from)?
-            .into_iter()
-            .map(|p| p.amount)
-            .sum();
+        let total_paid = Payment::total_for_invoice(db, invoice_id).await?;
 
         invoice.apply_recomputed_status(db, total_paid).await?;
         Ok(())

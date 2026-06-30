@@ -8,9 +8,9 @@ use sea_orm::{
 use crate::entity::invoice as invoice_entity;
 use crate::entity::invoice::InvoiceStatus;
 use crate::entity::invoice_line_item as line_item_entity;
-use crate::entity::party as party_entity;
 use crate::entity::user::Role;
 use crate::models::error::{AppError, InvoiceError};
+use crate::models::party::Party;
 use crate::models::user::name_by_id;
 use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
@@ -147,13 +147,7 @@ impl Invoice {
         } else {
             // Enrich with party names and compute grand totals
             let party_ids: Vec<i32> = invoices.iter().map(|i| i.party_id).collect();
-            let parties = party_entity::Entity::find()
-                .filter(party_entity::Column::Id.is_in(party_ids))
-                .all(db)
-                .await
-                .map_err(AppError::from)?;
-            let party_map: std::collections::HashMap<i32, String> =
-                parties.into_iter().map(|p| (p.id, p.name)).collect();
+            let party_map = Party::name_map_by_ids(db, party_ids).await?;
 
             let invoice_ids: Vec<i32> = invoices.iter().map(|i| i.id).collect();
             let all_items = line_item_entity::Entity::find()

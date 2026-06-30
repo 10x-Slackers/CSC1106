@@ -19,6 +19,7 @@ pub async fn init(database_url: &str) -> DatabaseConnection {
     seed::seed_accounts(&db).await;
     seed::seed_users(&db).await;
     seed::seed_parties(&db).await;
+    seed::seed_claim_categories(&db).await;
 
     db
 }

@@ -29,13 +29,24 @@ pub async fn find_ar_and_sr<C: ConnectionTrait>(
 ) -> Result<(account::Model, account::Model), AppError> {
     let ar = find_by_name(db, "Accounts Receivable")
         .await?
-        .ok_or_else(|| {
-            AppError::Database(sea_orm::DbErr::RecordNotFound("Accounts Receivable".into()))
-        })?;
-    let sales = find_by_name(db, "Sales Revenue").await?.ok_or_else(|| {
-        AppError::Database(sea_orm::DbErr::RecordNotFound("Sales Revenue".into()))
-    })?;
+        .ok_or(AppError::NotFound)?;
+    let sales = find_by_name(db, "Sales Revenue")
+        .await?
+        .ok_or(AppError::NotFound)?;
     Ok((ar, sales))
+}
+
+/// Find the "Operating Expenses" and "Accounts Payable" accounts for posting claim journal entries.
+pub async fn find_oe_and_ap<C: ConnectionTrait>(
+    db: &C,
+) -> Result<(account::Model, account::Model), AppError> {
+    let oe = find_by_name(db, "Operating Expenses")
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let ap = find_by_name(db, "Accounts Payable")
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok((oe, ap))
 }
 
 /// List all accounts ordered by name, for use in payment form dropdowns.

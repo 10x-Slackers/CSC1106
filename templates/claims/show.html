@@ -1,0 +1,133 @@
+{% extends "partials/layout.html" %}
+{% import "macros/claim.html" as claim_macro %}
+
+{% block title %}Claim #{{ claim.id }}{% endblock %}
+{% block page_content %}
+  <div class="mb-6">
+    <a href="/claims" class="btn btn-ghost btn-sm">Back to Claims</a>
+  </div>
+
+  <div class="mb-6 flex flex-wrap items-center gap-3">
+    <h1 class="text-3xl font-bold">Claim #{{ claim.id }}</h1>
+    {{ claim_macro::status_badge(status=claim.status) }}
+  </div>
+
+  {% if message != "" %}
+    <div
+      role="alert"
+      class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %} mb-4"
+    >
+      <span>{{ message }}</span>
+    </div>
+  {% endif %}
+
+  <div class="card card-border bg-base-100 mb-6">
+    <div class="card-body">
+      <h2 class="card-title text-xl">Claim Details</h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <p class="text-base-content/70 text-sm">Title</p>
+          <p class="font-medium">{{ claim.title }}</p>
+        </div>
+        <div class="sm:col-span-2">
+          <p class="text-base-content/70 text-sm">Description</p>
+          <p class="font-medium">{{ claim.description }}</p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Submitter</p>
+          <p class="font-medium">{{ claim.submitter_name }}</p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Category</p>
+          <p class="font-medium">{{ claim.category_name }}</p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Amount</p>
+          <p class="font-medium">{{ claim.amount | money }}</p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Purchase Date</p>
+          <p class="font-medium">{{ claim.purchase_date }}</p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Status</p>
+          <p class="font-medium">
+            {{ claim_macro::status_badge(status=claim.status) }}
+          </p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Reviewer</p>
+          <p class="font-medium">
+            {{ claim.reviewer_name | default(value="—") }}
+          </p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Submitted At</p>
+          <p class="font-medium">{{ claim.created_at | datetime }}</p>
+        </div>
+        <div>
+          <p class="text-base-content/70 text-sm">Updated At</p>
+          <p class="font-medium">{{ claim.updated_at | datetime }}</p>
+        </div>
+        {% if claim.status == "Rejected" and claim.rejection_reason %}
+          <div class="sm:col-span-2">
+            <p class="text-base-content/70 text-sm">Rejection Reason</p>
+            <p class="font-medium">{{ claim.rejection_reason }}</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if claim.status == "Pending" %}
+    <div class="flex flex-wrap gap-2">
+      {% if current_user.role | can(set="finance") %}
+        <form
+          action="/claims/{{ claim.id }}/approve"
+          method="post"
+          data-confirm="Approve this claim and post to ledger?"
+          class="inline"
+        >
+          <button type="submit" class="btn btn-success btn-sm">
+            Approve Claim
+          </button>
+        </form>
+
+        <form
+          action="/claims/{{ claim.id }}/reject"
+          method="post"
+          data-confirm="Reject this claim?"
+          class="inline"
+        >
+          <div class="inline-flex items-end gap-2 p-3">
+            <label class="form-control">
+              <span class="label">Rejection Reason</span>
+              <textarea
+                name="rejection_reason"
+                class="textarea"
+                required
+              ></textarea>
+            </label>
+            <button type="submit" class="btn btn-error btn-sm">
+              Reject Claim
+            </button>
+          </div>
+        </form>
+      {% endif %}
+
+      {% if claim.submitted_by_user_id == current_user.id %}
+        <form
+          action="/claims/{{ claim.id }}/withdraw"
+          method="post"
+          data-confirm="Withdraw this claim? This cannot be undone."
+          class="inline"
+        >
+          <button type="submit" class="btn btn-ghost btn-sm">
+            Withdraw Claim
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% include "partials/confirm.html" %}
+{% endblock %}

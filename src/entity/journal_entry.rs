@@ -14,16 +14,11 @@ pub struct Model {
 }
 
 /// Each journal entry traces back to only one source document.
-///
-/// `Claim` and `Manual` variants are unused until claim posting / manual
-/// journal entries are implemented; they are kept here so the enum is complete.
 #[derive(Clone)]
-#[allow(dead_code)]
 pub enum SourceDocument {
     Payment { payment_id: i32 },
     Claim { claim_id: i32 },
     Invoice { invoice_id: i32 },
-    Manual,
 }
 
 impl SourceDocument {
@@ -33,7 +28,6 @@ impl SourceDocument {
             SourceDocument::Payment { payment_id } => (Some(*payment_id), None, None),
             SourceDocument::Claim { claim_id } => (None, Some(*claim_id), None),
             SourceDocument::Invoice { invoice_id } => (None, None, Some(*invoice_id)),
-            SourceDocument::Manual => (None, None, None),
         }
     }
 }

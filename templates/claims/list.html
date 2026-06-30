@@ -1,0 +1,146 @@
+{% extends "partials/layout.html" %}
+{% import "partials/pagination.html" as pagination %}
+{% import "macros/claim.html" as claim_macro %}
+
+{% block title %}Claims{% endblock %}
+{% block page_content %}
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="text-3xl font-bold">Claims</h1>
+    <a href="/claims/new" class="btn btn-primary btn-sm">Submit Claim</a>
+  </div>
+
+  {% if message != "" %}
+    <div
+      role="alert"
+      class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %} mb-4"
+    >
+      <span>{{ message }}</span>
+    </div>
+  {% endif %}
+
+  <form action="/claims" method="get" class="flex flex-wrap items-end gap-2">
+    <label class="input w-full grow sm:w-auto">
+      <span class="label">Search</span>
+      <input
+        type="text"
+        name="q"
+        placeholder="Search title or description..."
+        class="input"
+        value="{{ filter.q | default(value="") }}"
+      />
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Status</span>
+      <select name="status" class="select select-sm">
+        <option
+          value=""
+          {% if filter.status | default(value="") == "" %}selected{% endif %}
+        >
+          All statuses
+        </option>
+        <option
+          value="Pending"
+          {% if filter.status | default(value="") == "Pending" %}selected{% endif %}
+        >
+          Pending
+        </option>
+        <option
+          value="Approved"
+          {% if filter.status | default(value="") == "Approved" %}selected{% endif %}
+        >
+          Approved
+        </option>
+        <option
+          value="Rejected"
+          {% if filter.status | default(value="") == "Rejected" %}selected{% endif %}
+        >
+          Rejected
+        </option>
+      </select>
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">Category</span>
+      <select name="category_id" class="select select-sm">
+        <option
+          value=""
+          {% if filter.category_id | default(value="") == "" %}selected{% endif %}
+        >
+          All categories
+        </option>
+        {% for c in categories %}
+          <option
+            value="{{ c.id }}"
+            {% if filter.category_id | default(value=0) == c.id %}selected{% endif %}
+          >
+            {{ c.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">From</span>
+      <input
+        type="date"
+        name="from"
+        class="input input-sm"
+        value="{{ filter.from | default(value="") }}"
+      />
+    </label>
+
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">To</span>
+      <input
+        type="date"
+        name="to"
+        class="input input-sm"
+        value="{{ filter.to | default(value="") }}"
+      />
+    </label>
+
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+    <a href="/claims" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+
+  <div class="mt-6 overflow-x-auto">
+    {% if claims | length == 0 %}
+      <div role="alert" class="alert">
+        <span>No claims found.</span>
+      </div>
+    {% else %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Employee</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Purchase Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for claim in claims %}
+            <tr>
+              <td>{{ claim.title }}</td>
+              <td>{{ claim.submitter_name }}</td>
+              <td>{{ claim.category_name }}</td>
+              <td>{{ claim.amount | money }}</td>
+              <td>{{ claim.purchase_date }}</td>
+              <td>{{ claim_macro::status_badge(status=claim.status) }}</td>
+              <td>
+                <a href="/claims/{{ claim.id }}" class="btn btn-xs btn-ghost"
+                  >View</a
+                >
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+  {{ pagination::render(current=pagination.current, total_pages=pagination.total_pages, base_query=pagination_base_query) }}
+{% endblock %}

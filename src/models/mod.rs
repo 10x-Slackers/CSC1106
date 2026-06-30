@@ -1,4 +1,6 @@
 pub mod account;
+pub mod claim;
+pub mod claim_category;
 pub mod error;
 pub mod invoice;
 pub mod party;
