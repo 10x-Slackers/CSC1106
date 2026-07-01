@@ -6,6 +6,9 @@ use crate::entity::account::AccountCategory;
 use crate::models::account::balances_by_category;
 use crate::models::error::AppError;
 
+/// Label used for the injected net-income equity line.
+const NET_INCOME_LABEL: &str = "Net Income";
+
 #[derive(serde::Serialize)]
 pub struct BalanceSheetLine {
     pub account_name: String,
@@ -69,9 +72,12 @@ impl BalanceSheetReport {
         let current_period_net_income = total_revenue - total_expense;
 
         // Inject net income as an equity line so the sheet balances
-        if !equity.iter().any(|l| l.account_name == "Net Income") {
+        if !equity
+            .iter()
+            .any(|l| l.account_name.trim().eq_ignore_ascii_case(NET_INCOME_LABEL))
+        {
             equity.push(BalanceSheetLine {
-                account_name: "Net Income".to_string(),
+                account_name: NET_INCOME_LABEL.to_string(),
                 amount: current_period_net_income,
             });
         }

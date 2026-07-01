@@ -24,6 +24,18 @@ pub struct DateRangeFilter {
     pub to: Option<NaiveDate>,
 }
 
+impl DateRangeFilter {
+    /// Returns an error message if `from` is later than `to`.
+    fn validate(&self) -> Result<(), &'static str> {
+        if let (Some(f), Some(t)) = (self.from, self.to)
+            && f > t
+        {
+            return Err("'from' date must not be later than 'to' date");
+        }
+        Ok(())
+    }
+}
+
 #[derive(Deserialize, Default)]
 pub struct AsOfFilter {
     #[serde(default, deserialize_with = "opt_date")]
@@ -55,6 +67,10 @@ pub async fn gst_report(
     context.insert("from", &query.from);
     context.insert("to", &query.to);
 
+    if let Err(msg) = query.validate() {
+        return HttpResponse::BadRequest().body(msg);
+    }
+
     match GstReport::compute(&db, query.from, query.to).await {
         Ok(report) => {
             context.insert("report", &report);
@@ -79,6 +95,10 @@ pub async fn income_statement(
     insert_nav_context(&mut context, &user);
     context.insert("from", &query.from);
     context.insert("to", &query.to);
+
+    if let Err(msg) = query.validate() {
+        return HttpResponse::BadRequest().body(msg);
+    }
 
     let from_dt = query.from.map(|d| {
         d.and_hms_opt(0, 0, 0)

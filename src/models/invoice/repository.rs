@@ -197,10 +197,11 @@ impl Invoice {
         from: Option<NaiveDate>,
         to: Option<NaiveDate>,
     ) -> Result<Vec<GstInvoiceLineGroup>, AppError> {
-        let status_condition = Condition::any()
-            .add(invoice_entity::Column::Status.eq(InvoiceStatus::Sent))
-            .add(invoice_entity::Column::Status.eq(InvoiceStatus::PartiallyPaid))
-            .add(invoice_entity::Column::Status.eq(InvoiceStatus::Paid));
+        let status_condition = invoice_entity::Column::Status.is_in([
+            InvoiceStatus::Sent,
+            InvoiceStatus::PartiallyPaid,
+            InvoiceStatus::Paid,
+        ]);
 
         let mut conditions = Condition::all().add(status_condition);
         if let Some(f) = from {
