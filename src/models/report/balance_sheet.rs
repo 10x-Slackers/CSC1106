@@ -32,51 +32,49 @@ impl BalanceSheetReport {
         db: &DatabaseConnection,
         as_of: Option<NaiveDateTime>,
     ) -> Result<BalanceSheet, AppError> {
-        let asset_balances =
-            balances_by_category(db, &[AccountCategory::Asset], None, as_of).await?;
-        let liability_balances =
-            balances_by_category(db, &[AccountCategory::Liability], None, as_of).await?;
-        let equity_balances =
-            balances_by_category(db, &[AccountCategory::Equity], None, as_of).await?;
+        let all_balances = balances_by_category(
+            db,
+            &[
+                AccountCategory::Asset,
+                AccountCategory::Liability,
+                AccountCategory::Equity,
+                AccountCategory::Revenue,
+                AccountCategory::Expense,
+            ],
+            None,
+            as_of,
+        )
+        .await?;
 
-        let assets: Vec<BalanceSheetLine> = asset_balances
-            .into_iter()
-            .map(|ab| BalanceSheetLine {
+        let mut assets = Vec::new();
+        let mut liabilities = Vec::new();
+        let mut equity: Vec<BalanceSheetLine> = Vec::new();
+        let mut total_revenue = Decimal::ZERO;
+        let mut total_expense = Decimal::ZERO;
+
+        for ab in all_balances {
+            let line = BalanceSheetLine {
                 account_name: ab.account.name,
                 amount: ab.balance,
-            })
-            .collect();
+            };
+            match ab.account.category {
+                AccountCategory::Asset => assets.push(line),
+                AccountCategory::Liability => liabilities.push(line),
+                AccountCategory::Equity => equity.push(line),
+                AccountCategory::Revenue => total_revenue += ab.balance,
+                AccountCategory::Expense => total_expense += ab.balance,
+            }
+        }
 
-        let liabilities: Vec<BalanceSheetLine> = liability_balances
-            .into_iter()
-            .map(|ab| BalanceSheetLine {
-                account_name: ab.account.name,
-                amount: ab.balance,
-            })
-            .collect();
-
-        let mut equity: Vec<BalanceSheetLine> = equity_balances
-            .into_iter()
-            .map(|ab| BalanceSheetLine {
-                account_name: ab.account.name,
-                amount: ab.balance,
-            })
-            .collect();
-
-        // Net income (revenue - expenses) up to as_of, injected as an equity line so the sheet balances
-        let revenue_balances =
-            balances_by_category(db, &[AccountCategory::Revenue], None, as_of).await?;
-        let expense_balances =
-            balances_by_category(db, &[AccountCategory::Expense], None, as_of).await?;
-
-        let total_revenue: Decimal = revenue_balances.iter().map(|ab| ab.balance).sum();
-        let total_expense: Decimal = expense_balances.iter().map(|ab| ab.balance).sum();
         let current_period_net_income = total_revenue - total_expense;
 
-        equity.push(BalanceSheetLine {
-            account_name: "Net Income".to_string(),
-            amount: current_period_net_income,
-        });
+        // Inject net income as an equity line so the sheet balances
+        if !equity.iter().any(|l| l.account_name == "Net Income") {
+            equity.push(BalanceSheetLine {
+                account_name: "Net Income".to_string(),
+                amount: current_period_net_income,
+            });
+        }
 
         let total_assets: Decimal = assets.iter().map(|l| l.amount).sum();
         let total_liabilities: Decimal = liabilities.iter().map(|l| l.amount).sum();

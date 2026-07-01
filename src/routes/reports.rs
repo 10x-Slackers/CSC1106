@@ -80,8 +80,14 @@ pub async fn income_statement(
     context.insert("from", &query.from);
     context.insert("to", &query.to);
 
-    let from_dt = query.from.map(|d| d.and_hms_opt(0, 0, 0).unwrap());
-    let to_dt = query.to.map(|d| d.and_hms_opt(23, 59, 59).unwrap());
+    let from_dt = query.from.map(|d| {
+        d.and_hms_opt(0, 0, 0)
+            .expect("0:0:0 is always a valid time")
+    });
+    let to_dt = query.to.map(|d| {
+        d.and_hms_opt(23, 59, 59)
+            .expect("23:59:59 is always a valid time")
+    });
 
     match IncomeStatementReport::compute(&db, from_dt, to_dt).await {
         Ok(report) => {
@@ -107,7 +113,10 @@ pub async fn balance_sheet(
     insert_nav_context(&mut context, &user);
     context.insert("as_of", &query.as_of);
 
-    let as_of_dt = query.as_of.map(|d| d.and_hms_opt(23, 59, 59).unwrap());
+    let as_of_dt = query.as_of.map(|d| {
+        d.and_hms_opt(23, 59, 59)
+            .expect("23:59:59 is always a valid time")
+    });
 
     match BalanceSheetReport::compute(&db, as_of_dt).await {
         Ok(report) => {
@@ -133,6 +142,9 @@ pub async fn audit_report(
     insert_nav_context(&mut context, &user);
 
     let year = query.year.unwrap_or_else(|| chrono::Utc::now().year());
+    if !(1900..=2100).contains(&year) {
+        return HttpResponse::BadRequest().body("year must be between 1900 and 2100");
+    }
     context.insert("year", &year);
 
     match AuditStatement::compute(&db, year).await {

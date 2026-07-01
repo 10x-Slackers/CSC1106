@@ -9,6 +9,7 @@ pub enum AppError {
     Database(DbErr),
     NotFound,
     Duplicate,
+    InvalidArgument(String),
 }
 
 impl std::fmt::Display for AppError {
@@ -17,6 +18,7 @@ impl std::fmt::Display for AppError {
             AppError::Database(e) => write!(f, "Database error: {}", e),
             AppError::NotFound => write!(f, "Not found"),
             AppError::Duplicate => write!(f, "Duplicate record"),
+            AppError::InvalidArgument(msg) => write!(f, "Invalid argument: {msg}"),
         }
     }
 }
@@ -222,6 +224,7 @@ impl From<AppError> for InvoiceError {
             AppError::Database(db_err) => InvoiceError::Database(db_err),
             AppError::NotFound => InvoiceError::NotFound,
             AppError::Duplicate => InvoiceError::Duplicate,
+            AppError::InvalidArgument(msg) => InvoiceError::ValidationError(msg),
         }
     }
 }
@@ -273,6 +276,7 @@ impl From<AppError> for ClaimError {
             AppError::Database(db_err) => ClaimError::Database(db_err),
             AppError::NotFound => ClaimError::NotFound,
             AppError::Duplicate => ClaimError::Duplicate,
+            AppError::InvalidArgument(msg) => ClaimError::InvalidInput(msg),
         }
     }
 }

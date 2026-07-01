@@ -49,7 +49,7 @@ pub async fn list_for_audit<C: ConnectionTrait>(
 
     let entry_ids: Vec<i32> = entries.iter().map(|e| e.id).collect();
 
-    let lines = fetch_lines(db, &entry_ids).await?;
+    let lines = fetch_lines(db, entry_ids).await?;
     let account_names = build_account_name_map(db, &lines).await?;
     let user_names = build_user_name_map(db, &entries).await?;
     let (invoice_map, claim_map) = build_source_maps(db, &entries).await?;
@@ -84,10 +84,10 @@ async fn fetch_entries<C: ConnectionTrait>(
 
 async fn fetch_lines<C: ConnectionTrait>(
     db: &C,
-    entry_ids: &[i32],
+    entry_ids: Vec<i32>,
 ) -> Result<Vec<journal_entry_line_entity::Model>, AppError> {
     journal_entry_line_entity::Entity::find()
-        .filter(journal_entry_line_entity::Column::EntryId.is_in(entry_ids.to_vec()))
+        .filter(journal_entry_line_entity::Column::EntryId.is_in(entry_ids))
         .all(db)
         .await
         .map_err(AppError::from)

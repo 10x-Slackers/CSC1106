@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use rust_decimal::Decimal;
 use sea_orm::{
-    ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+    ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, JoinType, QueryFilter,
+    QueryOrder, QuerySelect, QueryTrait, RelationTrait,
 };
 
 use crate::entity::account;
@@ -100,25 +101,23 @@ pub async fn balances_by_category<C: ConnectionTrait>(
 
     // Fetch journal entry lines joined to their parent entry, filtered by date.
     let lines = journal_entry_line::Entity::find()
-        .find_also_related(journal_entry::Entity)
+        .join(
+            JoinType::InnerJoin,
+            journal_entry_line::Relation::JournalEntry.def(),
+        )
         .filter(journal_entry_line::Column::AccountId.is_in(account_ids))
+        .apply_if(from, |q, dt| {
+            q.filter(journal_entry::Column::CreatedAt.gte(dt))
+        })
+        .apply_if(up_to, |q, dt| {
+            q.filter(journal_entry::Column::CreatedAt.lte(dt))
+        })
         .all(db)
         .await?;
 
-    // Sum debits/credits per account, applying date filters in Rust.
+    // Sum debits/credits per account.
     let mut totals: HashMap<i32, Decimal> = HashMap::new();
-    for (line, entry) in lines {
-        let Some(entry) = entry else { continue };
-        if let Some(dt) = from
-            && entry.created_at < dt
-        {
-            continue;
-        }
-        if let Some(dt) = up_to
-            && entry.created_at > dt
-        {
-            continue;
-        }
+    for line in lines {
         let signed = match line.entry_side {
             EntrySide::Debit => line.amount,
             EntrySide::Credit => -line.amount,
