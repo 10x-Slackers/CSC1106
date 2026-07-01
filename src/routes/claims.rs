@@ -1,26 +1,20 @@
 use actix_web::{HttpResponse, get, post, web};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
-use sea_orm::{DatabaseConnection, EntityTrait};
-use serde::{Deserialize, Serialize};
+use sea_orm::DatabaseConnection;
+use serde::Deserialize;
 use tera::{Context, Tera};
 
-use crate::entity::claim_category;
 use crate::entity::user::Role;
 use crate::middleware::auth::Authenticated;
 use crate::middleware::permissions::{Finance, Require, RoleSet};
 use crate::models::claim::{Claim, ClaimFilter, ClaimForm, ClaimStats};
+use crate::models::claim_category;
 use crate::models::error::ClaimError;
 use crate::routes::utils::{
     Pagination, base_query_string, insert_nav_context, parse_page, redirect, render,
     require_non_empty,
 };
-
-#[derive(Serialize)]
-struct CategoryOption {
-    id: i32,
-    name: String,
-}
 
 #[derive(Deserialize)]
 struct RejectForm {
@@ -62,16 +56,7 @@ async fn render_claims_list(
     message: &str,
     message_kind: &str,
 ) -> HttpResponse {
-    let categories = claim_category::Entity::find()
-        .all(db)
-        .await
-        .unwrap_or_default()
-        .into_iter()
-        .map(|c| CategoryOption {
-            id: c.id,
-            name: c.name,
-        })
-        .collect::<Vec<_>>();
+    let categories = claim_category::list_options(db).await.unwrap_or_default();
 
     let scope_user_id = if user.role == Role::Staff {
         Some(user.id)
@@ -132,16 +117,7 @@ async fn render_claim_form(
     message: &str,
     message_kind: &str,
 ) -> HttpResponse {
-    let categories = claim_category::Entity::find()
-        .all(db)
-        .await
-        .unwrap_or_default()
-        .into_iter()
-        .map(|c| CategoryOption {
-            id: c.id,
-            name: c.name,
-        })
-        .collect::<Vec<_>>();
+    let categories = claim_category::list_options(db).await.unwrap_or_default();
 
     let mut ctx = Context::new();
     ctx.insert("categories", &categories);
@@ -203,11 +179,9 @@ pub async fn create_claim(
         errors.push("Purchase date is invalid.".into());
     }
 
-    if claim_category::Entity::find_by_id(form.category_id)
-        .one(db.get_ref())
+    if !claim_category::exists(db.get_ref(), form.category_id)
         .await
-        .map(|c| c.is_none())
-        .unwrap_or(true)
+        .unwrap_or(false)
     {
         errors.push("Selected category does not exist.".into());
     }
