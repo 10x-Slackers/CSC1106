@@ -40,13 +40,12 @@
 
 Shared search/filter system applied across modules. Each module supports text search and column-based filters via a consistent UI (filter sidebar + search bar).
 
-| Module          | Search By                               | Filter By                                        |
-| --------------- | --------------------------------------- | ------------------------------------------------ |
-| Invoices        | invoice number                          | party, status, issue date, due date              |
-| Payments        | party name, remarks                     | direction (IN/OUT), party, date range            |
-| Claims          | employee name, claim title, category    | date range, employee, category, status           |
-| Parties         | name, company                           | type (customer/vendor), status (active/inactive) |
-| Journal Entries | entry number, account name, description | date range, account type, source type            |
+| Module   | Search By                            | Filter By                                        |
+| -------- | ------------------------------------ | ------------------------------------------------ |
+| Invoices | invoice number                       | party, status, issue date, due date              |
+| Payments | party name, remarks                  | direction (IN/OUT), party, date range            |
+| Claims   | employee name, claim title, category | date range, employee, category, status           |
+| Parties  | name, company                        | type (customer/vendor), status (active/inactive) |
 
 ### Table Views
 
@@ -270,9 +269,9 @@ Seed default accounts for common categories:
 ### Journal Entries
 
 - Header-line model: `JournalEntry` (header) + `JournalEntryLine` (debit/credit lines)
-- State machine: Draft → Posted; immutable after posting
+- Entries are posted immediately (no Draft state) and immutable after posting
 - Each line records: `account_id`, `entry_side` (DEBIT/CREDIT), `amount`, `description`
-- Source document tracking via nullable foreign keys: `payment_id` and/or `claim_id`
+- Source document tracking via nullable foreign keys: `payment_id`, `claim_id`, and `invoice_id`
 
 ### Posting Service
 
@@ -280,7 +279,7 @@ Centralized service that all modules call to post journal entries:
 
 - Wraps all inserts in a database transaction (`SeaORM::TransactionTrait`)
 - Validates total debits = total credits before persisting
-- Links to source document via nullable `payment_id` and/or `claim_id` foreign keys
+- Links to source document via nullable `payment_id`, `claim_id`, and/or `invoice_id` foreign keys
 - No module posts directly to the ledger
   - All posting goes through PostingService
 
@@ -289,12 +288,11 @@ Centralized service that all modules call to post journal entries:
 - Validate that total debits equal total credits per journal entry
 - Compute account balances from journal entry lines on demand
   - No cached running balance for MVP
-- Trial balance report verifies sum(all debits) = sum(all credits)
 
 ### Audit Trail
 
 - Every posted entry includes: `created_by_user_id`, `created_at`
-- Source document linkage via nullable `payment_id` or `claim_id` foreign keys
+- Source document linkage via nullable `payment_id`, `claim_id`, or `invoice_id` foreign keys
 - No deletion of posted entries
   - Corrections use reversal entries
 - Full traceability from any journal entry back to its source document
@@ -308,27 +306,29 @@ Centralized service that all modules call to post journal entries:
 - Total revenue, total expenses, outstanding receivables, voided invoice count
 - At-a-glance financial health indicators
 
-### Income vs. Expense
-
-- Paid invoices vs. approved claims by month
-- Bar/line chart showing trend over time
-
 ### GST Summary
 
-- Invoices grouped by GST rate (NONE, STANDARD)
-- Taxable amount + GST collected per rate
-- Total GST liability
+- Invoices with Standard-rate (9%) GST only
+- Total GST collected + invoice list with hyperlinks
+- Date-range filter
 
 ### Profit & Loss (Income Statement)
 
 - Revenues, expenses, and net profit (or loss) over a stated period
 - Queries against ledger data (journal entries grouped by account type)
-
-### Trial Balance
-
-- All accounts with debit/credit totals
-- Verification that sum(debits) = sum(credits)
 - Date-range filter
+
+### Balance Sheet
+
+- Assets = Liabilities + Equity, point-in-time snapshot
+- Current-period net income injected as an equity line ("Net Income")
+- As-of date filter
+
+### Audit Statement
+
+- All journal entries for a given year, ordered chronologically
+- Each entry shows lines, poster name, source document (with hyperlink to invoice/payment/claim)
+- Year filter
 
 ---
 
