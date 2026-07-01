@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder};
 
 use crate::entity::claim_category;
 use crate::models::error::AppError;
@@ -27,4 +27,33 @@ pub async fn name_map_by_ids<C: ConnectionTrait>(
         .all(db)
         .await?;
     Ok(categories.into_iter().map(|c| (c.id, c.name)).collect())
+}
+
+#[derive(serde::Serialize)]
+pub struct CategoryOption {
+    pub id: i32,
+    pub name: String,
+}
+
+/// List all categories as options, ordered by name ascending.
+pub async fn list_options<C: ConnectionTrait>(db: &C) -> Result<Vec<CategoryOption>, AppError> {
+    let cats = claim_category::Entity::find()
+        .order_by_asc(claim_category::Column::Name)
+        .all(db)
+        .await?;
+    Ok(cats
+        .into_iter()
+        .map(|c| CategoryOption {
+            id: c.id,
+            name: c.name,
+        })
+        .collect())
+}
+
+/// Check whether a category with the given ID exists.
+pub async fn exists<C: ConnectionTrait>(db: &C, id: i32) -> Result<bool, AppError> {
+    Ok(claim_category::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .is_some())
 }
