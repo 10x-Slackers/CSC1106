@@ -1,0 +1,119 @@
+{% extends "partials/layout.html" %}
+{% block title %}Balance Sheet{% endblock %}
+{% block page_content %}
+  <h1 class="mb-6 text-3xl font-bold">Balance Sheet</h1>
+
+  <form
+    action="/reports/balance-sheet"
+    method="get"
+    class="mb-6 flex flex-wrap items-end gap-2"
+  >
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">As of</span>
+      <input
+        type="date"
+        name="as_of"
+        value="{{ as_of | default(value="") }}"
+        class="input input-bordered"
+      />
+    </label>
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+  </form>
+
+  {% if report %}
+    {% if report.total_assets == 0 and report.total_liabilities == 0 and report.total_equity == 0 %}
+      <div role="alert" class="alert alert-warning mb-4">
+        <span>No data available.</span>
+      </div>
+    {% else %}
+      <div class="mb-6 overflow-x-auto">
+        <h2 class="mb-2 text-xl font-semibold">Assets</h2>
+        <table class="table-zebra table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in report.assets %}
+              <tr>
+                <td>{{ line.account_name }}</td>
+                <td>{{ line.amount | money }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="font-bold">
+              <td>Total Assets</td>
+              <td>{{ report.total_assets | money }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="mb-6 overflow-x-auto">
+        <h2 class="mb-2 text-xl font-semibold">Liabilities</h2>
+        <table class="table-zebra table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in report.liabilities %}
+              <tr>
+                <td>{{ line.account_name }}</td>
+                <td>{{ line.amount | money }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="font-bold">
+              <td>Total Liabilities</td>
+              <td>{{ report.total_liabilities | money }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="mb-6 overflow-x-auto">
+        <h2 class="mb-2 text-xl font-semibold">Equity</h2>
+        <table class="table-zebra table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in report.equity %}
+              <tr>
+                <td>{{ line.account_name }}</td>
+                <td>{{ line.amount | money }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="font-bold">
+              <td>Total Equity</td>
+              <td>{{ report.total_equity | money }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="mb-6 overflow-x-auto">
+        <table class="table">
+          <tbody>
+            <tr class="font-bold">
+              <td>Total Liabilities &amp; Equity</td>
+              <td>{{ report.total_liabilities_and_equity | money }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endif %}
+{% endblock %}

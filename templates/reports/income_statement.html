@@ -1,0 +1,108 @@
+{% extends "partials/layout.html" %}
+{% block title %}Income Statement{% endblock %}
+{% block page_content %}
+  <h1 class="mb-6 text-3xl font-bold">Income Statement</h1>
+
+  <form
+    action="/reports/income-statement"
+    method="get"
+    class="mb-6 flex flex-wrap items-end gap-2"
+  >
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">From</span>
+      <input
+        type="date"
+        name="from"
+        value="{{ from | default(value="") }}"
+        class="input input-bordered"
+      />
+    </label>
+    <label class="form-control w-full sm:w-auto">
+      <span class="label">To</span>
+      <input
+        type="date"
+        name="to"
+        value="{{ to | default(value="") }}"
+        class="input input-bordered"
+      />
+    </label>
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+  </form>
+
+  {% if report %}
+    {% if report.total_revenue == 0 and report.total_expenses == 0 %}
+      <div role="alert" class="alert alert-warning mb-4">
+        <span>No data for the selected period.</span>
+      </div>
+    {% else %}
+      <div class="mb-6 overflow-x-auto">
+        <h2 class="mb-2 text-xl font-semibold">Revenue</h2>
+        <table class="table-zebra table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in report.revenue %}
+              <tr>
+                <td>{{ line.account_name }}</td>
+                <td>{{ line.amount | money }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="font-bold">
+              <td>Total Revenue</td>
+              <td>{{ report.total_revenue | money }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="mb-6 overflow-x-auto">
+        <h2 class="mb-2 text-xl font-semibold">Expenses</h2>
+        <table class="table-zebra table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in report.expenses %}
+              <tr>
+                <td>{{ line.account_name }}</td>
+                <td>{{ line.amount | money }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="font-bold">
+              <td>Total Expenses</td>
+              <td>{{ report.total_expenses | money }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="stats shadow">
+        <div class="stat">
+          <div class="stat-title">
+            {% if report.is_loss %}
+              <span class="text-error">Net Loss</span>
+            {% else %}
+              <span class="text-success">Net Profit</span>
+            {% endif %}
+          </div>
+          <div
+            class="stat-value {% if report.is_loss %}text-error{% else %}text-success{% endif %}"
+          >
+            {{ report.net_profit | money }}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+{% endblock %}

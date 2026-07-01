@@ -15,7 +15,7 @@ use crate::models::user::name_by_id;
 use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::calc::grand_total;
-use super::types::{Invoice, InvoiceLineItem};
+use super::types::{GstInvoiceLineGroup, Invoice, InvoiceLineItem};
 
 impl Invoice {
     /// Load the grand total by summing the line items.
@@ -189,5 +189,66 @@ impl Invoice {
             .count(db)
             .await
             .map_err(AppError::from)
+    }
+
+    /// Load all line items for invoices issued excluding Draft and Voided.
+    pub async fn line_items_for_period<C: ConnectionTrait>(
+        db: &C,
+        from: Option<NaiveDate>,
+        to: Option<NaiveDate>,
+    ) -> Result<Vec<GstInvoiceLineGroup>, AppError> {
+        let status_condition = Condition::any()
+            .add(invoice_entity::Column::Status.eq(InvoiceStatus::Sent))
+            .add(invoice_entity::Column::Status.eq(InvoiceStatus::PartiallyPaid))
+            .add(invoice_entity::Column::Status.eq(InvoiceStatus::Paid));
+
+        let mut conditions = Condition::all().add(status_condition);
+        if let Some(f) = from {
+            conditions = conditions.add(invoice_entity::Column::IssueDate.gte(f));
+        }
+        if let Some(t) = to {
+            conditions = conditions.add(invoice_entity::Column::IssueDate.lte(t));
+        }
+
+        let invoices = invoice_entity::Entity::find()
+            .filter(conditions)
+            .order_by(invoice_entity::Column::IssueDate, Order::Asc)
+            .order_by(invoice_entity::Column::InvoiceNo, Order::Asc)
+            .all(db)
+            .await
+            .map_err(AppError::from)?;
+
+        if invoices.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let invoice_ids: Vec<i32> = invoices.iter().map(|i| i.id).collect();
+        let all_items = line_item_entity::Entity::find()
+            .filter(line_item_entity::Column::InvoiceId.is_in(invoice_ids))
+            .order_by(line_item_entity::Column::Id, Order::Asc)
+            .all(db)
+            .await
+            .map_err(AppError::from)?;
+
+        let mut items_by_invoice: std::collections::HashMap<i32, Vec<InvoiceLineItem>> =
+            std::collections::HashMap::new();
+        for item in all_items {
+            items_by_invoice
+                .entry(item.invoice_id)
+                .or_default()
+                .push(InvoiceLineItem::from(item));
+        }
+
+        let result = invoices
+            .into_iter()
+            .map(|inv| GstInvoiceLineGroup {
+                invoice_id: inv.id,
+                invoice_no: inv.invoice_no,
+                issue_date: inv.issue_date,
+                items: items_by_invoice.remove(&inv.id).unwrap_or_default(),
+            })
+            .collect();
+
+        Ok(result)
     }
 }

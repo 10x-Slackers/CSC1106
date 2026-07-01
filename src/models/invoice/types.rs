@@ -84,3 +84,12 @@ pub struct LineItemInput {
     pub unit_price: Decimal,
     pub gst_rate: GstRate,
 }
+
+/// Group of line items for a single invoice.
+#[derive(Clone, Serialize)]
+pub struct GstInvoiceLineGroup {
+    pub invoice_id: i32,
+    pub invoice_no: String,
+    pub issue_date: NaiveDate,
+    pub items: Vec<InvoiceLineItem>,
+}
