@@ -1,64 +1,43 @@
-mod db;
-mod entity;
-mod middleware;
-mod models;
-mod routes;
-mod seed;
+//! Standalone prototype: render a hardcoded invoice to `sample.pdf` using
+//! approach 1 (pure-Rust `genpdf` builder), reusing the project's invoice structs.
 
-use actix_files::Files;
-use actix_identity::IdentityMiddleware;
-use actix_session::{SessionMiddleware, storage::CookieSessionStore};
-use actix_web::cookie::Key;
-use actix_web::http::StatusCode;
-use actix_web::middleware::ErrorHandlers;
-use actix_web::{App, HttpServer, web};
-use tera::Tera;
+mod invoice;
+mod pdf;
 
-use crate::middleware::auth::{UserCache, show_unauthorized_page};
-use crate::middleware::permissions::forbidden_page;
-use crate::middleware::tera_filters;
+use chrono::NaiveDate;
+use rust_decimal::dec;
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    // Load configuration from environment variables with defaults
-    let host = std::env::var("HOST").unwrap_or_else(|_| "localhost".to_string());
-    let port: u16 = std::env::var("PORT")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(8080);
-    let secret_key = std::env::var("SECRET_KEY")
-        .map(|s| Key::derive_from(s.as_bytes()))
-        .unwrap_or_else(|_| Key::generate());
-    let database_url =
-        std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://./data.db?mode=rwc".to_string());
+use invoice::{GstRate, Invoice, InvoiceLineItem, InvoiceStatus};
 
-    let db = db::init(&database_url).await;
-    let mut tera = Tera::new("templates/**/*").expect("Failed to initialize Tera templates");
-    tera_filters::register(&mut tera);
-    let user_cache = UserCache::new();
+fn main() {
+    let items = vec![
+        InvoiceLineItem::new(
+            "Website design & build",
+            1,
+            dec!(4500.00),
+            GstRate::Standard,
+        ),
+        InvoiceLineItem::new("Monthly hosting", 12, dec!(35.00), GstRate::Standard),
+        InvoiceLineItem::new("Stock photography license", 3, dec!(120.00), GstRate::None),
+        InvoiceLineItem::new(
+            "On-site training (per day)",
+            2,
+            dec!(800.00),
+            GstRate::Standard,
+        ),
+    ];
 
-    println!("Server running at http://{host}:{port}");
+    let invoice = Invoice {
+        invoice_no: "INV-2026-0001".into(),
+        issue_date: NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(),
+        due_date: NaiveDate::from_ymd_opt(2026, 7, 31).unwrap(),
+        status: InvoiceStatus::Sent,
+        party_name: Some("Acme Trading Pte Ltd".into()),
+    };
 
-    HttpServer::new(move || {
-        App::new()
-            .app_data(web::Data::new(db.clone()))
-            .app_data(web::Data::new(tera.clone()))
-            .app_data(web::Data::new(user_cache.clone()))
-            .wrap(
-                SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
-                    .cookie_secure(false) // No HTTPS for the project
-                    .build(),
-            )
-            .wrap(IdentityMiddleware::default())
-            .wrap(
-                ErrorHandlers::new()
-                    .handler(StatusCode::UNAUTHORIZED, show_unauthorized_page)
-                    .handler(StatusCode::FORBIDDEN, forbidden_page),
-            )
-            .configure(routes::configure)
-            .service(Files::new("/", "assets/"))
-    })
-    .bind((host.as_str(), port))?
-    .run()
-    .await
+    // Exercise the same entry point the real HTTP route will call.
+    let bytes = pdf::render_invoice_pdf(&invoice, &items);
+    std::fs::write("sample.pdf", bytes).expect("failed to write sample.pdf");
+
+    println!("Wrote sample.pdf");
 }
