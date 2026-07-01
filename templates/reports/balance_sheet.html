@@ -1,6 +1,7 @@
 {% extends "partials/layout.html" %}
 {% block title %}Balance Sheet{% endblock %}
 {% block page_content %}
+  {% import "macros/report_table.html" as report_table %}
   <h1 class="mb-6 text-3xl font-bold">Balance Sheet</h1>
 
   <form
@@ -26,83 +27,9 @@
         <span>No data available.</span>
       </div>
     {% else %}
-      <div class="mb-6 overflow-x-auto">
-        <h2 class="mb-2 text-xl font-semibold">Assets</h2>
-        <table class="table-zebra table">
-          <thead>
-            <tr>
-              <th>Account</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for line in report.assets %}
-              <tr>
-                <td>{{ line.account_name }}</td>
-                <td>{{ line.amount | money }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-          <tfoot>
-            <tr class="font-bold">
-              <td>Total Assets</td>
-              <td>{{ report.total_assets | money }}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <div class="mb-6 overflow-x-auto">
-        <h2 class="mb-2 text-xl font-semibold">Liabilities</h2>
-        <table class="table-zebra table">
-          <thead>
-            <tr>
-              <th>Account</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for line in report.liabilities %}
-              <tr>
-                <td>{{ line.account_name }}</td>
-                <td>{{ line.amount | money }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-          <tfoot>
-            <tr class="font-bold">
-              <td>Total Liabilities</td>
-              <td>{{ report.total_liabilities | money }}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <div class="mb-6 overflow-x-auto">
-        <h2 class="mb-2 text-xl font-semibold">Equity</h2>
-        <table class="table-zebra table">
-          <thead>
-            <tr>
-              <th>Account</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for line in report.equity %}
-              <tr>
-                <td>{{ line.account_name }}</td>
-                <td>{{ line.amount | money }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-          <tfoot>
-            <tr class="font-bold">
-              <td>Total Equity</td>
-              <td>{{ report.total_equity | money }}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+      {{ report_table::render(title="Assets", items=report.assets, total_label="Total Assets", total_value=report.total_assets) }}
+      {{ report_table::render(title="Liabilities", items=report.liabilities, total_label="Total Liabilities", total_value=report.total_liabilities) }}
+      {{ report_table::render(title="Equity", items=report.equity, total_label="Total Equity", total_value=report.total_equity) }}
 
       <div class="mb-6 overflow-x-auto">
         <table class="table">

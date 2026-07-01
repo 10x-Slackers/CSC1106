@@ -130,8 +130,8 @@ async fn build_source_maps<C: ConnectionTrait>(
     db: &C,
     entries: &[journal_entry_entity::Model],
 ) -> Result<(HashMap<i32, String>, HashMap<i32, String>), AppError> {
-    let invoice_ids: Vec<i32> = entries.iter().filter_map(|e| e.invoice_id).collect();
-    let claim_ids: Vec<i32> = entries.iter().filter_map(|e| e.claim_id).collect();
+    let invoice_ids: Vec<i32> = unique_ids(entries.iter().filter_map(|e| e.invoice_id));
+    let claim_ids: Vec<i32> = unique_ids(entries.iter().filter_map(|e| e.claim_id));
 
     let invoice_map = if invoice_ids.is_empty() {
         HashMap::new()

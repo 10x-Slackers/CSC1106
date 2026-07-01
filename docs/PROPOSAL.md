@@ -40,12 +40,12 @@
 
 Shared search/filter system applied across modules. Each module supports text search and column-based filters via a consistent UI (filter sidebar + search bar).
 
-| Module          | Search By                            | Filter By                                        |
-| --------------- | ------------------------------------- | ------------------------------------------------ |
-| Invoices        | invoice number                       | party, status, issue date, due date              |
-| Payments        | party name, remarks                  | direction (IN/OUT), party, date range            |
-| Claims          | employee name, claim title, category | date range, employee, category, status           |
-| Parties         | name, company                        | type (customer/vendor), status (active/inactive) |
+| Module   | Search By                            | Filter By                                        |
+| -------- | ------------------------------------ | ------------------------------------------------ |
+| Invoices | invoice number                       | party, status, issue date, due date              |
+| Payments | party name, remarks                  | direction (IN/OUT), party, date range            |
+| Claims   | employee name, claim title, category | date range, employee, category, status           |
+| Parties  | name, company                        | type (customer/vendor), status (active/inactive) |
 
 ### Table Views
 

@@ -64,12 +64,13 @@ pub async fn gst_report(
 ) -> impl Responder {
     let mut context = Context::new();
     insert_nav_context(&mut context, &user);
-    context.insert("from", &query.from);
-    context.insert("to", &query.to);
 
     if let Err(msg) = query.validate() {
         return HttpResponse::BadRequest().body(msg);
     }
+
+    context.insert("from", &query.from);
+    context.insert("to", &query.to);
 
     match GstReport::compute(&db, query.from, query.to).await {
         Ok(report) => {
@@ -93,21 +94,16 @@ pub async fn income_statement(
 ) -> impl Responder {
     let mut context = Context::new();
     insert_nav_context(&mut context, &user);
-    context.insert("from", &query.from);
-    context.insert("to", &query.to);
 
     if let Err(msg) = query.validate() {
         return HttpResponse::BadRequest().body(msg);
     }
 
-    let from_dt = query.from.map(|d| {
-        d.and_hms_opt(0, 0, 0)
-            .expect("0:0:0 is always a valid time")
-    });
-    let to_dt = query.to.map(|d| {
-        d.and_hms_opt(23, 59, 59)
-            .expect("23:59:59 is always a valid time")
-    });
+    context.insert("from", &query.from);
+    context.insert("to", &query.to);
+
+    let from_dt = query.from.map(|d| d.and_hms_opt(0, 0, 0).unwrap());
+    let to_dt = query.to.map(|d| d.and_hms_opt(23, 59, 59).unwrap());
 
     match IncomeStatementReport::compute(&db, from_dt, to_dt).await {
         Ok(report) => {
@@ -133,10 +129,7 @@ pub async fn balance_sheet(
     insert_nav_context(&mut context, &user);
     context.insert("as_of", &query.as_of);
 
-    let as_of_dt = query.as_of.map(|d| {
-        d.and_hms_opt(23, 59, 59)
-            .expect("23:59:59 is always a valid time")
-    });
+    let as_of_dt = query.as_of.map(|d| d.and_hms_opt(23, 59, 59).unwrap());
 
     match BalanceSheetReport::compute(&db, as_of_dt).await {
         Ok(report) => {
