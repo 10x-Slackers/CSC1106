@@ -49,10 +49,13 @@ pub async fn list_for_audit<C: ConnectionTrait>(
 
     let entry_ids: Vec<i32> = entries.iter().map(|e| e.id).collect();
 
-    let lines = fetch_lines(db, entry_ids).await?;
+    let (lines, user_names, (invoice_map, claim_map)) = {
+        let lines_fut = fetch_lines(db, entry_ids);
+        let user_fut = build_user_name_map(db, &entries);
+        let source_fut = build_source_maps(db, &entries);
+        futures::try_join!(lines_fut, user_fut, source_fut)?
+    };
     let account_names = build_account_name_map(db, &lines).await?;
-    let user_names = build_user_name_map(db, &entries).await?;
-    let (invoice_map, claim_map) = build_source_maps(db, &entries).await?;
 
     let lines_by_entry = group_lines(lines, &account_names);
 

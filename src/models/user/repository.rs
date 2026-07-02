@@ -5,7 +5,7 @@ use argon2::password_hash::{
 };
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
-    Order, PaginatorTrait, QueryFilter, QueryOrder, Set,
+    Order, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
 
 use crate::entity::user as user_entity;
@@ -199,15 +199,6 @@ impl User {
     }
 }
 
-/// Look up a user's display name by ID. Returns `None` if the user does not exist.
-pub async fn name_by_id<C: ConnectionTrait>(db: &C, id: i32) -> Result<Option<String>, AppError> {
-    let user = user_entity::Entity::find_by_id(id)
-        .one(db)
-        .await
-        .map_err(AppError::from)?;
-    Ok(user.map(|u| u.name))
-}
-
 /// Build a map of user ID → display name for the given IDs.
 pub async fn name_map_by_ids<C: ConnectionTrait>(
     db: &C,
@@ -216,11 +207,15 @@ pub async fn name_map_by_ids<C: ConnectionTrait>(
     if ids.is_empty() {
         return Ok(std::collections::HashMap::new());
     }
-    let users = user_entity::Entity::find()
+    let rows: Vec<(i32, String)> = user_entity::Entity::find()
+        .select_only()
+        .column(user_entity::Column::Id)
+        .column(user_entity::Column::Name)
         .filter(user_entity::Column::Id.is_in(ids))
+        .into_tuple()
         .all(db)
         .await?;
-    Ok(users.into_iter().map(|u| (u.id, u.name)).collect())
+    Ok(rows.into_iter().collect())
 }
 
 /// Hash a plaintext password using Argon2 with a random salt.

@@ -10,12 +10,10 @@ use crate::entity::claim::ClaimStatus;
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line::EntrySide;
 use crate::models::account::find_oe_and_ap;
-use crate::models::claim_category::{
-    find_name_by_id as category_name_by_id, name_map_by_ids as category_name_map_by_ids,
-};
+use crate::models::claim_category::name_map_by_ids as category_name_map_by_ids;
 use crate::models::error::ClaimError;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
-use crate::models::user::{name_by_id, name_map_by_ids};
+use crate::models::user::name_map_by_ids;
 use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::{Claim, ClaimDetail, ClaimFilter, ClaimForm, ClaimRow};
@@ -36,21 +34,27 @@ impl Claim {
         db: &C,
         id: i32,
     ) -> Result<ClaimDetail, ClaimError> {
-        let model = Self::find_model_by_id(db, id).await?;
+        let (model, category) = claim_entity::Entity::find_by_id(id)
+            .find_also_related(crate::entity::claim_category::Entity)
+            .one(db)
+            .await?
+            .ok_or(ClaimError::NotFound)?;
         let claim = Claim::from(model);
+        let category_name = category.map(|c| c.name).unwrap_or_default();
 
-        let submitter_name = name_by_id(db, claim.submitted_by_user_id)
-            .await?
+        // 1 query: batch both user names
+        let mut user_ids = vec![claim.submitted_by_user_id];
+        if let Some(uid) = claim.reviewed_by_user_id {
+            user_ids.push(uid);
+        }
+        let user_map = name_map_by_ids(db, user_ids).await?;
+        let submitter_name = user_map
+            .get(&claim.submitted_by_user_id)
+            .cloned()
             .unwrap_or_default();
-
-        let reviewer_name = match claim.reviewed_by_user_id {
-            Some(uid) => name_by_id(db, uid).await?,
-            None => None,
-        };
-
-        let category_name = category_name_by_id(db, claim.category_id)
-            .await?
-            .unwrap_or_default();
+        let reviewer_name = claim
+            .reviewed_by_user_id
+            .and_then(|uid| user_map.get(&uid).cloned());
 
         Ok(ClaimDetail {
             id: claim.id,

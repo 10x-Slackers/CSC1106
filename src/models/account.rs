@@ -35,26 +35,25 @@ pub async fn find_by_name<C: ConnectionTrait>(
 pub async fn find_ar_and_sr<C: ConnectionTrait>(
     db: &C,
 ) -> Result<(account::Model, account::Model), AppError> {
-    let ar = find_by_name(db, "Accounts Receivable")
-        .await?
-        .ok_or(AppError::NotFound)?;
-    let sales = find_by_name(db, "Sales Revenue")
-        .await?
-        .ok_or(AppError::NotFound)?;
-    Ok((ar, sales))
+    let (ar, sales) = futures::try_join!(
+        find_by_name(db, "Accounts Receivable"),
+        find_by_name(db, "Sales Revenue"),
+    )?;
+    Ok((
+        ar.ok_or(AppError::NotFound)?,
+        sales.ok_or(AppError::NotFound)?,
+    ))
 }
 
 /// Find the "Operating Expenses" and "Accounts Payable" accounts for posting claim journal entries.
 pub async fn find_oe_and_ap<C: ConnectionTrait>(
     db: &C,
 ) -> Result<(account::Model, account::Model), AppError> {
-    let oe = find_by_name(db, "Operating Expenses")
-        .await?
-        .ok_or(AppError::NotFound)?;
-    let ap = find_by_name(db, "Accounts Payable")
-        .await?
-        .ok_or(AppError::NotFound)?;
-    Ok((oe, ap))
+    let (oe, ap) = futures::try_join!(
+        find_by_name(db, "Operating Expenses"),
+        find_by_name(db, "Accounts Payable"),
+    )?;
+    Ok((oe.ok_or(AppError::NotFound)?, ap.ok_or(AppError::NotFound)?))
 }
 
 /// List all accounts ordered by name, for use in payment form dropdowns.

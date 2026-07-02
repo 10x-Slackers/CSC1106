@@ -1,6 +1,6 @@
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
-    Order, PaginatorTrait, QueryFilter, QueryOrder, Set,
+    Order, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
 
 use crate::entity::party as party_entity;
@@ -112,26 +112,6 @@ impl Party {
         Ok(parties)
     }
 
-    /// Map of party id -> name for all parties.
-    pub async fn name_map(
-        db: &DatabaseConnection,
-    ) -> Result<std::collections::HashMap<i32, String>, AppError> {
-        let parties = party_entity::Entity::find().all(db).await?;
-        Ok(parties.into_iter().map(|p| (p.id, p.name)).collect())
-    }
-
-    /// Look up a party name by ID. Returns `None` if the party does not exist.
-    pub async fn find_name_by_id<C: ConnectionTrait>(
-        db: &C,
-        id: i32,
-    ) -> Result<Option<String>, AppError> {
-        party_entity::Entity::find_by_id(id)
-            .one(db)
-            .await
-            .map_err(AppError::from)
-            .map(|opt| opt.map(|p| p.name))
-    }
-
     /// Build a map of party ID → name for the given IDs.
     pub async fn name_map_by_ids<C: ConnectionTrait>(
         db: &C,
@@ -140,11 +120,15 @@ impl Party {
         if ids.is_empty() {
             return Ok(std::collections::HashMap::new());
         }
-        let parties = party_entity::Entity::find()
+        let rows: Vec<(i32, String)> = party_entity::Entity::find()
+            .select_only()
+            .column(party_entity::Column::Id)
+            .column(party_entity::Column::Name)
             .filter(party_entity::Column::Id.is_in(ids))
+            .into_tuple()
             .all(db)
             .await?;
-        Ok(parties.into_iter().map(|p| (p.id, p.name)).collect())
+        Ok(rows.into_iter().collect())
     }
 
     pub async fn create(

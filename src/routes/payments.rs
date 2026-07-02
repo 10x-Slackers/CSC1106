@@ -89,7 +89,8 @@ async fn render_payments_list(
     message_kind: &str,
 ) -> HttpResponse {
     let parties = Party::list_all(db).await.unwrap_or_default();
-    let party_map = Party::name_map(db).await.unwrap_or_default();
+    let party_map: std::collections::HashMap<i32, String> =
+        parties.iter().map(|p| (p.id, p.name.clone())).collect();
     let page = parse_page(filter.page);
     let (payments, total_pages, current_page) = match Payment::list(
         db,
