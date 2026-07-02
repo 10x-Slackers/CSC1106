@@ -130,8 +130,8 @@ pub struct Pagination {
     pub total_pages: u32,
 }
 
-pub fn parse_page(raw: Option<u32>) -> u32 {
-    raw.unwrap_or(1).max(1)
+pub fn parse_page(raw: Option<&str>) -> u32 {
+    raw.and_then(|s| s.parse::<u32>().ok()).unwrap_or(1).max(1)
 }
 
 /// Serialize `filter` to a query string, then strip any `page=...` pair.

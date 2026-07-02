@@ -78,15 +78,15 @@ pub struct ClaimFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub category_id: Option<i32>,
+    pub category_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub submitted_by_user_id: Option<i32>,
+    pub submitted_by_user_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub page: Option<u32>,
+    pub page: Option<String>,
 }
 
 /// Row for the claim list table.

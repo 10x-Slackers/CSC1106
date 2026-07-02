@@ -105,13 +105,21 @@ impl Claim {
             }
         }
 
-        if let Some(cat_id) = filter.category_id {
+        if let Some(cat_id) = filter
+            .category_id
+            .as_deref()
+            .and_then(|s| s.parse::<i32>().ok())
+        {
             conditions = conditions.add(claim_entity::Column::CategoryId.eq(cat_id));
         }
 
         if let Some(scope) = scope_user_id {
             conditions = conditions.add(claim_entity::Column::SubmittedByUserId.eq(scope));
-        } else if let Some(uid) = filter.submitted_by_user_id {
+        } else if let Some(uid) = filter
+            .submitted_by_user_id
+            .as_deref()
+            .and_then(|s| s.parse::<i32>().ok())
+        {
             conditions = conditions.add(claim_entity::Column::SubmittedByUserId.eq(uid));
         }
 
@@ -127,7 +135,12 @@ impl Claim {
             conditions = conditions.add(claim_entity::Column::PurchaseDate.lte(to));
         }
 
-        let page = filter.page.unwrap_or(1).max(1);
+        let page = filter
+            .page
+            .as_deref()
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(1)
+            .max(1);
 
         let paginator = claim_entity::Entity::find()
             .filter(conditions)

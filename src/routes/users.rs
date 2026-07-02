@@ -30,7 +30,7 @@ pub struct UserFilter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     status: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    page: Option<u32>,
+    page: Option<String>,
 }
 
 fn render_users_list(
@@ -130,7 +130,7 @@ pub async fn list_users(
     let q = filter.q.as_deref();
     let role = filter.role.as_deref().and_then(Role::parse);
     let status = filter.status.as_deref().and_then(UserStatus::parse);
-    let page = parse_page(filter.page);
+    let page = parse_page(filter.page.as_deref());
     let base_query = base_query_string(&filter);
     let pagination_default = Pagination {
         current: 1,

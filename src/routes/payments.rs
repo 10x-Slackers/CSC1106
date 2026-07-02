@@ -41,7 +41,7 @@ struct PaymentFilter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     to_date: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    page: Option<u32>,
+    page: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -91,7 +91,7 @@ async fn render_payments_list(
     let parties = Party::list_all(db).await.unwrap_or_default();
     let party_map: std::collections::HashMap<i32, String> =
         parties.iter().map(|p| (p.id, p.name.clone())).collect();
-    let page = parse_page(filter.page);
+    let page = parse_page(filter.page.as_deref());
     let (payments, total_pages, current_page) = match Payment::list(
         db,
         filter.q.as_deref().and_then(non_empty),

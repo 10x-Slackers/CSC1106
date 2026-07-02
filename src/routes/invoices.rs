@@ -17,6 +17,7 @@ use crate::models::invoice::{
 };
 use crate::models::party::Party;
 use crate::models::payment::Payment;
+use crate::models::util::non_empty;
 use crate::routes::utils::{
     Pagination, base_query_string, find_or_404, insert_nav_context, parse_field, parse_page, render,
 };
@@ -44,17 +45,17 @@ pub struct InvoiceFilter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     status: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    party_id: Option<i32>,
+    party_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    from_issue: Option<NaiveDate>,
+    from_issue: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    to_issue: Option<NaiveDate>,
+    to_issue: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    from_due: Option<NaiveDate>,
+    from_due: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    to_due: Option<NaiveDate>,
+    to_due: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    page: Option<u32>,
+    page: Option<String>,
 }
 
 /// Parse submitted line items, skipping rows with a blank description.
@@ -184,11 +185,31 @@ async fn reload_invoices_list_with(
         db,
         filter.q.as_deref(),
         filter.status.as_deref().and_then(InvoiceStatus::parse),
-        filter.party_id,
-        filter.from_issue,
-        filter.to_issue,
-        filter.from_due,
-        filter.to_due,
+        filter
+            .party_id
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse::<i32>().ok()),
+        filter
+            .from_issue
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse::<NaiveDate>().ok()),
+        filter
+            .to_issue
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse::<NaiveDate>().ok()),
+        filter
+            .from_due
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse::<NaiveDate>().ok()),
+        filter
+            .to_due
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse::<NaiveDate>().ok()),
         viewer_user_id,
         viewer_role,
         1,
@@ -301,18 +322,38 @@ pub async fn list_invoices(
     let status = filter.status.as_deref().and_then(InvoiceStatus::parse);
     let viewer_user_id = user.id;
     let viewer_role = &user.role;
-    let page = parse_page(filter.page);
+    let page = parse_page(filter.page.as_deref());
     let base_query = base_query_string(&filter);
 
     match Invoice::list(
         db.get_ref(),
         q,
         status,
-        filter.party_id,
-        filter.from_issue,
-        filter.to_issue,
-        filter.from_due,
-        filter.to_due,
+        filter
+            .party_id
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse::<i32>().ok()),
+        filter
+            .from_issue
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse::<NaiveDate>().ok()),
+        filter
+            .to_issue
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse::<NaiveDate>().ok()),
+        filter
+            .from_due
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse::<NaiveDate>().ok()),
+        filter
+            .to_due
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse::<NaiveDate>().ok()),
         viewer_user_id,
         viewer_role,
         page,

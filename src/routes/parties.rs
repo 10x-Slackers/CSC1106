@@ -36,7 +36,7 @@ pub struct PartyFilter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     status: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    page: Option<u32>,
+    page: Option<String>,
 }
 
 fn render_parties_list(
@@ -142,7 +142,7 @@ pub async fn list_parties(
         Some("") => None,
         Some(s) => PartyStatus::parse(s),
     };
-    let page = parse_page(filter.page);
+    let page = parse_page(filter.page.as_deref());
     let base_query = base_query_string(&filter);
     let pagination_default = Pagination {
         current: 1,
