@@ -58,6 +58,38 @@ pub struct InvoiceFilter {
     page: Option<String>,
 }
 
+impl InvoiceFilter {
+    fn parsed_party_id(&self) -> Option<i32> {
+        self.party_id
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse().ok())
+    }
+
+    fn parsed_date(field: &Option<String>) -> Option<NaiveDate> {
+        field
+            .as_deref()
+            .and_then(non_empty)
+            .and_then(|s| s.parse().ok())
+    }
+
+    fn parsed_from_issue(&self) -> Option<NaiveDate> {
+        Self::parsed_date(&self.from_issue)
+    }
+
+    fn parsed_to_issue(&self) -> Option<NaiveDate> {
+        Self::parsed_date(&self.to_issue)
+    }
+
+    fn parsed_from_due(&self) -> Option<NaiveDate> {
+        Self::parsed_date(&self.from_due)
+    }
+
+    fn parsed_to_due(&self) -> Option<NaiveDate> {
+        Self::parsed_date(&self.to_due)
+    }
+}
+
 /// Parse submitted line items, skipping rows with a blank description.
 fn parse_line_items(form_items: &[InvoiceLineItemForm]) -> (Vec<LineItemInput>, Vec<String>) {
     let mut parsed = Vec::new();
@@ -185,31 +217,11 @@ async fn reload_invoices_list_with(
         db,
         filter.q.as_deref(),
         filter.status.as_deref().and_then(InvoiceStatus::parse),
-        filter
-            .party_id
-            .as_deref()
-            .and_then(non_empty)
-            .and_then(|s| s.parse::<i32>().ok()),
-        filter
-            .from_issue
-            .as_deref()
-            .and_then(non_empty)
-            .and_then(|s| s.parse::<NaiveDate>().ok()),
-        filter
-            .to_issue
-            .as_deref()
-            .and_then(non_empty)
-            .and_then(|s| s.parse::<NaiveDate>().ok()),
-        filter
-            .from_due
-            .as_deref()
-            .and_then(non_empty)
-            .and_then(|s| s.parse::<NaiveDate>().ok()),
-        filter
-            .to_due
-            .as_deref()
-            .and_then(non_empty)
-            .and_then(|s| s.parse::<NaiveDate>().ok()),
+        filter.parsed_party_id(),
+        filter.parsed_from_issue(),
+        filter.parsed_to_issue(),
+        filter.parsed_from_due(),
+        filter.parsed_to_due(),
         viewer_user_id,
         viewer_role,
         1,
@@ -329,31 +341,11 @@ pub async fn list_invoices(
         db.get_ref(),
         q,
         status,
-        filter
-            .party_id
-            .as_deref()
-            .and_then(non_empty)
-            .and_then(|s| s.parse::<i32>().ok()),
-        filter
-            .from_issue
-            .as_deref()
-            .and_then(non_empty)
-            .and_then(|s| s.parse::<NaiveDate>().ok()),
-        filter
-            .to_issue
-            .as_deref()
-            .and_then(non_empty)
-            .and_then(|s| s.parse::<NaiveDate>().ok()),
-        filter
-            .from_due
-            .as_deref()
-            .and_then(non_empty)
-            .and_then(|s| s.parse::<NaiveDate>().ok()),
-        filter
-            .to_due
-            .as_deref()
-            .and_then(non_empty)
-            .and_then(|s| s.parse::<NaiveDate>().ok()),
+        filter.parsed_party_id(),
+        filter.parsed_from_issue(),
+        filter.parsed_to_issue(),
+        filter.parsed_from_due(),
+        filter.parsed_to_due(),
         viewer_user_id,
         viewer_role,
         page,

@@ -4,13 +4,9 @@ use chrono::NaiveDateTime;
 use rust_decimal::Decimal;
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, Order, QueryFilter, QueryOrder};
 
-use crate::entity::account;
-use crate::entity::claim;
-use crate::entity::invoice;
 use crate::entity::journal_entry as journal_entry_entity;
 use crate::entity::journal_entry_line as journal_entry_line_entity;
 use crate::entity::journal_entry_line::EntrySide;
-use crate::entity::user;
 use crate::models::error::AppError;
 
 /// A single journal entry line enriched with the account name for display.
@@ -101,15 +97,7 @@ async fn build_account_name_map<C: ConnectionTrait>(
     lines: &[journal_entry_line_entity::Model],
 ) -> Result<HashMap<i32, String>, AppError> {
     let account_ids: Vec<i32> = unique_ids(lines.iter().map(|l| l.account_id));
-    if account_ids.is_empty() {
-        return Ok(HashMap::new());
-    }
-    let accounts = account::Entity::find()
-        .filter(account::Column::Id.is_in(account_ids))
-        .all(db)
-        .await
-        .map_err(AppError::from)?;
-    Ok(accounts.into_iter().map(|a| (a.id, a.name)).collect())
+    crate::models::account::name_map_by_ids(db, account_ids).await
 }
 
 async fn build_user_name_map<C: ConnectionTrait>(
@@ -117,15 +105,7 @@ async fn build_user_name_map<C: ConnectionTrait>(
     entries: &[journal_entry_entity::Model],
 ) -> Result<HashMap<i32, String>, AppError> {
     let user_ids: Vec<i32> = unique_ids(entries.iter().map(|e| e.created_by_user_id));
-    if user_ids.is_empty() {
-        return Ok(HashMap::new());
-    }
-    let users = user::Entity::find()
-        .filter(user::Column::Id.is_in(user_ids))
-        .all(db)
-        .await
-        .map_err(AppError::from)?;
-    Ok(users.into_iter().map(|u| (u.id, u.name)).collect())
+    crate::models::user::name_map_by_ids(db, user_ids).await
 }
 
 /// Batch-load invoice and claim labels for source-document display.
@@ -136,31 +116,10 @@ async fn build_source_maps<C: ConnectionTrait>(
     let invoice_ids: Vec<i32> = unique_ids(entries.iter().filter_map(|e| e.invoice_id));
     let claim_ids: Vec<i32> = unique_ids(entries.iter().filter_map(|e| e.claim_id));
 
-    let invoice_map = if invoice_ids.is_empty() {
-        HashMap::new()
-    } else {
-        invoice::Entity::find()
-            .filter(invoice::Column::Id.is_in(invoice_ids))
-            .all(db)
-            .await
-            .map_err(AppError::from)?
-            .into_iter()
-            .map(|inv| (inv.id, inv.invoice_no))
-            .collect()
-    };
-
-    let claim_map = if claim_ids.is_empty() {
-        HashMap::new()
-    } else {
-        claim::Entity::find()
-            .filter(claim::Column::Id.is_in(claim_ids))
-            .all(db)
-            .await
-            .map_err(AppError::from)?
-            .into_iter()
-            .map(|c| (c.id, c.title))
-            .collect()
-    };
+    let invoice_map = crate::models::invoice::invoice_no_map_by_ids(db, invoice_ids).await?;
+    let claim_map = crate::models::claim::title_map_by_ids(db, claim_ids)
+        .await
+        .map_err(AppError::from)?;
 
     Ok((invoice_map, claim_map))
 }

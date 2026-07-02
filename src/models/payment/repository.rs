@@ -7,11 +7,13 @@ use sea_orm::{
 
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line::EntrySide;
+use crate::entity::party as party_entity;
 use crate::entity::payment as payment_entity;
 use crate::entity::payment::PaymentDirection;
 use crate::models::error::{AppError, PaymentCreateError};
 use crate::models::invoice::Invoice;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
+use crate::models::user;
 use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::{Payment, PaymentDetail};
@@ -22,9 +24,6 @@ impl Payment {
         db: &DatabaseConnection,
         id: i32,
     ) -> Result<Option<PaymentDetail>, AppError> {
-        use crate::entity::party as party_entity;
-        use crate::entity::user as user_entity;
-
         let row = payment_entity::Entity::find_by_id(id)
             .find_also_related(party_entity::Entity)
             .one(db)
@@ -33,10 +32,7 @@ impl Payment {
         match row {
             None => Ok(None),
             Some((payment, party)) => {
-                let created_by_name = user_entity::Entity::find_by_id(payment.created_by_user_id)
-                    .one(db)
-                    .await?
-                    .map(|u| u.name);
+                let created_by_name = user::name_by_id(db, payment.created_by_user_id).await?;
 
                 Ok(Some(PaymentDetail {
                     id: payment.id,

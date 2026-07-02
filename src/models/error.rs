@@ -35,6 +35,18 @@ impl From<DbErr> for AppError {
 
 impl std::error::Error for AppError {}
 
+impl From<ClaimError> for AppError {
+    fn from(e: ClaimError) -> Self {
+        match e {
+            ClaimError::Database(db_err) => AppError::Database(db_err),
+            ClaimError::NotFound => AppError::NotFound,
+            ClaimError::Duplicate => AppError::Duplicate,
+            ClaimError::InvalidInput(msg) => AppError::InvalidArgument(msg),
+            other => AppError::InvalidArgument(other.to_string()),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum AuthError {
     InvalidCredentials,

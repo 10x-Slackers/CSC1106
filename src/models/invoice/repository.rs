@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
     ColumnTrait, Condition, ConnectionTrait, EntityTrait, Order, PaginatorTrait, QueryFilter,
-    QueryOrder,
+    QueryOrder, QuerySelect,
 };
 
 use crate::entity::invoice as invoice_entity;
@@ -243,4 +243,23 @@ impl Invoice {
 
         Ok(result)
     }
+}
+
+/// Build a map of invoice ID → invoice number for the given IDs.
+pub async fn invoice_no_map_by_ids<C: ConnectionTrait>(
+    db: &C,
+    ids: Vec<i32>,
+) -> Result<std::collections::HashMap<i32, String>, AppError> {
+    if ids.is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+    let rows: Vec<(i32, String)> = invoice_entity::Entity::find()
+        .select_only()
+        .column(invoice_entity::Column::Id)
+        .column(invoice_entity::Column::InvoiceNo)
+        .filter(invoice_entity::Column::Id.is_in(ids))
+        .into_tuple()
+        .all(db)
+        .await?;
+    Ok(rows.into_iter().collect())
 }

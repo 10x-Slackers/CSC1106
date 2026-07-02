@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
-    Order, PaginatorTrait, QueryFilter, QueryOrder, Set, TransactionTrait,
+    Order, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
 
 use crate::entity::claim as claim_entity;
@@ -317,4 +317,23 @@ impl Claim {
 
         Ok(())
     }
+}
+
+/// Build a map of claim ID → title for the given IDs.
+pub async fn title_map_by_ids<C: ConnectionTrait>(
+    db: &C,
+    ids: Vec<i32>,
+) -> Result<std::collections::HashMap<i32, String>, ClaimError> {
+    if ids.is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+    let rows: Vec<(i32, String)> = claim_entity::Entity::find()
+        .select_only()
+        .column(claim_entity::Column::Id)
+        .column(claim_entity::Column::Title)
+        .filter(claim_entity::Column::Id.is_in(ids))
+        .into_tuple()
+        .all(db)
+        .await?;
+    Ok(rows.into_iter().collect())
 }

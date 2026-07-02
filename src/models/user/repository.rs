@@ -199,6 +199,17 @@ impl User {
     }
 }
 
+/// Look up a user's display name by ID.
+pub async fn name_by_id<C: ConnectionTrait>(db: &C, id: i32) -> Result<Option<String>, AppError> {
+    let name: Option<String> = user_entity::Entity::find_by_id(id)
+        .select_only()
+        .column(user_entity::Column::Name)
+        .into_tuple()
+        .one(db)
+        .await?;
+    Ok(name)
+}
+
 /// Build a map of user ID → display name for the given IDs.
 pub async fn name_map_by_ids<C: ConnectionTrait>(
     db: &C,
