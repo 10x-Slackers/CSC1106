@@ -1,8 +1,18 @@
 {% extends "partials/layout.html" %}
+{% import "macros/report_table.html" as report_table %}
 {% block title %}Balance Sheet{% endblock %}
 {% block page_content %}
-  {% import "macros/report_table.html" as report_table %}
-  <h1 class="mb-6 text-3xl font-bold">Balance Sheet</h1>
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <h1 class="text-3xl font-bold">Balance Sheet</h1>
+    {% if report %}
+      <a
+        href="/reports/balance-sheet/pdf?as_of={{ as_of | default(value="") }}"
+        class="btn btn-outline btn-sm"
+      >
+        Download PDF
+      </a>
+    {% endif %}
+  </div>
 
   <form
     action="/reports/balance-sheet"

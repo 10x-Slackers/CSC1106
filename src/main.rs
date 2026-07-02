@@ -2,6 +2,7 @@ mod db;
 mod entity;
 mod middleware;
 mod models;
+mod pdf;
 mod routes;
 mod seed;
 

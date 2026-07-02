@@ -28,7 +28,9 @@ rustc-ice-*.txt
 node_modules/
 
 # Custom
-/assets
+/assets/*
+# Bundled PDF fonts are source, not generated output
+!/assets/fonts
 
 # SQLite database
 *.db

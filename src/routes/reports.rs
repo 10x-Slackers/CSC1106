@@ -6,7 +6,8 @@ use tera::Context;
 
 use crate::middleware::permissions::{Finance, Require};
 use crate::models::report::{AuditStatement, BalanceSheetReport, GstReport, IncomeStatementReport};
-use crate::routes::utils::{insert_nav_context, render};
+use crate::pdf;
+use crate::routes::utils::{insert_nav_context, pdf_response, render};
 
 /// Deserialize an optional date, treating empty strings as None.
 fn opt_date<'de, D: Deserializer<'de>>(d: D) -> Result<Option<NaiveDate>, D::Error> {
@@ -118,6 +119,59 @@ pub async fn income_statement(
     render(&tera, "reports/income_statement.html", &context)
 }
 
+#[get("/reports/income-statement/pdf")]
+pub async fn income_statement_pdf(
+    _user: Require<Finance>,
+    db: web::Data<DatabaseConnection>,
+    query: web::Query<DateRangeFilter>,
+) -> HttpResponse {
+    if let Err(msg) = query.validate() {
+        return HttpResponse::BadRequest().body(msg);
+    }
+
+    let from_dt = query.from.map(|d| d.and_hms_opt(0, 0, 0).unwrap());
+    let to_dt = query.to.map(|d| d.and_hms_opt(23, 59, 59).unwrap());
+
+    let report = match IncomeStatementReport::compute(&db, from_dt, to_dt).await {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Income statement PDF data error: {e}");
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    pdf_response(
+        web::block(move || pdf::render_income_statement(&report)).await,
+        "income-statement.pdf",
+        "Income statement",
+    )
+}
+
+#[get("/reports/gst/pdf")]
+pub async fn gst_pdf(
+    _user: Require<Finance>,
+    db: web::Data<DatabaseConnection>,
+    query: web::Query<DateRangeFilter>,
+) -> HttpResponse {
+    if let Err(msg) = query.validate() {
+        return HttpResponse::BadRequest().body(msg);
+    }
+
+    let report = match GstReport::compute(&db, query.from, query.to).await {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("GST PDF data error: {e}");
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    pdf_response(
+        web::block(move || pdf::render_gst(&report)).await,
+        "gst-summary.pdf",
+        "GST",
+    )
+}
+
 #[get("/reports/balance-sheet")]
 pub async fn balance_sheet(
     user: Require<Finance>,
@@ -142,6 +196,55 @@ pub async fn balance_sheet(
     }
 
     render(&tera, "reports/balance_sheet.html", &context)
+}
+
+#[get("/reports/balance-sheet/pdf")]
+pub async fn balance_sheet_pdf(
+    _user: Require<Finance>,
+    db: web::Data<DatabaseConnection>,
+    query: web::Query<AsOfFilter>,
+) -> HttpResponse {
+    let as_of_dt = query.as_of.map(|d| d.and_hms_opt(23, 59, 59).unwrap());
+
+    let report = match BalanceSheetReport::compute(&db, as_of_dt).await {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Balance sheet PDF data error: {e}");
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    pdf_response(
+        web::block(move || pdf::render_balance_sheet(&report)).await,
+        "balance-sheet.pdf",
+        "Balance sheet",
+    )
+}
+
+#[get("/reports/audit/pdf")]
+pub async fn audit_pdf(
+    _user: Require<Finance>,
+    db: web::Data<DatabaseConnection>,
+    query: web::Query<YearFilter>,
+) -> HttpResponse {
+    let year = query.year.unwrap_or_else(|| chrono::Utc::now().year());
+    if !(1900..=2100).contains(&year) {
+        return HttpResponse::BadRequest().body("year must be between 1900 and 2100");
+    }
+
+    let report = match AuditStatement::compute(&db, year).await {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Audit PDF data error: {e}");
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    pdf_response(
+        web::block(move || pdf::render_audit(&report)).await,
+        "audit-statement.pdf",
+        "Audit",
+    )
 }
 
 #[get("/reports/audit")]
@@ -176,7 +279,11 @@ pub async fn audit_report(
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(reports_index)
         .service(gst_report)
+        .service(gst_pdf)
         .service(income_statement)
+        .service(income_statement_pdf)
         .service(balance_sheet)
-        .service(audit_report);
+        .service(balance_sheet_pdf)
+        .service(audit_report)
+        .service(audit_pdf);
 }
