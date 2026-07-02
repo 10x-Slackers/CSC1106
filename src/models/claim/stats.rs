@@ -1,6 +1,6 @@
 use rust_decimal::Decimal;
 use sea_orm::sea_query::{Expr, Func, SimpleExpr};
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QuerySelect};
 use serde::Serialize;
 
 use crate::entity::claim as claim_entity;
@@ -15,30 +15,37 @@ pub struct ClaimStats {
     pub avg_claim_amount: Decimal,
 }
 
+type StatsRow = (i64, Option<Decimal>, i64, i64, Option<Decimal>);
+
 impl ClaimStats {
     pub async fn compute(db: &DatabaseConnection) -> Result<Self, ClaimError> {
-        let result: Option<(i64, Option<Decimal>)> = claim_entity::Entity::find()
+        let result: Option<StatsRow> = claim_entity::Entity::find()
             .select_only()
-            .column_as(claim_entity::Column::Id.count(), "cnt")
-            .column_as(Expr::col(claim_entity::Column::Amount).sum(), "sum_amount")
-            .filter(claim_entity::Column::Status.eq(ClaimStatus::Pending))
-            .into_tuple()
-            .one(db)
-            .await?;
-        let (pending_count, pending_amount) = result.unwrap_or((0, None));
-
-        let result: Option<(i64,)> = claim_entity::Entity::find()
-            .select_only()
-            .column_as(claim_entity::Column::Id.count(), "cnt")
-            .filter(claim_entity::Column::Status.eq(ClaimStatus::Rejected))
-            .into_tuple()
-            .one(db)
-            .await?;
-        let rejected_count = result.unwrap_or((0,)).0;
-
-        let result: Option<(i64, Option<Decimal>)> = claim_entity::Entity::find()
-            .select_only()
-            .column_as(claim_entity::Column::Id.count(), "cnt")
+            .column_as(
+                SimpleExpr::from(Func::count(Expr::case(
+                    Expr::col(claim_entity::Column::Status).eq(Expr::val(ClaimStatus::Pending)),
+                    1,
+                ))),
+                "pending_count",
+            )
+            .column_as(
+                SimpleExpr::from(Func::sum(
+                    Expr::case(
+                        Expr::col(claim_entity::Column::Status).eq(Expr::val(ClaimStatus::Pending)),
+                        Expr::col(claim_entity::Column::Amount),
+                    )
+                    .finally(Expr::val(0)),
+                )),
+                "pending_amount",
+            )
+            .column_as(
+                SimpleExpr::from(Func::count(Expr::case(
+                    Expr::col(claim_entity::Column::Status).eq(Expr::val(ClaimStatus::Rejected)),
+                    1,
+                ))),
+                "rejected_count",
+            )
+            .column_as(claim_entity::Column::Id.count(), "total_count")
             .column_as(
                 SimpleExpr::from(Func::avg(Expr::col(claim_entity::Column::Amount))),
                 "avg_amount",
@@ -46,7 +53,9 @@ impl ClaimStats {
             .into_tuple()
             .one(db)
             .await?;
-        let (total_count, avg_amount) = result.unwrap_or((0, None));
+
+        let (pending_count, pending_amount, rejected_count, total_count, avg_amount) =
+            result.unwrap_or((0, None, 0, 0, None));
 
         let rejection_percentage = if total_count == 0 {
             0.0

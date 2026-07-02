@@ -8,6 +8,7 @@ mod m00005_create_claim_table;
 mod m00006_create_invoice_and_line_item_tables;
 mod m00007_create_payment_table;
 mod m00008_create_journal_entry_tables;
+mod m00009_add_indexes;
 
 pub struct Migrator;
 
@@ -23,6 +24,7 @@ impl MigratorTrait for Migrator {
             Box::new(m00006_create_invoice_and_line_item_tables::Migration),
             Box::new(m00007_create_payment_table::Migration),
             Box::new(m00008_create_journal_entry_tables::Migration),
+            Box::new(m00009_add_indexes::Migration),
         ]
     }
 }

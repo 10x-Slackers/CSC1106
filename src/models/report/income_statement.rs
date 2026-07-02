@@ -32,10 +32,10 @@ impl IncomeStatementReport {
         from: Option<NaiveDateTime>,
         to: Option<NaiveDateTime>,
     ) -> Result<IncomeStatement, AppError> {
-        let revenue_balances =
-            balances_by_category(db, &[AccountCategory::Revenue], from, to).await?;
-        let expense_balances =
-            balances_by_category(db, &[AccountCategory::Expense], from, to).await?;
+        let (revenue_balances, expense_balances) = futures::try_join!(
+            balances_by_category(db, &[AccountCategory::Revenue], from, to),
+            balances_by_category(db, &[AccountCategory::Expense], from, to),
+        )?;
 
         let revenue: Vec<IncomeStatementLine> = revenue_balances
             .into_iter()
