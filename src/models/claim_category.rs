@@ -1,18 +1,9 @@
 use std::collections::HashMap;
 
-use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder};
+use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 
 use crate::entity::claim_category;
 use crate::models::error::AppError;
-
-/// Look up a category name by ID. Returns `None` if the category does not exist.
-pub async fn find_name_by_id<C: ConnectionTrait>(
-    db: &C,
-    id: i32,
-) -> Result<Option<String>, AppError> {
-    let category = claim_category::Entity::find_by_id(id).one(db).await?;
-    Ok(category.map(|c| c.name))
-}
 
 /// Build a map of category ID → name for the given IDs.
 pub async fn name_map_by_ids<C: ConnectionTrait>(
@@ -22,11 +13,15 @@ pub async fn name_map_by_ids<C: ConnectionTrait>(
     if ids.is_empty() {
         return Ok(HashMap::new());
     }
-    let categories = claim_category::Entity::find()
+    let rows: Vec<(i32, String)> = claim_category::Entity::find()
+        .select_only()
+        .column(claim_category::Column::Id)
+        .column(claim_category::Column::Name)
         .filter(claim_category::Column::Id.is_in(ids))
+        .into_tuple()
         .all(db)
         .await?;
-    Ok(categories.into_iter().map(|c| (c.id, c.name)).collect())
+    Ok(rows.into_iter().collect())
 }
 
 #[derive(serde::Serialize)]

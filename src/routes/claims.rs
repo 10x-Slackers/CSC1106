@@ -76,9 +76,9 @@ async fn render_claims_list(
         None
     };
 
-    let page = parse_page(filter.page);
+    let page = parse_page(filter.page.as_deref());
     let mut list_filter = filter.clone();
-    list_filter.page = Some(page);
+    list_filter.page = Some(page.to_string());
 
     let (rows, total_pages, current_page) = match Claim::list(db, &list_filter, scope_user_id).await
     {

@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
-    Order, PaginatorTrait, QueryFilter, QueryOrder, Set, TransactionTrait,
+    Order, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
 
 use crate::entity::claim as claim_entity;
@@ -10,12 +10,10 @@ use crate::entity::claim::ClaimStatus;
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line::EntrySide;
 use crate::models::account::find_oe_and_ap;
-use crate::models::claim_category::{
-    find_name_by_id as category_name_by_id, name_map_by_ids as category_name_map_by_ids,
-};
+use crate::models::claim_category::name_map_by_ids as category_name_map_by_ids;
 use crate::models::error::ClaimError;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
-use crate::models::user::{name_by_id, name_map_by_ids};
+use crate::models::user::name_map_by_ids;
 use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::{Claim, ClaimDetail, ClaimFilter, ClaimForm, ClaimRow};
@@ -36,21 +34,27 @@ impl Claim {
         db: &C,
         id: i32,
     ) -> Result<ClaimDetail, ClaimError> {
-        let model = Self::find_model_by_id(db, id).await?;
+        let (model, category) = claim_entity::Entity::find_by_id(id)
+            .find_also_related(crate::entity::claim_category::Entity)
+            .one(db)
+            .await?
+            .ok_or(ClaimError::NotFound)?;
         let claim = Claim::from(model);
+        let category_name = category.map(|c| c.name).unwrap_or_default();
 
-        let submitter_name = name_by_id(db, claim.submitted_by_user_id)
-            .await?
+        // 1 query: batch both user names
+        let mut user_ids = vec![claim.submitted_by_user_id];
+        if let Some(uid) = claim.reviewed_by_user_id {
+            user_ids.push(uid);
+        }
+        let user_map = name_map_by_ids(db, user_ids).await?;
+        let submitter_name = user_map
+            .get(&claim.submitted_by_user_id)
+            .cloned()
             .unwrap_or_default();
-
-        let reviewer_name = match claim.reviewed_by_user_id {
-            Some(uid) => name_by_id(db, uid).await?,
-            None => None,
-        };
-
-        let category_name = category_name_by_id(db, claim.category_id)
-            .await?
-            .unwrap_or_default();
+        let reviewer_name = claim
+            .reviewed_by_user_id
+            .and_then(|uid| user_map.get(&uid).cloned());
 
         Ok(ClaimDetail {
             id: claim.id,
@@ -101,13 +105,21 @@ impl Claim {
             }
         }
 
-        if let Some(cat_id) = filter.category_id {
+        if let Some(cat_id) = filter
+            .category_id
+            .as_deref()
+            .and_then(|s| s.parse::<i32>().ok())
+        {
             conditions = conditions.add(claim_entity::Column::CategoryId.eq(cat_id));
         }
 
         if let Some(scope) = scope_user_id {
             conditions = conditions.add(claim_entity::Column::SubmittedByUserId.eq(scope));
-        } else if let Some(uid) = filter.submitted_by_user_id {
+        } else if let Some(uid) = filter
+            .submitted_by_user_id
+            .as_deref()
+            .and_then(|s| s.parse::<i32>().ok())
+        {
             conditions = conditions.add(claim_entity::Column::SubmittedByUserId.eq(uid));
         }
 
@@ -123,7 +135,12 @@ impl Claim {
             conditions = conditions.add(claim_entity::Column::PurchaseDate.lte(to));
         }
 
-        let page = filter.page.unwrap_or(1).max(1);
+        let page = filter
+            .page
+            .as_deref()
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(1)
+            .max(1);
 
         let paginator = claim_entity::Entity::find()
             .filter(conditions)
@@ -300,4 +317,23 @@ impl Claim {
 
         Ok(())
     }
+}
+
+/// Build a map of claim ID → title for the given IDs.
+pub async fn title_map_by_ids<C: ConnectionTrait>(
+    db: &C,
+    ids: Vec<i32>,
+) -> Result<std::collections::HashMap<i32, String>, ClaimError> {
+    if ids.is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+    let rows: Vec<(i32, String)> = claim_entity::Entity::find()
+        .select_only()
+        .column(claim_entity::Column::Id)
+        .column(claim_entity::Column::Title)
+        .filter(claim_entity::Column::Id.is_in(ids))
+        .into_tuple()
+        .all(db)
+        .await?;
+    Ok(rows.into_iter().collect())
 }

@@ -2,16 +2,15 @@ use std::collections::HashMap;
 
 use rust_decimal::Decimal;
 use sea_orm::{
-    ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, JoinType, QueryFilter,
-    QueryOrder, QuerySelect, QueryTrait, RelationTrait,
+    ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect,
 };
 
 use crate::entity::account;
 use crate::entity::account::AccountCategory;
-use crate::entity::journal_entry;
-use crate::entity::journal_entry_line;
 use crate::entity::journal_entry_line::EntrySide;
 use crate::models::error::AppError;
+use crate::models::posting;
 
 #[derive(serde::Serialize)]
 pub struct AccountOption {
@@ -35,26 +34,25 @@ pub async fn find_by_name<C: ConnectionTrait>(
 pub async fn find_ar_and_sr<C: ConnectionTrait>(
     db: &C,
 ) -> Result<(account::Model, account::Model), AppError> {
-    let ar = find_by_name(db, "Accounts Receivable")
-        .await?
-        .ok_or(AppError::NotFound)?;
-    let sales = find_by_name(db, "Sales Revenue")
-        .await?
-        .ok_or(AppError::NotFound)?;
-    Ok((ar, sales))
+    let (ar, sales) = futures::try_join!(
+        find_by_name(db, "Accounts Receivable"),
+        find_by_name(db, "Sales Revenue"),
+    )?;
+    Ok((
+        ar.ok_or(AppError::NotFound)?,
+        sales.ok_or(AppError::NotFound)?,
+    ))
 }
 
 /// Find the "Operating Expenses" and "Accounts Payable" accounts for posting claim journal entries.
 pub async fn find_oe_and_ap<C: ConnectionTrait>(
     db: &C,
 ) -> Result<(account::Model, account::Model), AppError> {
-    let oe = find_by_name(db, "Operating Expenses")
-        .await?
-        .ok_or(AppError::NotFound)?;
-    let ap = find_by_name(db, "Accounts Payable")
-        .await?
-        .ok_or(AppError::NotFound)?;
-    Ok((oe, ap))
+    let (oe, ap) = futures::try_join!(
+        find_by_name(db, "Operating Expenses"),
+        find_by_name(db, "Accounts Payable"),
+    )?;
+    Ok((oe.ok_or(AppError::NotFound)?, ap.ok_or(AppError::NotFound)?))
 }
 
 /// List all accounts ordered by name, for use in payment form dropdowns.
@@ -100,20 +98,7 @@ pub async fn balances_by_category<C: ConnectionTrait>(
     let account_ids: Vec<i32> = accounts.iter().map(|a| a.id).collect();
 
     // Fetch journal entry lines joined to their parent entry, filtered by date.
-    let lines = journal_entry_line::Entity::find()
-        .join(
-            JoinType::InnerJoin,
-            journal_entry_line::Relation::JournalEntry.def(),
-        )
-        .filter(journal_entry_line::Column::AccountId.is_in(account_ids))
-        .apply_if(from, |q, dt| {
-            q.filter(journal_entry::Column::CreatedAt.gte(dt))
-        })
-        .apply_if(up_to, |q, dt| {
-            q.filter(journal_entry::Column::CreatedAt.lte(dt))
-        })
-        .all(db)
-        .await?;
+    let lines = posting::lines_for_accounts(db, account_ids, from, up_to).await?;
 
     // Sum debits/credits per account.
     let mut totals: HashMap<i32, Decimal> = HashMap::new();
@@ -142,4 +127,23 @@ pub async fn balances_by_category<C: ConnectionTrait>(
         .collect();
 
     Ok(result)
+}
+
+/// Build a map of account ID → name for the given IDs.
+pub async fn name_map_by_ids<C: ConnectionTrait>(
+    db: &C,
+    ids: Vec<i32>,
+) -> Result<HashMap<i32, String>, AppError> {
+    if ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+    let rows: Vec<(i32, String)> = account::Entity::find()
+        .select_only()
+        .column(account::Column::Id)
+        .column(account::Column::Name)
+        .filter(account::Column::Id.is_in(ids))
+        .into_tuple()
+        .all(db)
+        .await?;
+    Ok(rows.into_iter().collect())
 }

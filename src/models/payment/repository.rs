@@ -7,55 +7,45 @@ use sea_orm::{
 
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line::EntrySide;
+use crate::entity::party as party_entity;
 use crate::entity::payment as payment_entity;
 use crate::entity::payment::PaymentDirection;
 use crate::models::error::{AppError, PaymentCreateError};
 use crate::models::invoice::Invoice;
-use crate::models::party::Party;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
-use crate::models::user::name_by_id;
+use crate::models::user;
 use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::{Payment, PaymentDetail};
 
 impl Payment {
-    async fn find_model_by_id(
-        db: &DatabaseConnection,
-        id: i32,
-    ) -> Result<Option<payment_entity::Model>, AppError> {
-        payment_entity::Entity::find_by_id(id)
-            .one(db)
-            .await
-            .map_err(AppError::from)
-    }
-
-    /// Load a payment with enriched details.
+    /// Load a payment with enriched details using a LEFT JOIN for party + a separate user query.
     pub async fn find_with_linked(
         db: &DatabaseConnection,
         id: i32,
     ) -> Result<Option<PaymentDetail>, AppError> {
-        let payment = match Self::find_model_by_id(db, id).await? {
-            Some(m) => Payment::from(m),
-            None => return Ok(None),
-        };
+        let row = payment_entity::Entity::find_by_id(id)
+            .find_also_related(party_entity::Entity)
+            .one(db)
+            .await?;
 
-        let party_name = match payment.party_id {
-            Some(pid) => Party::find_name_by_id(db, pid).await?,
-            None => None,
-        };
+        match row {
+            None => Ok(None),
+            Some((payment, party)) => {
+                let created_by_name = user::name_by_id(db, payment.created_by_user_id).await?;
 
-        let created_by_name = name_by_id(db, payment.created_by_user_id).await?;
-
-        Ok(Some(PaymentDetail {
-            id: payment.id,
-            payment_direction: payment.payment_direction,
-            payment_date: payment.payment_date,
-            party_name,
-            amount: payment.amount,
-            remarks: payment.remarks,
-            created_at: payment.created_at,
-            created_by_name,
-        }))
+                Ok(Some(PaymentDetail {
+                    id: payment.id,
+                    payment_direction: payment.payment_direction,
+                    payment_date: payment.payment_date,
+                    party_name: party.map(|p| p.name),
+                    amount: payment.amount,
+                    remarks: payment.remarks,
+                    created_at: payment.created_at,
+                    created_by_name,
+                }))
+            }
+        }
     }
 
     /// List payments with optional filters.
@@ -164,28 +154,34 @@ impl Payment {
         Ok(payment)
     }
 
-    /// Sum of all payment amounts for a given party.
+    /// Sum of all payment amounts for a given party using SQL SUM.
     pub async fn total_for_party(
         db: &DatabaseConnection,
         party_id: i32,
     ) -> Result<Decimal, AppError> {
-        let payments = payment_entity::Entity::find()
+        let result: Option<(Option<Decimal>,)> = payment_entity::Entity::find()
+            .select_only()
+            .column_as(payment_entity::Column::Amount.sum(), "total")
             .filter(payment_entity::Column::PartyId.eq(party_id))
-            .all(db)
+            .into_tuple()
+            .one(db)
             .await?;
-        Ok(payments.into_iter().map(|p| p.amount).sum())
+        Ok(result.and_then(|(v,)| v).unwrap_or(Decimal::ZERO))
     }
 
-    /// Sum of all payment amounts for a given invoice.
+    /// Sum of all payment amounts for a given invoice using SQL SUM.
     pub async fn total_for_invoice<C: ConnectionTrait>(
         db: &C,
         invoice_id: i32,
     ) -> Result<Decimal, AppError> {
-        let payments = payment_entity::Entity::find()
+        let result: Option<(Option<Decimal>,)> = payment_entity::Entity::find()
+            .select_only()
+            .column_as(payment_entity::Column::Amount.sum(), "total")
             .filter(payment_entity::Column::InvoiceId.eq(invoice_id))
-            .all(db)
+            .into_tuple()
+            .one(db)
             .await?;
-        Ok(payments.into_iter().map(|p| p.amount).sum())
+        Ok(result.and_then(|(v,)| v).unwrap_or(Decimal::ZERO))
     }
 
     /// List all payments linked to an invoice, newest first.

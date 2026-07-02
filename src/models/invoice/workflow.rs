@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use futures::TryFutureExt;
 use rust_decimal::Decimal;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait,
@@ -18,7 +19,8 @@ use crate::models::payment::Payment;
 use crate::models::posting::{JournalEntryLineInput, PostingService};
 use crate::models::util::is_unique_violation;
 
-use super::types::{Invoice, LineItemInput};
+use super::calc::grand_total;
+use super::types::{Invoice, InvoiceLineItem, LineItemInput};
 
 impl Invoice {
     fn to_active_model(&self) -> invoice_entity::ActiveModel {
@@ -364,12 +366,12 @@ impl Invoice {
         }
     }
 
-    /// Recompute status based on total paid amount. The caller must ensure
-    /// `self` was loaded within the same transaction to avoid stale overwrites.
+    /// Recompute status based on total paid amount and grand total.
     async fn apply_recomputed_status<C: ConnectionTrait>(
         &self,
         db: &C,
         total_paid: Decimal,
+        grand_total: Decimal,
     ) -> Result<(), InvoiceError> {
         match self.status {
             InvoiceStatus::Paid | InvoiceStatus::Voided => Ok(()),
@@ -378,9 +380,7 @@ impl Invoice {
                 to: "recompute".into(),
             }),
             InvoiceStatus::Sent | InvoiceStatus::PartiallyPaid => {
-                let total = self.load_grand_total(db).await?;
-
-                let new_status = if total_paid >= total {
+                let new_status = if total_paid >= grand_total {
                     InvoiceStatus::Paid
                 } else if total_paid > Decimal::ZERO {
                     InvoiceStatus::PartiallyPaid
@@ -414,9 +414,20 @@ impl Invoice {
             .ok_or_else(|| InvoiceError::NotFound)?;
         let invoice = Invoice::from(model);
 
-        let total_paid = Payment::total_for_invoice(db, invoice_id).await?;
+        let (items, total_paid) = {
+            let items_fut = line_item_entity::Entity::find()
+                .filter(line_item_entity::Column::InvoiceId.eq(invoice_id))
+                .all(db)
+                .map_err(InvoiceError::from);
+            let tp_fut = Payment::total_for_invoice(db, invoice_id).map_err(InvoiceError::from);
+            futures::try_join!(items_fut, tp_fut)?
+        };
+        let items: Vec<InvoiceLineItem> = items.into_iter().map(InvoiceLineItem::from).collect();
+        let grand_total = grand_total(&items);
 
-        invoice.apply_recomputed_status(db, total_paid).await?;
+        invoice
+            .apply_recomputed_status(db, total_paid, grand_total)
+            .await?;
         Ok(())
     }
 }

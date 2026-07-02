@@ -36,7 +36,7 @@ pub struct PartyFilter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     status: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    page: Option<u32>,
+    page: Option<String>,
 }
 
 fn render_parties_list(
@@ -142,7 +142,7 @@ pub async fn list_parties(
         Some("") => None,
         Some(s) => PartyStatus::parse(s),
     };
-    let page = parse_page(filter.page);
+    let page = parse_page(filter.page.as_deref());
     let base_query = base_query_string(&filter);
     let pagination_default = Pagination {
         current: 1,
@@ -453,27 +453,17 @@ pub async fn show_party(
         Err(resp) => return resp,
     };
 
-    let invoice_count = match Invoice::count_for_party(db.get_ref(), id).await {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Failed to load invoice count for party {id}: {e}");
-            0
-        }
-    };
-
-    let total_spending = match Payment::total_for_party(db.get_ref(), id).await {
-        Ok(total) => total.to_string(),
-        Err(e) => {
-            eprintln!("Failed to load payment total for party {id}: {e}");
-            Decimal::ZERO.to_string()
-        }
-    };
-
-    let recent_payments = match Payment::recent_for_party(db.get_ref(), id, 5).await {
-        Ok(payments) => payments,
-        Err(e) => {
-            eprintln!("Failed to load recent payments for party {id}: {e}");
-            Vec::new()
+    let (invoice_count, total_spending, recent_payments) = {
+        let db = db.get_ref();
+        let count_fut = Invoice::count_for_party(db, id);
+        let total_fut = Payment::total_for_party(db, id);
+        let recent_fut = Payment::recent_for_party(db, id, 5);
+        match futures::try_join!(count_fut, total_fut, recent_fut) {
+            Ok((c, t, r)) => (c, t.to_string(), r),
+            Err(e) => {
+                eprintln!("Failed to load party stats for {id}: {e}");
+                (0u64, Decimal::ZERO.to_string(), Vec::new())
+            }
         }
     };
 
