@@ -1,2 +1,6 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @plugin "daisyui";
+
+/* Only scan templates for class usage; avoids watching target/ (which churns
+   during cargo builds and crashes the file watcher). */
+@source "../templates";
