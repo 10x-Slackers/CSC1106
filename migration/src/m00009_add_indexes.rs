@@ -1,0 +1,402 @@
+use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // claim FK indexes
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_claim_submitted_by_user_id")
+                    .table(Claim::Table)
+                    .col(Claim::SubmittedByUserId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_claim_reviewed_by_user_id")
+                    .table(Claim::Table)
+                    .col(Claim::ReviewedByUserId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_claim_category_id")
+                    .table(Claim::Table)
+                    .col(Claim::CategoryId)
+                    .to_owned(),
+            )
+            .await?;
+
+        // invoice FK indexes
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_invoice_party_id")
+                    .table(Invoice::Table)
+                    .col(Invoice::PartyId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_invoice_created_by_user_id")
+                    .table(Invoice::Table)
+                    .col(Invoice::CreatedByUserId)
+                    .to_owned(),
+            )
+            .await?;
+
+        // invoice_line_item FK index
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_invoice_line_item_invoice_id")
+                    .table(InvoiceLineItem::Table)
+                    .col(InvoiceLineItem::InvoiceId)
+                    .to_owned(),
+            )
+            .await?;
+
+        // payment FK indexes
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_payment_invoice_id")
+                    .table(Payment::Table)
+                    .col(Payment::InvoiceId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_payment_party_id")
+                    .table(Payment::Table)
+                    .col(Payment::PartyId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_payment_created_by_user_id")
+                    .table(Payment::Table)
+                    .col(Payment::CreatedByUserId)
+                    .to_owned(),
+            )
+            .await?;
+
+        // journal_entry FK indexes
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_journal_entry_payment_id")
+                    .table(JournalEntry::Table)
+                    .col(JournalEntry::PaymentId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_journal_entry_claim_id")
+                    .table(JournalEntry::Table)
+                    .col(JournalEntry::ClaimId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_journal_entry_invoice_id")
+                    .table(JournalEntry::Table)
+                    .col(JournalEntry::InvoiceId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_journal_entry_created_by_user_id")
+                    .table(JournalEntry::Table)
+                    .col(JournalEntry::CreatedByUserId)
+                    .to_owned(),
+            )
+            .await?;
+
+        // journal_entry_line FK indexes
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_journal_entry_line_entry_id")
+                    .table(JournalEntryLine::Table)
+                    .col(JournalEntryLine::EntryId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_journal_entry_line_account_id")
+                    .table(JournalEntryLine::Table)
+                    .col(JournalEntryLine::AccountId)
+                    .to_owned(),
+            )
+            .await?;
+
+        // status/date filter indexes
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_invoice_status")
+                    .table(Invoice::Table)
+                    .col(Invoice::Status)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_claim_status")
+                    .table(Claim::Table)
+                    .col(Claim::Status)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_journal_entry_created_at")
+                    .table(JournalEntry::Table)
+                    .col(JournalEntry::CreatedAt)
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // Drop in reverse order
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_journal_entry_created_at")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_claim_status")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_invoice_status")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_journal_entry_line_account_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_journal_entry_line_entry_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_journal_entry_created_by_user_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_journal_entry_invoice_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_journal_entry_claim_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_journal_entry_payment_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_payment_created_by_user_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_payment_party_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_payment_invoice_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_invoice_line_item_invoice_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_invoice_created_by_user_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_invoice_party_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_claim_category_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_claim_reviewed_by_user_id")
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name("idx_claim_submitted_by_user_id")
+                    .to_owned(),
+            )
+            .await?;
+        Ok(())
+    }
+}
+
+#[derive(DeriveIden)]
+enum Claim {
+    Table,
+    SubmittedByUserId,
+    ReviewedByUserId,
+    CategoryId,
+    Status,
+}
+
+#[derive(DeriveIden)]
+enum Invoice {
+    Table,
+    PartyId,
+    CreatedByUserId,
+    Status,
+}
+
+#[derive(DeriveIden)]
+enum InvoiceLineItem {
+    Table,
+    InvoiceId,
+}
+
+#[derive(DeriveIden)]
+enum Payment {
+    Table,
+    InvoiceId,
+    PartyId,
+    CreatedByUserId,
+}
+
+#[derive(DeriveIden)]
+enum JournalEntry {
+    Table,
+    PaymentId,
+    ClaimId,
+    InvoiceId,
+    CreatedByUserId,
+    CreatedAt,
+}
+
+#[derive(DeriveIden)]
+enum JournalEntryLine {
+    Table,
+    EntryId,
+    AccountId,
+}
