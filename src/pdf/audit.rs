@@ -53,7 +53,7 @@ pub fn render_audit(report: &AuditReport) -> Result<Vec<u8>, PdfError> {
         &[3, 4, 4, 3, 3],
         &["Date", "Source", "Account", "Debit", "Credit"],
         rows,
-        3,
+        3, // right-align Debit & Credit
     );
     builder::table_total_gap(&mut doc);
 

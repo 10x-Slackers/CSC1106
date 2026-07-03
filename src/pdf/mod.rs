@@ -1,7 +1,7 @@
-//! PDF generation (approach 1: pure-Rust `genpdf` builder).
+//! PDF generation with `genpdf`.
 //!
-//! [`builder`] holds document-agnostic building blocks; each document type has
-//! its own layout module that composes them from real domain data.
+//! [`builder`] holds shared building blocks; each document type has its own
+//! layout module that composes them.
 
 pub mod audit;
 pub mod balance_sheet;

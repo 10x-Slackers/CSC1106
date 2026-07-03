@@ -37,6 +37,7 @@ fn load_fonts() -> Result<FontFamily<FontData>, PdfError> {
     Ok(FontFamily {
         regular: load(REGULAR_FONT)?,
         bold: load(BOLD_FONT)?,
+        // No italic faces embedded; reuse regular/bold so italics still render.
         italic: load(REGULAR_FONT)?,
         bold_italic: load(BOLD_FONT)?,
     })
@@ -98,14 +99,14 @@ pub fn total_line(doc: &mut Document, label: &str, value: &str, strong: bool) {
     doc.push(p);
 }
 
-/// Push a bordered table with the default alignment: first column left, every
-/// other column right-aligned (labels left, figures right).
+/// Push a bordered table: first column left, the rest right-aligned.
+/// `weights` are *relative* column widths (e.g. `[6, 3]` = 2:1).
 pub fn push_table(doc: &mut Document, weights: &[usize], header: &[&str], rows: Vec<Vec<String>>) {
     push_table_aligned(doc, weights, header, rows, 1);
 }
 
 /// Push a bordered table, right-aligning columns from index `right_from`
-/// onwards; earlier columns stay left-aligned. `weights` sets column widths.
+/// onwards; earlier columns stay left-aligned. `weights` are relative widths.
 pub fn push_table_aligned(
     doc: &mut Document,
     weights: &[usize],
