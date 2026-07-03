@@ -30,3 +30,4 @@ sea-orm = { version = "1.1", features = [
 sqlx = { version = "0.8", features = ["sqlite"] }
 
 migration = { path = "migration" }
+genpdf = "0.2"

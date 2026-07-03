@@ -24,8 +24,10 @@ use crate::models::invoice::{
 use crate::models::party::Party;
 use crate::models::payment::Payment;
 use crate::models::util::non_empty;
+use crate::pdf;
 use crate::routes::utils::{
-    Pagination, base_query_string, find_or_404, insert_nav_context, parse_field, parse_page, render,
+    Pagination, base_query_string, find_or_404, insert_nav_context, parse_field, parse_page,
+    pdf_response, render,
 };
 
 #[derive(Deserialize, Debug)]
@@ -617,6 +619,36 @@ pub async fn show_invoice(
     )
 }
 
+/// Download an invoice as a PDF document.
+#[get("/invoices/{id}/pdf")]
+pub async fn invoice_pdf(
+    user: Authenticated,
+    db: web::Data<DatabaseConnection>,
+    path: web::Path<i32>,
+) -> HttpResponse {
+    let id = path.into_inner();
+
+    let (invoice, line_items) =
+        match find_or_404(Invoice::find_by_id(db.get_ref(), id), id, "Invoice").await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
+
+    if let Err(resp) = check_ownership(&user, &invoice) {
+        return resp;
+    }
+
+    let party = Party::find_by_id(db.get_ref(), invoice.party_id)
+        .await
+        .unwrap_or(None);
+
+    let filename = format!("{}.pdf", invoice.invoice_no);
+    let result =
+        web::block(move || pdf::render_invoice(&invoice, &line_items, party.as_ref())).await;
+
+    pdf_response(result, &filename, &format!("Invoice {id}"))
+}
+
 /// Show the simplified payment form for an invoice.
 #[get("/invoices/{id}/pay")]
 pub async fn pay_invoice_form(
@@ -1090,6 +1122,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         .service(new_invoice)
         .service(create_invoice)
         .service(show_invoice)
+        .service(invoice_pdf)
         .service(edit_invoice)
         .service(update_invoice)
         .service(send_invoice)

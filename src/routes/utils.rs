@@ -2,11 +2,40 @@ use std::future::Future;
 use std::str::FromStr;
 
 use actix_web::HttpResponse;
+use actix_web::error::BlockingError;
 use tera::{Context, Tera};
 
 use crate::entity::user::Role;
 use crate::middleware::auth::Authenticated;
 use crate::middleware::permissions::{AdminOnly, Finance, RoleSet};
+use crate::pdf::PdfError;
+
+/// Turn the result of a `web::block` PDF render into a download response.
+///
+/// `label` names the document in error logs; `filename` is the download name.
+pub fn pdf_response(
+    result: Result<Result<Vec<u8>, PdfError>, BlockingError>,
+    filename: &str,
+    label: &str,
+) -> HttpResponse {
+    match result {
+        Ok(Ok(bytes)) => HttpResponse::Ok()
+            .content_type("application/pdf")
+            .insert_header((
+                "Content-Disposition",
+                format!("attachment; filename=\"{filename}\""),
+            ))
+            .body(bytes),
+        Ok(Err(e)) => {
+            eprintln!("{label} PDF render error: {e}");
+            HttpResponse::InternalServerError().finish()
+        }
+        Err(e) => {
+            eprintln!("{label} PDF task failed: {e}");
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
 
 /// Render a Tera template into an HTML HttpResponse.
 pub fn render(tera: &Tera, name: &str, context: &Context) -> HttpResponse {
