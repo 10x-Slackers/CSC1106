@@ -11,7 +11,7 @@ use crate::entity::invoice::InvoiceStatus;
 use crate::entity::invoice_line_item as line_item_entity;
 use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line::EntrySide;
-use crate::entity::party::PartyStatus;
+use crate::entity::party::{PartyStatus, PartyType};
 use crate::models::account::find_ar_and_sr;
 use crate::models::error::InvoiceError;
 use crate::models::party::Party;
@@ -100,6 +100,11 @@ impl Invoice {
         if party.status != PartyStatus::Active {
             return Err(InvoiceError::ValidationError(
                 "Selected party is not active".into(),
+            ));
+        }
+        if party.party_type != PartyType::Customer {
+            return Err(InvoiceError::ValidationError(
+                "Invoices can only be created for customers".into(),
             ));
         }
         Ok(())

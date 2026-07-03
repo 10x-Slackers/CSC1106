@@ -5,6 +5,7 @@ use sea_orm::{DatabaseConnection, TransactionTrait};
 use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
 
+use crate::entity::party::PartyStatus;
 use crate::entity::payment::PaymentDirection;
 use crate::middleware::auth::Authenticated;
 use crate::middleware::permissions::{Finance, Require};
@@ -88,7 +89,7 @@ async fn render_payments_list(
     message: &str,
     message_kind: &str,
 ) -> HttpResponse {
-    let parties = Party::list_all(db).await.unwrap_or_default();
+    let parties = Party::list(db, None, None).await.unwrap_or_default();
     let party_map: std::collections::HashMap<i32, String> =
         parties.iter().map(|p| (p.id, p.name.clone())).collect();
     let page = parse_page(filter.page.as_deref());
@@ -146,7 +147,9 @@ async fn render_form(
     message: &str,
     message_kind: &str,
 ) -> HttpResponse {
-    let parties = Party::list_active(db).await.unwrap_or_default();
+    let parties = Party::list(db, None, Some(PartyStatus::Active))
+        .await
+        .unwrap_or_default();
     let accounts = list_accounts(db).await.unwrap_or_default();
     let mut ctx = Context::new();
     ctx.insert("parties", &parties);

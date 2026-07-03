@@ -2,16 +2,22 @@ use actix_web::{HttpResponse, get, post, web};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;
+use sea_orm::TransactionTrait;
 use serde::{Deserialize, Serialize};
 use serde_qs::actix::QsForm;
 use tera::{Context, Tera};
 
 use crate::entity::invoice::InvoiceStatus;
 use crate::entity::invoice_line_item::GstRate;
+use crate::entity::party::PartyStatus;
+use crate::entity::party::PartyType;
+use crate::entity::payment::PaymentDirection;
 use crate::entity::user::Role;
 use crate::middleware::auth::Authenticated;
 use crate::middleware::permissions::{Finance, Require};
+use crate::models::account::find_cash_and_ar;
 use crate::models::error::InvoiceError;
+use crate::models::error::PaymentCreateError;
 use crate::models::invoice::{
     Invoice, InvoiceLineItem, LineItemInput, grand_total, gst_total, subtotal,
 };
@@ -38,6 +44,13 @@ pub struct InvoiceForm {
     issue_date: String,
     due_date: String,
     items: Vec<InvoiceLineItemForm>,
+}
+
+#[derive(Deserialize)]
+struct InvoicePaymentForm {
+    amount: String,
+    payment_date: String,
+    remarks: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Default)]
@@ -235,7 +248,9 @@ async fn reload_invoices_list_with(
                 current: current_page,
                 total_pages,
             };
-            let parties = Party::list_all(db).await.unwrap_or_default();
+            let parties = Party::list(db, Some(PartyType::Customer), None)
+                .await
+                .unwrap_or_default();
             render_invoices_list(
                 tera,
                 user,
@@ -254,7 +269,9 @@ async fn reload_invoices_list_with(
                 current: 1,
                 total_pages: 1,
             };
-            let parties = Party::list_all(db).await.unwrap_or_default();
+            let parties = Party::list(db, Some(PartyType::Customer), None)
+                .await
+                .unwrap_or_default();
             render_invoices_list(
                 tera,
                 user,
@@ -323,6 +340,27 @@ fn render_invoice_show(
     render(tera, "invoices/show.html", &context)
 }
 
+/// Render the pay-invoice form with an optional error/success message.
+fn render_invoice_pay_form(
+    tera: &Tera,
+    user: &Authenticated,
+    invoice: &Invoice,
+    party: Option<&Party>,
+    outstanding: Decimal,
+    message: &str,
+    message_kind: &str,
+) -> HttpResponse {
+    let mut context = Context::new();
+    context.insert("invoice", invoice);
+    context.insert("party", &party);
+    context.insert("outstanding", &outstanding);
+    context.insert("today", &chrono::Utc::now().naive_utc().date());
+    context.insert("message", message);
+    context.insert("message_kind", message_kind);
+    insert_nav_context(&mut context, user);
+    render(tera, "invoices/pay.html", &context)
+}
+
 /// List invoices with optional filters.
 #[get("/invoices")]
 pub async fn list_invoices(
@@ -359,7 +397,9 @@ pub async fn list_invoices(
                 current: current_page,
                 total_pages,
             };
-            let parties = Party::list_all(db.get_ref()).await.unwrap_or_default();
+            let parties = Party::list(db.get_ref(), Some(PartyType::Customer), None)
+                .await
+                .unwrap_or_default();
             render_invoices_list(
                 tera.get_ref(),
                 &user,
@@ -378,7 +418,9 @@ pub async fn list_invoices(
                 current: 1,
                 total_pages: 1,
             };
-            let parties = Party::list_all(db.get_ref()).await.unwrap_or_default();
+            let parties = Party::list(db.get_ref(), Some(PartyType::Customer), None)
+                .await
+                .unwrap_or_default();
             render_invoices_list(
                 tera.get_ref(),
                 &user,
@@ -401,7 +443,13 @@ pub async fn new_invoice(
     tera: web::Data<Tera>,
     db: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
-    let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+    let parties = Party::list(
+        db.get_ref(),
+        Some(PartyType::Customer),
+        Some(PartyStatus::Active),
+    )
+    .await
+    .unwrap_or_default();
     render_invoice_form(tera.get_ref(), &user, "new", None, None, &parties, "", "")
 }
 
@@ -440,7 +488,13 @@ pub async fn create_invoice(
     }
 
     if !errors.is_empty() {
-        let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+        let parties = Party::list(
+            db.get_ref(),
+            Some(PartyType::Customer),
+            Some(PartyStatus::Active),
+        )
+        .await
+        .unwrap_or_default();
         return render_invoice_form(
             tera.get_ref(),
             &user,
@@ -465,7 +519,13 @@ pub async fn create_invoice(
     {
         Ok(_) => reload_invoices_list(tera.get_ref(), &user, db.get_ref(), "created").await,
         Err(InvoiceError::Duplicate) => {
-            let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+            let parties = Party::list(
+                db.get_ref(),
+                Some(PartyType::Customer),
+                Some(PartyStatus::Active),
+            )
+            .await
+            .unwrap_or_default();
             render_invoice_form(
                 tera.get_ref(),
                 &user,
@@ -478,7 +538,13 @@ pub async fn create_invoice(
             )
         }
         Err(InvoiceError::ValidationError(msg)) => {
-            let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+            let parties = Party::list(
+                db.get_ref(),
+                Some(PartyType::Customer),
+                Some(PartyStatus::Active),
+            )
+            .await
+            .unwrap_or_default();
             render_invoice_form(
                 tera.get_ref(),
                 &user,
@@ -492,7 +558,13 @@ pub async fn create_invoice(
         }
         Err(e) => {
             eprintln!("Failed to create invoice: {e}");
-            let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+            let parties = Party::list(
+                db.get_ref(),
+                Some(PartyType::Customer),
+                Some(PartyStatus::Active),
+            )
+            .await
+            .unwrap_or_default();
             render_invoice_form(
                 tera.get_ref(),
                 &user,
@@ -577,6 +649,249 @@ pub async fn invoice_pdf(
     pdf_response(result, &filename, &format!("Invoice {id}"))
 }
 
+/// Show the simplified payment form for an invoice.
+#[get("/invoices/{id}/pay")]
+pub async fn pay_invoice_form(
+    user: Require<Finance>,
+    tera: web::Data<Tera>,
+    db: web::Data<DatabaseConnection>,
+    path: web::Path<i32>,
+) -> HttpResponse {
+    let id = path.into_inner();
+
+    let (invoice, line_items) =
+        match find_or_404(Invoice::find_by_id(db.get_ref(), id), id, "Invoice").await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
+
+    if let Err(resp) = check_ownership(&user, &invoice) {
+        return resp;
+    }
+
+    let party = Party::find_by_id(db.get_ref(), invoice.party_id)
+        .await
+        .unwrap_or(None);
+
+    // Only Sent or PartiallyPaid invoices can receive payments.
+    match invoice.status {
+        InvoiceStatus::Sent | InvoiceStatus::PartiallyPaid => {
+            let total = grand_total(&line_items);
+            let paid = Payment::total_for_invoice(db.get_ref(), invoice.id)
+                .await
+                .unwrap_or(Decimal::ZERO);
+            let outstanding = total - paid;
+            render_invoice_pay_form(
+                tera.get_ref(),
+                &user,
+                &invoice,
+                party.as_ref(),
+                outstanding,
+                "",
+                "",
+            )
+        }
+        InvoiceStatus::Draft => render_invoice_show(
+            tera.get_ref(),
+            &user,
+            &invoice,
+            &line_items,
+            party.as_ref(),
+            &[],
+            "Send the invoice before recording a payment.",
+            "error",
+        ),
+        _ => render_invoice_show(
+            tera.get_ref(),
+            &user,
+            &invoice,
+            &line_items,
+            party.as_ref(),
+            &[],
+            "This invoice cannot be paid.",
+            "error",
+        ),
+    }
+}
+
+/// Record a payment against an invoice using the simplified form.
+#[post("/invoices/{id}/pay")]
+pub async fn pay_invoice(
+    user: Require<Finance>,
+    tera: web::Data<Tera>,
+    db: web::Data<DatabaseConnection>,
+    path: web::Path<i32>,
+    form: web::Form<InvoicePaymentForm>,
+) -> HttpResponse {
+    let id = path.into_inner();
+
+    let (invoice, line_items) =
+        match find_or_404(Invoice::find_by_id(db.get_ref(), id), id, "Invoice").await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
+
+    if let Err(resp) = check_ownership(&user, &invoice) {
+        return resp;
+    }
+
+    let party = Party::find_by_id(db.get_ref(), invoice.party_id)
+        .await
+        .unwrap_or(None);
+
+    // Re-check status (guards against stale form / double submit).
+    if !matches!(
+        invoice.status,
+        InvoiceStatus::Sent | InvoiceStatus::PartiallyPaid
+    ) {
+        return render_invoice_show(
+            tera.get_ref(),
+            &user,
+            &invoice,
+            &line_items,
+            party.as_ref(),
+            &[],
+            "This invoice cannot be paid.",
+            "error",
+        );
+    }
+
+    let total = grand_total(&line_items);
+    let paid = Payment::total_for_invoice(db.get_ref(), invoice.id)
+        .await
+        .unwrap_or(Decimal::ZERO);
+    let outstanding = total - paid;
+
+    let amount_str = form.amount.trim();
+    let payment_date_str = form.payment_date.trim();
+    let remarks = form
+        .remarks
+        .as_deref()
+        .and_then(non_empty)
+        .map(str::to_string);
+
+    let mut errors: Vec<String> = Vec::new();
+
+    let amount = match amount_str.parse::<Decimal>() {
+        Ok(a) if a > Decimal::ZERO => a,
+        _ => {
+            errors.push("Amount must be a positive number.".into());
+            Decimal::ZERO
+        }
+    };
+
+    if errors.is_empty() && amount > outstanding {
+        errors.push(format!(
+            "Payment exceeds the outstanding balance of {}.",
+            outstanding
+        ));
+    }
+
+    let payment_date = parse_field(
+        payment_date_str,
+        &mut errors,
+        "Payment date is invalid.",
+        chrono::Utc::now().naive_utc().date(),
+    );
+
+    if !errors.is_empty() {
+        return render_invoice_pay_form(
+            tera.get_ref(),
+            &user,
+            &invoice,
+            party.as_ref(),
+            outstanding,
+            &errors.join(" "),
+            "error",
+        );
+    }
+
+    // Look up Cash (debit) and Accounts Receivable (credit) accounts.
+    let (cash, ar) = match find_cash_and_ar(db.get_ref()).await {
+        Ok(pair) => pair,
+        Err(_) => {
+            return render_invoice_pay_form(
+                tera.get_ref(),
+                &user,
+                &invoice,
+                party.as_ref(),
+                outstanding,
+                "Cash or Accounts Receivable account is not configured.",
+                "error",
+            );
+        }
+    };
+
+    let user_id = user.id;
+    let result: Result<Payment, PaymentCreateError> = db
+        .transaction(|txn| {
+            let remarks = remarks.clone();
+            Box::pin(async move {
+                Payment::create(
+                    txn,
+                    Payment {
+                        id: 0,
+                        invoice_id: Some(invoice.id),
+                        party_id: Some(invoice.party_id),
+                        created_by_user_id: user_id,
+                        payment_direction: PaymentDirection::In,
+                        amount,
+                        payment_date,
+                        remarks,
+                        created_at: chrono::NaiveDateTime::default(),
+                    },
+                    ar.id,
+                    cash.id,
+                )
+                .await
+            })
+        })
+        .await
+        .map_err(|e| match e {
+            sea_orm::TransactionError::Connection(db_err) => PaymentCreateError::Database(db_err),
+            sea_orm::TransactionError::Transaction(p) => p,
+        });
+
+    match result {
+        Ok(_) => {
+            let payments = Payment::list_for_invoice(db.get_ref(), invoice.id)
+                .await
+                .unwrap_or_default();
+            render_invoice_show(
+                tera.get_ref(),
+                &user,
+                &invoice,
+                &line_items,
+                party.as_ref(),
+                &payments,
+                "Payment recorded.",
+                "success",
+            )
+        }
+        Err(PaymentCreateError::SameAccount) => render_invoice_pay_form(
+            tera.get_ref(),
+            &user,
+            &invoice,
+            party.as_ref(),
+            outstanding,
+            "Cash and Accounts Receivable must differ.",
+            "error",
+        ),
+        Err(e) => {
+            eprintln!("Failed to record payment for invoice {id}: {e}");
+            render_invoice_pay_form(
+                tera.get_ref(),
+                &user,
+                &invoice,
+                party.as_ref(),
+                outstanding,
+                "Failed to record payment.",
+                "error",
+            )
+        }
+    }
+}
+
 /// Show the edit-invoice form.
 #[get("/invoices/{id}/edit")]
 pub async fn edit_invoice(
@@ -597,7 +912,13 @@ pub async fn edit_invoice(
         return resp;
     }
 
-    let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+    let parties = Party::list(
+        db.get_ref(),
+        Some(PartyType::Customer),
+        Some(PartyStatus::Active),
+    )
+    .await
+    .unwrap_or_default();
     render_invoice_form(
         tera.get_ref(),
         &user,
@@ -656,7 +977,13 @@ pub async fn update_invoice(
     }
 
     if !errors.is_empty() {
-        let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+        let parties = Party::list(
+            db.get_ref(),
+            Some(PartyType::Customer),
+            Some(PartyStatus::Active),
+        )
+        .await
+        .unwrap_or_default();
         return render_invoice_form(
             tera.get_ref(),
             &user,
@@ -675,7 +1002,13 @@ pub async fn update_invoice(
     {
         Ok(_) => reload_invoices_list(tera.get_ref(), &user, db.get_ref(), "updated").await,
         Err(InvoiceError::ValidationError(msg)) => {
-            let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+            let parties = Party::list(
+                db.get_ref(),
+                Some(PartyType::Customer),
+                Some(PartyStatus::Active),
+            )
+            .await
+            .unwrap_or_default();
             render_invoice_form(
                 tera.get_ref(),
                 &user,
@@ -689,7 +1022,13 @@ pub async fn update_invoice(
         }
         Err(e) => {
             eprintln!("Failed to update invoice {id}: {e}");
-            let parties = Party::list_active(db.get_ref()).await.unwrap_or_default();
+            let parties = Party::list(
+                db.get_ref(),
+                Some(PartyType::Customer),
+                Some(PartyStatus::Active),
+            )
+            .await
+            .unwrap_or_default();
             render_invoice_form(
                 tera.get_ref(),
                 &user,
@@ -787,5 +1126,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         .service(edit_invoice)
         .service(update_invoice)
         .service(send_invoice)
-        .service(void_invoice);
+        .service(void_invoice)
+        .service(pay_invoice_form)
+        .service(pay_invoice);
 }

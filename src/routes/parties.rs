@@ -67,7 +67,7 @@ async fn reload_parties_list(
     db: &DatabaseConnection,
     verb: &str,
 ) -> HttpResponse {
-    match Party::list(db, None, None, None, 1).await {
+    match Party::search(db, None, None, None, 1).await {
         Ok((parties, total_pages, current_page)) => {
             let pagination = Pagination {
                 current: current_page,
@@ -148,7 +148,7 @@ pub async fn list_parties(
         current: 1,
         total_pages: 1,
     };
-    match Party::list(db.get_ref(), q, party_type, status, page).await {
+    match Party::search(db.get_ref(), q, party_type, status, page).await {
         Ok((parties, total_pages, current_page)) => {
             let pagination = Pagination {
                 current: current_page,
@@ -378,7 +378,7 @@ pub async fn deactivate_party(
         Err(e) => {
             eprintln!("Failed to deactivate party {id}: {e}");
             let (parties, total_pages, current_page) =
-                Party::list(db.get_ref(), None, None, None, 1)
+                Party::search(db.get_ref(), None, None, None, 1)
                     .await
                     .unwrap_or_default();
             let pagination = Pagination {
@@ -418,7 +418,7 @@ pub async fn activate_party(
         Err(e) => {
             eprintln!("Failed to activate party {id}: {e}");
             let (parties, total_pages, current_page) =
-                Party::list(db.get_ref(), None, None, None, 1)
+                Party::search(db.get_ref(), None, None, None, 1)
                     .await
                     .unwrap_or_default();
             let pagination = Pagination {

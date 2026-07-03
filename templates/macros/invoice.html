@@ -4,7 +4,7 @@ Usage:
 {{ invoice_macro::status_badge(status=invoice.status) }}
 
 Parameters:
-status - InvoiceStatus display string ("Draft", "Sent", "Partially Paid", "Paid", "Voided")
+status - InvoiceStatus serialized string ("Draft", "Sent", "PartiallyPaid", "Paid", "Voided")
 #}
 
 {% macro status_badge(status) %}
@@ -12,7 +12,7 @@ status - InvoiceStatus display string ("Draft", "Sent", "Partially Paid", "Paid"
     <span class="badge badge-neutral">Draft</span>
   {% elif status == "Sent" %}
     <span class="badge badge-primary">Sent</span>
-  {% elif status == "Partially Paid" %}
+  {% elif status == "PartiallyPaid" %}
     <span class="badge badge-warning">Partially Paid</span>
   {% elif status == "Paid" %}
     <span class="badge badge-success">Paid</span>
