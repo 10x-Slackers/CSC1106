@@ -39,9 +39,9 @@ impl Party {
             .map(|opt| opt.map(Party::from))
     }
 
-    /// List parties with optional filters.
+    /// Search parties with optional filters.
     /// `q` matches name or company (case-insensitive LIKE).
-    pub async fn list(
+    pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
         party_type: Option<PartyType>,
@@ -85,23 +85,20 @@ impl Party {
         Ok((parties, total_pages, page))
     }
 
-    /// List all parties ordered by name.
-    pub async fn list_all(db: &DatabaseConnection) -> Result<Vec<Party>, AppError> {
-        let parties = party_entity::Entity::find()
-            .order_by(party_entity::Column::Name, Order::Asc)
-            .all(db)
-            .await
-            .map_err(AppError::from)?
-            .into_iter()
-            .map(Party::from)
-            .collect();
-        Ok(parties)
-    }
-
-    /// List active parties ordered by name.
-    pub async fn list_active(db: &DatabaseConnection) -> Result<Vec<Party>, AppError> {
-        let parties = party_entity::Entity::find()
-            .filter(party_entity::Column::Status.eq(PartyStatus::Active))
+    /// List parties, optionally filtered by type and/or status, ordered by name.
+    pub async fn list(
+        db: &DatabaseConnection,
+        party_type: Option<PartyType>,
+        status: Option<PartyStatus>,
+    ) -> Result<Vec<Party>, AppError> {
+        let mut query = party_entity::Entity::find();
+        if let Some(pt) = party_type {
+            query = query.filter(party_entity::Column::PartyType.eq(pt));
+        }
+        if let Some(s) = status {
+            query = query.filter(party_entity::Column::Status.eq(s));
+        }
+        let parties = query
             .order_by(party_entity::Column::Name, Order::Asc)
             .all(db)
             .await

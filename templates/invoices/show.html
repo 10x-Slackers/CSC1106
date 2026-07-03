@@ -39,6 +39,12 @@
             <button type="submit" class="btn btn-sm btn-error">Void</button>
           </form>
         {% elif invoice.status == "Sent" %}
+          <a
+            href="/invoices/{{ invoice.id }}/pay"
+            class="btn btn-sm btn-primary"
+          >
+            Record Payment
+          </a>
           <form
             action="/invoices/{{ invoice.id }}/void"
             method="post"
@@ -47,6 +53,13 @@
           >
             <button type="submit" class="btn btn-sm btn-error">Void</button>
           </form>
+        {% elif invoice.status == "PartiallyPaid" %}
+          <a
+            href="/invoices/{{ invoice.id }}/pay"
+            class="btn btn-sm btn-primary"
+          >
+            Record Payment
+          </a>
         {% endif %}
       </div>
     {% endif %}

@@ -64,6 +64,8 @@ impl Invoice {
             Some((inv, user)) => {
                 let mut invoice = Invoice::from(inv);
                 invoice.created_by_name = user.map(|u| u.name);
+                let party_map = Party::name_map_by_ids(db, vec![invoice.party_id]).await?;
+                invoice.party_name = party_map.get(&invoice.party_id).cloned();
                 let items = items.into_iter().map(InvoiceLineItem::from).collect();
                 Ok(Some((invoice, items)))
             }

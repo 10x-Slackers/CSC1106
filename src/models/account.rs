@@ -55,6 +55,20 @@ pub async fn find_oe_and_ap<C: ConnectionTrait>(
     Ok((oe.ok_or(AppError::NotFound)?, ap.ok_or(AppError::NotFound)?))
 }
 
+/// Find the "Cash" and "Accounts Receivable" accounts for posting invoice payment entries.
+pub async fn find_cash_and_ar<C: ConnectionTrait>(
+    db: &C,
+) -> Result<(account::Model, account::Model), AppError> {
+    let (cash, ar) = futures::try_join!(
+        find_by_name(db, "Cash"),
+        find_by_name(db, "Accounts Receivable"),
+    )?;
+    Ok((
+        cash.ok_or(AppError::NotFound)?,
+        ar.ok_or(AppError::NotFound)?,
+    ))
+}
+
 /// List all accounts ordered by name, for use in payment form dropdowns.
 pub async fn list_accounts(db: &DatabaseConnection) -> Result<Vec<AccountOption>, AppError> {
     let accounts = account::Entity::find()
