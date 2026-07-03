@@ -18,6 +18,7 @@ use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::{Claim, ClaimDetail, ClaimFilter, ClaimForm, ClaimRow};
 
+/// Load the claim model by ID, returning an error if not found.
 impl Claim {
     async fn find_model_by_id<C: ConnectionTrait>(
         db: &C,
@@ -75,7 +76,7 @@ impl Claim {
         })
     }
 
-    /// List claims with optional filters and pagination.
+    /// List claims with optional filters and pagination, and optional scoping to a specific user ID.
     pub async fn list<C: ConnectionTrait>(
         db: &C,
         filter: &ClaimFilter,

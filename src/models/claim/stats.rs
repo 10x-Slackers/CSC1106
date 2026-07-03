@@ -7,6 +7,7 @@ use crate::entity::claim as claim_entity;
 use crate::entity::claim::ClaimStatus;
 use crate::models::error::ClaimError;
 
+/// Summary metrics for the claims dashboard.
 #[derive(Serialize)]
 pub struct ClaimStats {
     pub pending_count: u64,
@@ -15,8 +16,10 @@ pub struct ClaimStats {
     pub avg_claim_amount: Decimal,
 }
 
+/// Raw aggregate row returned by the database query for claim statistics.
 type StatsRow = (i64, Option<Decimal>, i64, i64, Option<Decimal>);
 
+/// Claim dashboard statistics helpers.
 impl ClaimStats {
     pub async fn compute(db: &DatabaseConnection) -> Result<Self, ClaimError> {
         let result: Option<StatsRow> = claim_entity::Entity::find()
