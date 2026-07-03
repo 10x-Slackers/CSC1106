@@ -303,7 +303,7 @@ fn render_invoice_form(
     context.insert("invoice", &existing_invoice);
     context.insert("line_items", &line_items);
     context.insert("parties", parties);
-    context.insert("gst_rates", &GstRate::labels());
+    context.insert("gst_rates", &GstRate::choices());
     context.insert("entity_label", "Invoice");
     context.insert("base_path", "/invoices");
     if let Some(inv) = existing_invoice {
