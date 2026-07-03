@@ -43,7 +43,7 @@ pub fn render_gst(summary: &GstSummary) -> Result<Vec<u8>, PdfError> {
         rows,
     );
     builder::table_total_gap(&mut doc);
-    builder::total_line(&mut doc, "Total", &builder::money(summary.total_gst));
+    builder::total_line(&mut doc, "Total", &builder::money(summary.total_gst), true);
 
     builder::render(doc)
 }

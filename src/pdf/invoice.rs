@@ -58,11 +58,26 @@ pub fn render_invoice(
     );
     builder::spacer(&mut doc);
 
-    builder::total_line(&mut doc, "Subtotal", &builder::money(subtotal(items)));
+    builder::total_line(
+        &mut doc,
+        "Subtotal",
+        &builder::money(subtotal(items)),
+        false,
+    );
     builder::table_total_gap(&mut doc);
-    builder::total_line(&mut doc, "GST Total", &builder::money(gst_total(items)));
+    builder::total_line(
+        &mut doc,
+        "GST Total",
+        &builder::money(gst_total(items)),
+        false,
+    );
     builder::table_total_gap(&mut doc);
-    builder::total_line(&mut doc, "Grand Total", &builder::money(grand_total(items)));
+    builder::total_line(
+        &mut doc,
+        "Grand Total",
+        &builder::money(grand_total(items)),
+        true,
+    );
 
     builder::render(doc)
 }

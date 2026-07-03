@@ -25,7 +25,7 @@ fn section(
     builder::subheading(doc, title);
     builder::push_table(doc, &[6, 3], &["Account", "Amount"], section_rows(lines));
     builder::table_total_gap(doc);
-    builder::total_line(doc, total_label, &builder::money(total));
+    builder::total_line(doc, total_label, &builder::money(total), true);
 }
 
 /// Render a balance sheet into PDF bytes.
@@ -68,6 +68,7 @@ pub fn render_balance_sheet(sheet: &BalanceSheet) -> Result<Vec<u8>, PdfError> {
         &mut doc,
         "Total Liabilities & Equity",
         &builder::money(sheet.total_liabilities_and_equity),
+        true,
     );
 
     builder::render(doc)

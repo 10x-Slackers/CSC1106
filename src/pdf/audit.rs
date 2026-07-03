@@ -57,9 +57,14 @@ pub fn render_audit(report: &AuditReport) -> Result<Vec<u8>, PdfError> {
     );
     builder::table_total_gap(&mut doc);
 
-    builder::total_line(&mut doc, "Total Debit", &builder::money(total_debit));
+    builder::total_line(&mut doc, "Total Debit", &builder::money(total_debit), true);
     builder::table_total_gap(&mut doc);
-    builder::total_line(&mut doc, "Total Credit", &builder::money(total_credit));
+    builder::total_line(
+        &mut doc,
+        "Total Credit",
+        &builder::money(total_credit),
+        true,
+    );
 
     builder::render(doc)
 }

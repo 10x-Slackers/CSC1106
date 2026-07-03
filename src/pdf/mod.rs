@@ -19,8 +19,6 @@ pub use invoice::render_invoice;
 /// Errors raised while generating a PDF.
 #[derive(Debug)]
 pub enum PdfError {
-    /// A bundled font file could not be read.
-    FontLoad(std::io::Error),
     /// Font data could not be parsed by the PDF engine.
     Font(String),
     /// The document failed to render.
@@ -30,7 +28,6 @@ pub enum PdfError {
 impl std::fmt::Display for PdfError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PdfError::FontLoad(e) => write!(f, "Failed to load font: {e}"),
             PdfError::Font(msg) => write!(f, "Invalid font data: {msg}"),
             PdfError::Render(msg) => write!(f, "Failed to render PDF: {msg}"),
         }
