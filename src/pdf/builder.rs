@@ -1,6 +1,7 @@
 //! Document-agnostic building blocks shared by every generated PDF.
 
 use std::fs;
+use std::sync::LazyLock;
 
 use genpdf::fonts::{FontData, FontFamily};
 use genpdf::style::Style;
@@ -12,6 +13,10 @@ use super::PdfError;
 /// Directory holding the bundled TTF fonts, relative to the working directory
 /// (consistent with how Tera templates and static assets are loaded).
 const FONT_DIR: &str = "assets/fonts";
+
+/// Bundled font bytes, read from disk once for the process lifetime.
+static FONT_BYTES: LazyLock<std::io::Result<Vec<u8>>> =
+    LazyLock::new(|| fs::read(format!("{FONT_DIR}/Inter-VariableFont.ttf")));
 
 /// Format a decimal amount as currency (`S$0.00`), collapsing values that
 /// round to zero so tiny negatives never render as `S$-0.00`.
@@ -30,20 +35,17 @@ fn bold() -> Style {
     Style::new().bold()
 }
 
-/// Load the bundled DejaVu font family.
-///
-/// DejaVu ships Regular and Bold only, so the italic slots reuse the upright
-/// faces; the documents never render italic text.
+/// Load the bundled Inter font family.
 fn load_fonts() -> Result<FontFamily<FontData>, PdfError> {
-    let read = |name: &str| -> Result<FontData, PdfError> {
-        let bytes = fs::read(format!("{FONT_DIR}/{name}")).map_err(PdfError::FontLoad)?;
-        FontData::new(bytes, None).map_err(|e| PdfError::Font(e.to_string()))
-    };
+    let bytes = FONT_BYTES
+        .as_ref()
+        .map_err(|e| PdfError::FontLoad(std::io::Error::new(e.kind(), e.to_string())))?;
+    let make = || FontData::new(bytes.clone(), None).map_err(|e| PdfError::Font(e.to_string()));
     Ok(FontFamily {
-        regular: read("DejaVuSans.ttf")?,
-        bold: read("DejaVuSans-Bold.ttf")?,
-        italic: read("DejaVuSans.ttf")?,
-        bold_italic: read("DejaVuSans-Bold.ttf")?,
+        regular: make()?,
+        bold: make()?,
+        italic: make()?,
+        bold_italic: make()?,
     })
 }
 
