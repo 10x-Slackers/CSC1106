@@ -1,0 +1,82 @@
+{% extends "partials/layout.html" %}
+
+{% block title %}Record Payment — Invoice {{ invoice.invoice_no }}{% endblock %}
+{% block page_content %}
+  <div class="mb-6">
+    <a href="/invoices/{{ invoice.id }}" class="btn btn-ghost btn-sm"
+      >Back to Invoice</a
+    >
+  </div>
+
+  <div class="mx-auto max-w-lg">
+    <div class="card card-border">
+      <div class="card-body">
+        <h2 class="card-title justify-center text-2xl">Record Payment</h2>
+
+        <div class="mb-2 text-center text-sm opacity-70">
+          Invoice {{ invoice.invoice_no }} ·
+          {% if party %}{{ party.name | default(value="—") }}{% else %}—{% endif %}
+        </div>
+
+        {% if message != "" %}
+          <div
+            role="alert"
+            class="alert {% if message_kind == "success" %}alert-success{% else %}alert-error{% endif %}"
+          >
+            <span>{{ message }}</span>
+          </div>
+        {% endif %}
+
+        <form
+          action="/invoices/{{ invoice.id }}/pay"
+          method="post"
+          data-confirm="Record this payment and post to journal? This cannot be undone."
+        >
+          <fieldset class="fieldset">
+            <label class="label" for="payment_date">Payment Date</label>
+            <input
+              type="date"
+              id="payment_date"
+              name="payment_date"
+              value="{{ payment_date | default(value=today) }}"
+              class="input w-full"
+              required
+            />
+
+            <label class="label" for="amount">Amount</label>
+            <input
+              type="number"
+              id="amount"
+              name="amount"
+              step="0.01"
+              min="0.01"
+              max="{{ outstanding }}"
+              value="{{ outstanding }}"
+              class="input w-full"
+              required
+            />
+            <p class="mt-1 text-xs opacity-60">
+              Outstanding balance: {{ outstanding | money }}.
+            </p>
+
+            <label class="label" for="remarks">Remarks</label>
+            <textarea
+              id="remarks"
+              name="remarks"
+              class="textarea w-full"
+            ></textarea>
+
+            <div class="mt-4 flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                Record Payment
+              </button>
+              <a href="/invoices/{{ invoice.id }}" class="btn btn-ghost"
+                >Cancel</a
+              >
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}
