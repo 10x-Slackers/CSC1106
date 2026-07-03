@@ -37,11 +37,11 @@ pub fn render_income_statement(stmt: &IncomeStatement) -> Result<Vec<u8>, PdfErr
         &["Account", "Amount"],
         section_rows(&stmt.revenue),
     );
+    builder::table_total_gap(&mut doc);
     builder::total_line(
         &mut doc,
         "Total Revenue",
         &builder::money(stmt.total_revenue),
-        true,
     );
     builder::spacer(&mut doc);
 
@@ -52,20 +52,20 @@ pub fn render_income_statement(stmt: &IncomeStatement) -> Result<Vec<u8>, PdfErr
         &["Account", "Amount"],
         section_rows(&stmt.expenses),
     );
+    builder::table_total_gap(&mut doc);
     builder::total_line(
         &mut doc,
         "Total Expenses",
         &builder::money(stmt.total_expenses),
-        true,
     );
-    builder::spacer(&mut doc);
+    builder::table_total_gap(&mut doc);
 
     let label = if stmt.is_loss {
         "Net Loss"
     } else {
         "Net Profit"
     };
-    builder::total_line(&mut doc, label, &builder::money(stmt.net_profit), true);
+    builder::total_line(&mut doc, label, &builder::money(stmt.net_profit));
 
     builder::render(doc)
 }

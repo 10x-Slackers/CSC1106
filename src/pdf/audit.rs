@@ -1,7 +1,11 @@
-//! Audit statement PDF layout (mirrors `templates/reports/audit.html`).
+//! Audit statement PDF layout: a compact double-entry ledger, one row per
+//! journal line (mirrors `templates/reports/audit.html`).
+
+use rust_decimal::Decimal;
 
 use super::PdfError;
 use super::builder;
+use crate::entity::journal_entry_line::EntrySide;
 use crate::models::report::audit::AuditReport;
 
 /// Render an audit statement into PDF bytes.
@@ -21,49 +25,41 @@ pub fn render_audit(report: &AuditReport) -> Result<Vec<u8>, PdfError> {
     ));
     builder::spacer(&mut doc);
 
+    // One continuous ledger: each journal line is a row, with the entry's date
+    // and source shown only on its first line so entries read as groups.
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    let mut total_debit = Decimal::ZERO;
+    let mut total_credit = Decimal::ZERO;
+
     for entry in &report.entries {
-        builder::subheading(&mut doc, &format!("Entry #{}", entry.id));
-        doc.push(builder::meta_line(
-            "Posted",
-            &entry.created_at.format("%Y-%m-%d %H:%M").to_string(),
-        ));
-        doc.push(builder::meta_line(
-            "By",
-            entry.posted_by_name.as_deref().unwrap_or("—"),
-        ));
-        doc.push(builder::meta_line("Source", &entry.source));
-
-        let rows = entry
-            .lines
-            .iter()
-            .map(|line| {
-                vec![
-                    line.entry_side.to_string(),
-                    line.account_name.clone(),
-                    builder::money(line.amount),
-                    line.description.clone().unwrap_or_else(|| "—".to_string()),
-                ]
-            })
-            .collect();
-
-        builder::push_table(
-            &mut doc,
-            &[2, 4, 3, 4],
-            &["Side", "Account", "Amount", "Description"],
-            rows,
-        );
-        builder::total_line(
-            &mut doc,
-            "Total Debit / Credit",
-            &format!(
-                "{} / {}",
-                builder::money(entry.total_debit),
-                builder::money(entry.total_credit)
-            ),
-            true,
-        );
-        builder::spacer(&mut doc);
+        for (i, line) in entry.lines.iter().enumerate() {
+            let (debit, credit) = match line.entry_side {
+                EntrySide::Debit => (builder::money(line.amount), String::new()),
+                EntrySide::Credit => (String::new(), builder::money(line.amount)),
+            };
+            let (date, source) = if i == 0 {
+                (entry.created_at.date().to_string(), entry.source.clone())
+            } else {
+                (String::new(), String::new())
+            };
+            rows.push(vec![date, source, line.account_name.clone(), debit, credit]);
+        }
+        total_debit += entry.total_debit;
+        total_credit += entry.total_credit;
     }
+
+    builder::push_table_aligned(
+        &mut doc,
+        &[3, 5, 4, 3, 3],
+        &["Date", "Source", "Account", "Debit", "Credit"],
+        rows,
+        3,
+    );
+    builder::table_total_gap(&mut doc);
+
+    builder::total_line(&mut doc, "Total Debit", &builder::money(total_debit));
+    builder::table_total_gap(&mut doc);
+    builder::total_line(&mut doc, "Total Credit", &builder::money(total_credit));
 
     builder::render(doc)
 }

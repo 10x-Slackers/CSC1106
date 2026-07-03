@@ -5,9 +5,11 @@
 {% block page_content %}
   <div class="mb-6 flex gap-2">
     <a href="/invoices" class="btn btn-ghost btn-sm">Back to Invoices</a>
-    <a href="/invoices/{{ invoice.id }}/pdf" class="btn btn-outline btn-sm">
-      Download PDF
-    </a>
+    {% if invoice.status != "Voided" %}
+      <a href="/invoices/{{ invoice.id }}/pdf" class="btn btn-outline btn-sm">
+        Download PDF
+      </a>
+    {% endif %}
   </div>
 
   <div class="mb-6 flex flex-wrap items-center justify-between gap-4">

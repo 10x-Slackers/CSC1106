@@ -22,10 +22,6 @@ pub fn render_gst(summary: &GstSummary) -> Result<Vec<u8>, PdfError> {
         "Period",
         &period(summary.from, summary.to),
     ));
-    doc.push(builder::meta_line(
-        "Total GST Collected",
-        &builder::money(summary.total_gst),
-    ));
     builder::spacer(&mut doc);
 
     let rows = summary
@@ -46,8 +42,8 @@ pub fn render_gst(summary: &GstSummary) -> Result<Vec<u8>, PdfError> {
         &["Invoice No", "Issue Date", "GST Amount"],
         rows,
     );
-    builder::spacer(&mut doc);
-    builder::total_line(&mut doc, "Total", &builder::money(summary.total_gst), true);
+    builder::table_total_gap(&mut doc);
+    builder::total_line(&mut doc, "Total", &builder::money(summary.total_gst));
 
     builder::render(doc)
 }
