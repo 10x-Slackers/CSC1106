@@ -1,9 +1,9 @@
 use chrono::NaiveDateTime;
 use sea_orm::DatabaseConnection;
 
+use crate::entity::journal_entry::Model as JournalEntry;
 use crate::models::error::AppError;
 pub use crate::models::journal_entry::AuditEntry;
-use crate::models::journal_entry::list_for_audit;
 
 #[derive(serde::Serialize)]
 pub struct AuditReport {
@@ -24,7 +24,7 @@ impl AuditStatement {
         let to = chrono::NaiveDate::from_ymd_opt(year, 12, 31)
             .and_then(|d| d.and_hms_opt(23, 59, 59))
             .ok_or_else(|| AppError::InvalidArgument(format!("Invalid year: {year}")))?;
-        let entries = list_for_audit(db, from, to).await?;
+        let entries = JournalEntry::list(db, from, to).await?;
         let total_entries = entries.len();
         Ok(AuditReport {
             year,

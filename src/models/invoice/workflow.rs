@@ -14,9 +14,9 @@ use crate::entity::journal_entry_line::EntrySide;
 use crate::entity::party::{PartyStatus, PartyType};
 use crate::models::account::find_ar_and_sr;
 use crate::models::error::InvoiceError;
+use crate::models::journal_entry::{JournalEntry, JournalEntryLineInput};
 use crate::models::party::Party;
 use crate::models::payment::Payment;
-use crate::models::posting::{JournalEntryLineInput, PostingService};
 use crate::models::util::is_unique_violation;
 
 use super::calc::grand_total;
@@ -157,7 +157,7 @@ impl Invoice {
             },
         ];
 
-        PostingService::post_entry_in(
+        JournalEntry::create(
             txn,
             lines,
             SourceDocument::Invoice {
