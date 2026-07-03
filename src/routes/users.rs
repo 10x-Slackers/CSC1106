@@ -60,7 +60,7 @@ async fn reload_users_list(
     db: &DatabaseConnection,
     verb: &str,
 ) -> HttpResponse {
-    match User::list(db, None, None, None, 1).await {
+    match User::search(db, None, None, None, 1).await {
         Ok((users, total_pages, current_page)) => {
             let pagination = Pagination {
                 current: current_page,
@@ -137,7 +137,7 @@ pub async fn list_users(
         total_pages: 1,
     };
 
-    match User::list(db.get_ref(), q, role, status, page).await {
+    match User::search(db.get_ref(), q, role, status, page).await {
         Ok((users, total_pages, current_page)) => {
             let pagination = Pagination {
                 current: current_page,
@@ -357,7 +357,7 @@ pub async fn disable_user(
     let id = path.into_inner();
 
     if id == current_user.id {
-        let (users, total_pages, current_page) = User::list(db.get_ref(), None, None, None, 1)
+        let (users, total_pages, current_page) = User::search(db.get_ref(), None, None, None, 1)
             .await
             .unwrap_or_default();
         let pagination = Pagination {
@@ -387,9 +387,10 @@ pub async fn disable_user(
         }
         Err(e) => {
             eprintln!("Failed to disable user {id}: {e}");
-            let (users, total_pages, current_page) = User::list(db.get_ref(), None, None, None, 1)
-                .await
-                .unwrap_or_default();
+            let (users, total_pages, current_page) =
+                User::search(db.get_ref(), None, None, None, 1)
+                    .await
+                    .unwrap_or_default();
             let pagination = Pagination {
                 current: current_page,
                 total_pages,
@@ -430,9 +431,10 @@ pub async fn enable_user(
         }
         Err(e) => {
             eprintln!("Failed to enable user {id}: {e}");
-            let (users, total_pages, current_page) = User::list(db.get_ref(), None, None, None, 1)
-                .await
-                .unwrap_or_default();
+            let (users, total_pages, current_page) =
+                User::search(db.get_ref(), None, None, None, 1)
+                    .await
+                    .unwrap_or_default();
             let pagination = Pagination {
                 current: current_page,
                 total_pages,

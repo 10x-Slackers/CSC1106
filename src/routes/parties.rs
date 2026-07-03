@@ -457,7 +457,7 @@ pub async fn show_party(
         let db = db.get_ref();
         let count_fut = Invoice::count_for_party(db, id);
         let total_fut = Payment::total_for_party(db, id);
-        let recent_fut = Payment::recent_for_party(db, id, 5);
+        let recent_fut = Payment::list(db, None, Some(id), Some(5));
         match futures::try_join!(count_fut, total_fut, recent_fut) {
             Ok((c, t, r)) => (c, t.to_string(), r),
             Err(e) => {

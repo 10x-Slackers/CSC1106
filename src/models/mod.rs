@@ -6,7 +6,6 @@ pub mod invoice;
 pub mod journal_entry;
 pub mod party;
 pub mod payment;
-pub mod posting;
 pub mod report;
 pub mod user;
 pub mod util;

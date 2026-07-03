@@ -80,14 +80,14 @@ async fn render_claims_list(
     let mut list_filter = filter.clone();
     list_filter.page = Some(page.to_string());
 
-    let (rows, total_pages, current_page) = match Claim::list(db, &list_filter, scope_user_id).await
-    {
-        Ok((r, tp, cp)) => (r, tp, cp),
-        Err(e) => {
-            eprintln!("Failed to list claims: {e}");
-            (Vec::new(), 1, 1)
-        }
-    };
+    let (rows, total_pages, current_page) =
+        match Claim::search(db, &list_filter, scope_user_id).await {
+            Ok((r, tp, cp)) => (r, tp, cp),
+            Err(e) => {
+                eprintln!("Failed to list claims: {e}");
+                (Vec::new(), 1, 1)
+            }
+        };
 
     let pagination = Pagination {
         current: current_page,

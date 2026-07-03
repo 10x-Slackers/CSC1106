@@ -228,7 +228,7 @@ async fn reload_invoices_list_with(
     let viewer_role = &user.role;
     let viewer_user_id = user.id;
     let base_query = base_query_string(filter);
-    match Invoice::list(
+    match Invoice::search(
         db,
         filter.q.as_deref(),
         filter.status.as_deref().and_then(InvoiceStatus::parse),
@@ -377,7 +377,7 @@ pub async fn list_invoices(
     let page = parse_page(filter.page.as_deref());
     let base_query = base_query_string(&filter);
 
-    match Invoice::list(
+    match Invoice::search(
         db.get_ref(),
         q,
         status,
@@ -603,7 +603,7 @@ pub async fn show_invoice(
         .await
         .unwrap_or(None);
 
-    let payments = Payment::list_for_invoice(db.get_ref(), invoice.id)
+    let payments = Payment::list(db.get_ref(), Some(invoice.id), None, None)
         .await
         .unwrap_or_default();
 
@@ -854,7 +854,7 @@ pub async fn pay_invoice(
 
     match result {
         Ok(_) => {
-            let payments = Payment::list_for_invoice(db.get_ref(), invoice.id)
+            let payments = Payment::list(db.get_ref(), Some(invoice.id), None, None)
                 .await
                 .unwrap_or_default();
             render_invoice_show(

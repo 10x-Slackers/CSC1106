@@ -93,7 +93,7 @@ async fn render_payments_list(
     let party_map: std::collections::HashMap<i32, String> =
         parties.iter().map(|p| (p.id, p.name.clone())).collect();
     let page = parse_page(filter.page.as_deref());
-    let (payments, total_pages, current_page) = match Payment::list(
+    let (payments, total_pages, current_page) = match Payment::search(
         db,
         filter.q.as_deref().and_then(non_empty),
         filter
