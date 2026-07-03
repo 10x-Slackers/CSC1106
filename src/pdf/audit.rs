@@ -50,7 +50,7 @@ pub fn render_audit(report: &AuditReport) -> Result<Vec<u8>, PdfError> {
 
     builder::push_table_aligned(
         &mut doc,
-        &[3, 5, 4, 3, 3],
+        &[3, 4, 4, 3, 3],
         &["Date", "Source", "Account", "Debit", "Credit"],
         rows,
         3,

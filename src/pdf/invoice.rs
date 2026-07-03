@@ -52,14 +52,16 @@ pub fn render_invoice(
 
     builder::push_table(
         &mut doc,
-        &[5, 2, 3, 3, 3],
+        &[5, 2, 3, 4, 4],
         &["Description", "Qty", "Unit Price", "GST", "Total w/ GST"],
         rows,
     );
     builder::spacer(&mut doc);
 
     builder::total_line(&mut doc, "Subtotal", &builder::money(subtotal(items)));
+    builder::table_total_gap(&mut doc);
     builder::total_line(&mut doc, "GST Total", &builder::money(gst_total(items)));
+    builder::table_total_gap(&mut doc);
     builder::total_line(&mut doc, "Grand Total", &builder::money(grand_total(items)));
 
     builder::render(doc)

@@ -132,7 +132,7 @@ fn push_cells(
             para.set_alignment(Alignment::Right);
         }
         // Pad each cell generously so rows aren't cramped against the borders.
-        row.push_element(para.padded(Margins::trbl(2, 4, 2, 4)));
+        row.push_element(para.padded(Margins::trbl(2, 3, 2, 3)));
     }
     row.push().expect("row cell count matches column count");
 }
