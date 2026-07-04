@@ -1,3 +1,6 @@
+//! Invoice entity definition
+//!
+//!  Authors: Kitsuneez
 use std::fmt;
 
 use sea_orm::Iterable;
@@ -39,7 +42,7 @@ impl InvoiceStatus {
         Self::iter().map(|v| v.to_string()).collect()
     }
 
-    /// Parse a status string (case-insensitive) into an `InvoiceStatus`.
+    /// Parse status string into enum variant
     pub fn parse(s: &str) -> Option<Self> {
         let key = s.trim().to_lowercase().replace(' ', "");
         match key.as_str() {

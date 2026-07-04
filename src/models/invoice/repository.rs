@@ -1,3 +1,6 @@
+//! Invoice Database Operations Functions
+//!
+//! Authors: Kitsuneez
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
@@ -45,7 +48,6 @@ impl Invoice {
     }
 
     /// Load an invoice with its line items and creator name.
-    /// Uses a single LEFT JOIN for the invoice+user query, parallelized with line items.
     pub async fn find_by_id<C: ConnectionTrait>(
         db: &C,
         id: i32,
@@ -116,7 +118,6 @@ impl Invoice {
             conditions = conditions.add(invoice_entity::Column::DueDate.lte(to));
         }
 
-        // Staff scoping
         if *viewer_role == Role::Staff {
             conditions = conditions.add(invoice_entity::Column::CreatedByUserId.eq(viewer_user_id));
         }
@@ -136,7 +137,6 @@ impl Invoice {
         let result = if invoices.is_empty() {
             Vec::new()
         } else {
-            // Enrich with party names and compute grand totals
             let party_ids: Vec<i32> = invoices.iter().map(|i| i.party_id).collect();
             let party_map = Party::name_map_by_ids(db, party_ids).await?;
 
@@ -247,7 +247,7 @@ impl Invoice {
     }
 }
 
-/// Build a map of invoice ID → invoice number for the given IDs.
+/// Maps invoice id to invoice number for a list of ids
 pub async fn invoice_no_map_by_ids<C: ConnectionTrait>(
     db: &C,
     ids: Vec<i32>,

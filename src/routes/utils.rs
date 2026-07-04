@@ -1,3 +1,6 @@
+//! Utility functions for routes.
+//!
+//! Authors: Kitsuneez
 use std::future::Future;
 use std::str::FromStr;
 
@@ -10,9 +13,7 @@ use crate::middleware::auth::Authenticated;
 use crate::middleware::permissions::{AdminOnly, Finance, RoleSet};
 use crate::pdf::PdfError;
 
-/// Turn the result of a `web::block` PDF render into a download response.
-///
-/// `label` names the document in error logs; `filename` is the download name.
+/// Renders PDF response with appropriate headers and error handling.
 pub fn pdf_response(
     result: Result<Result<Vec<u8>, PdfError>, BlockingError>,
     filename: &str,
@@ -126,14 +127,14 @@ pub async fn find_or_404<T, E: std::fmt::Display>(
     }
 }
 
-/// Push `"{field_name} is required."` into `errors` if `v` is empty.
+/// Validate string is not empty.
 pub fn require_non_empty(v: &str, errors: &mut Vec<String>, field_name: &str) {
     if v.is_empty() {
         errors.push(format!("{field_name} is required."));
     }
 }
 
-/// Validate an email: required + must contain '@'.
+/// Validate an email.
 pub fn validate_email(email: &str, errors: &mut Vec<String>) {
     if email.is_empty() {
         errors.push("Email is required.".into());
@@ -142,7 +143,7 @@ pub fn validate_email(email: &str, errors: &mut Vec<String>) {
     }
 }
 
-/// Trim, parse, and on failure push `err_msg` and return `fallback`.
+/// Parse a string into a type
 pub fn parse_field<T: FromStr>(v: &str, errors: &mut Vec<String>, err_msg: &str, fallback: T) -> T {
     match v.trim().parse() {
         Ok(val) => val,
@@ -153,17 +154,19 @@ pub fn parse_field<T: FromStr>(v: &str, errors: &mut Vec<String>, err_msg: &str,
     }
 }
 
+/// Struct for pagination information
 #[derive(Clone, Copy, serde::Serialize)]
 pub struct Pagination {
     pub current: u32,
     pub total_pages: u32,
 }
 
+/// Parse a page number from a query string parameter.
 pub fn parse_page(raw: Option<&str>) -> u32 {
     raw.and_then(|s| s.parse::<u32>().ok()).unwrap_or(1).max(1)
 }
 
-/// Serialize `filter` to a query string, then strip any `page=...` pair.
+/// Serialize a query struct into a base query string.
 pub fn base_query_string<T: serde::Serialize>(filter: &T) -> String {
     let qs = match serde_qs::to_string(filter) {
         Ok(s) => s,
