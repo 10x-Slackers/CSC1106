@@ -1,5 +1,4 @@
 //! Module entry file for the claim model folder.
-//! Connects the claim-related files together & re-exports.
 //!
 //! Authors: Teo Kai Wen
 

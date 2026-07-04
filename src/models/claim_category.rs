@@ -1,4 +1,4 @@
-//! <Summary of file>
+//! Helper functions for working with claim categories in the database.
 //!
 //! Authors: Teo Kai Wen
 
