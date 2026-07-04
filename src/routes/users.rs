@@ -27,8 +27,6 @@ pub struct UserForm {
 }
 
 /// Query parameters used to filter the user list.
-///
-/// These values are read from the URL query string on the user listing page.
 #[derive(Deserialize, Serialize)]
 pub struct UserFilter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -42,9 +40,6 @@ pub struct UserFilter {
 }
 
 /// Renders the user listing page.
-///
-/// This helper inserts user records, role options, pagination data, and
-/// optional feedback messages into the Tera context.
 fn render_users_list(
     tera: &Tera,
     user: &Require<AdminOnly>,
@@ -66,8 +61,6 @@ fn render_users_list(
 }
 
 /// Reloads the user listing page after a create, update, enable, or disable action.
-///
-/// If the user list cannot be loaded, an error message is displayed instead.
 async fn reload_users_list(
     tera: &Tera,
     user: &Require<AdminOnly>,
@@ -110,10 +103,6 @@ async fn reload_users_list(
 }
 
 /// Renders the create or edit user form.
-///
-/// The `mode` value controls whether the form is displayed for creating or
-/// editing a user. When editing, `existing_user` should contain the current
-/// user data.
 fn render_user_form(
     tera: &Tera,
     user: &Require<AdminOnly>,
@@ -138,8 +127,6 @@ fn render_user_form(
 }
 
 /// Displays the user listing page.
-///
-/// Access is restricted to admin users.
 #[get("/users")]
 pub async fn list_users(
     user: Require<AdminOnly>,
@@ -190,8 +177,6 @@ pub async fn list_users(
 }
 
 /// Displays the form for creating a new user.
-///
-/// Access is restricted to admin users.
 #[get("/users/new")]
 pub async fn new_user(user: Require<AdminOnly>, tera: web::Data<Tera>) -> HttpResponse {
     render_user_form(tera.get_ref(), &user, "create", None, "", "")
@@ -258,8 +243,6 @@ pub async fn create_user(
 }
 
 /// Displays the edit form for an existing user.
-///
-/// Returns a 404 response if the user cannot be found.
 #[get("/users/{id}/edit")]
 pub async fn edit_user(
     user: Require<AdminOnly>,
@@ -371,9 +354,6 @@ pub async fn update_user(
 }
 
 /// Disables an existing user account.
-///
-/// The current admin is not allowed to disable their own account. When a user
-/// is disabled, their cached authentication data is invalidated.
 #[post("/users/{id}/disable")]
 pub async fn disable_user(
     current_user: Require<AdminOnly>,
@@ -437,9 +417,6 @@ pub async fn disable_user(
 }
 
 /// Enables an existing user account.
-///
-/// When a user is enabled, their cached authentication data is invalidated so
-/// future requests use fresh account data.
 #[post("/users/{id}/enable")]
 pub async fn enable_user(
     current_user: Require<AdminOnly>,

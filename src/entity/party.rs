@@ -20,7 +20,6 @@ pub enum PartyType {
 
 impl fmt::Display for PartyType {
     /// Formats the different party type to a label.
-    /// Used to convert the enum into a string to display in a dropdown/form.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             PartyType::Customer => write!(f, "Customer"),
@@ -31,7 +30,6 @@ impl fmt::Display for PartyType {
 
 impl PartyType {
     /// Returns all available party types as strings.
-    /// Used to later generate dropdown options in the frontend UI.
     pub fn labels() -> Vec<String> {
         Self::iter().map(|v| v.to_string()).collect()
     }
@@ -49,7 +47,6 @@ pub enum PartyStatus {
 
 impl fmt::Display for PartyStatus {
     /// Formats the different status to a label
-    /// Used to convert the enum into a string to display in a dropdown/form
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             PartyStatus::Active => write!(f, "Active"),
@@ -66,8 +63,6 @@ impl PartyStatus {
 }
 
 /// Represents a party record in the database
-///
-/// A party can be either a customer or vendor, storing basic information.
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "party")]
 pub struct Model {
@@ -97,18 +92,12 @@ pub enum Relation {
 }
 
 impl Related<super::invoice::Entity> for Entity {
-    /// Defines the relationship from party to invoice.
-    ///
-    /// Tells SeaORM that a party can be related to many invoice records.
     fn to() -> RelationDef {
         Relation::Invoice.def()
     }
 }
 
 impl Related<super::payment::Entity> for Entity {
-    /// Defines the relationship from party to payment.
-    ///
-    /// Tells SeaORM that a party can be related to many payment records.
     fn to() -> RelationDef {
         Relation::Payment.def()
     }
@@ -117,21 +106,17 @@ impl Related<super::payment::Entity> for Entity {
 #[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {
     /// Runs automatically when a record is inserted or updated.
-    ///
-    /// When inserting a new record, this function sets `created_at` if it has
-    /// not already been set. It also updates `updated_at` every time the record
-    /// is saved.
-    ///
-    /// Returns the modified record with updated timestamp fields.
     async fn before_save<C>(self, _db: &C, insert: bool) -> Result<Self, DbErr>
     where
         C: ConnectionTrait,
     {
         let now = chrono::Utc::now().naive_utc();
         let mut am = self;
+        // If creation time is not set, it will set here
         if insert && am.is_not_set(Column::CreatedAt) {
             am.created_at = Set(now);
         }
+        // Updates the `updated_at` every time the record is saved.
         am.updated_at = Set(now);
         Ok(am)
     }

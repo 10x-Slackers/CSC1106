@@ -19,9 +19,6 @@ pub struct PartyStats {
 
 impl PartyStats {
     /// Computes party statistics from the database.
-    ///
-    /// Counts the total number of parties, active customers, and active vendors.
-    /// The count queries are executed concurrently.
     pub async fn compute(db: &DatabaseConnection) -> Result<Self, AppError> {
         let total_fut = party_entity::Entity::find().count(db);
         let customers_fut = party_entity::Entity::find()

@@ -33,8 +33,6 @@ pub struct PartyForm {
 }
 
 /// Query parameters used to filter the party list.
-///
-/// These values are read from the URL query string on the party listing page.
 #[derive(Deserialize, Serialize)]
 pub struct PartyFilter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -70,8 +68,6 @@ fn render_parties_list(
 }
 
 /// Reloads the party listing page after a create, update, or status change.
-///
-/// If the list cannot be loaded, an error message is displayed instead.
 async fn reload_parties_list(
     tera: &Tera,
     user: &Authenticated,
@@ -114,10 +110,6 @@ async fn reload_parties_list(
 }
 
 /// Renders the create or edit party form.
-///
-/// The `mode` value controls whether the form is displayed for creating or
-/// editing a party. When editing, `existing_party` should contain the current
-/// party data.
 fn render_party_form(
     tera: &Tera,
     user: &Authenticated,
@@ -142,9 +134,6 @@ fn render_party_form(
 }
 
 /// Displays the party listing page.
-///
-/// Supports filtering by search query, party type, status, and page number.
-/// When no status filter is provided, only active parties are shown by default.
 #[get("/parties")]
 pub async fn list_parties(
     user: Authenticated,
@@ -199,8 +188,6 @@ pub async fn list_parties(
 }
 
 /// Displays the form for creating a new party.
-///
-/// Access is restricted to users with finance permissions.
 #[get("/parties/new")]
 pub async fn new_party(user: Require<Finance>, tera: web::Data<Tera>) -> HttpResponse {
     render_party_form(tera.get_ref(), &user, "create", None, "", "")
@@ -280,8 +267,6 @@ pub async fn create_party(
 }
 
 /// Displays the edit form for an existing party.
-///
-/// Returns a 404 response if the party cannot be found.
 #[get("/parties/{id}/edit")]
 pub async fn edit_party(
     user: Require<Finance>,

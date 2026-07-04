@@ -8,9 +8,6 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-/// Represents the role assigned to a user
-///
-/// The role determines the user's permission level within the system
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
 pub enum Role {
@@ -92,17 +89,13 @@ pub struct Model {
     pub updated_at: DateTime,
 }
 
-/// Defines relationships between the user
-/// and other database tables
+/// Defines relationships between the user and other database tables
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    /// A user can be associated with many invoices.
     #[sea_orm(has_many = "super::invoice::Entity")]
     Invoice,
-    /// A user can be associated with many payments.
     #[sea_orm(has_many = "super::payment::Entity")]
     Payment,
-    /// A user can be associated with many journal entries.
     #[sea_orm(has_many = "super::journal_entry::Entity")]
     JournalEntry,
 }
@@ -138,21 +131,17 @@ impl Related<super::journal_entry::Entity> for Entity {
 #[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {
     /// Runs automatically when a record is inserted or updated.
-    ///
-    /// When inserting a new record, this function sets `created_at` if it has
-    /// not already been set. It also updates `updated_at` every time the record
-    /// is saved.
-    ///
-    /// Returns the modified record with updated timestamp fields.
     async fn before_save<C>(self, _db: &C, insert: bool) -> Result<Self, DbErr>
     where
         C: ConnectionTrait,
     {
         let now = chrono::Utc::now().naive_utc();
         let mut am = self;
+        // If creation time is not set, it will set here
         if insert && am.is_not_set(Column::CreatedAt) {
             am.created_at = Set(now);
         }
+        // Updates the `updated_at` every time the record is saved.
         am.updated_at = Set(now);
         Ok(am)
     }

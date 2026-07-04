@@ -31,7 +31,6 @@ struct FormValues<'a> {
     email: &'a str,
 }
 
-/// Renders the profile page.
 fn render_profile(
     tera: &Tera,
     user: &Authenticated,
@@ -59,10 +58,6 @@ pub async fn show_profile(user: Authenticated, tera: web::Data<Tera>) -> HttpRes
 }
 
 /// Updates the current user's profile.
-///
-/// The current password must be provided before changes are accepted. The name
-/// and email are validated, and the password is updated only when a new
-/// password is provided and matches the confirmation field.
 #[post("/profile")]
 pub async fn update_profile(
     user: Authenticated,

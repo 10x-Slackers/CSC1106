@@ -21,8 +21,6 @@ pub struct LoginForm {
 }
 
 /// Displays the login page.
-///
-/// If the user is already authenticated, they are redirected to the home page.
 #[get("/login")]
 pub async fn show_login(user: Option<Identity>, tera: web::Data<Tera>) -> impl Responder {
     if user.is_some() {
@@ -33,10 +31,6 @@ pub async fn show_login(user: Option<Identity>, tera: web::Data<Tera>) -> impl R
 }
 
 /// Processes a login form submission.
-///
-/// The submitted credentials are authenticated against the database. On
-/// success, an identity session is created, the user is cached, and the user is
-/// redirected to the home page.
 #[post("/login")]
 pub async fn process_login(
     req: HttpRequest,
@@ -64,9 +58,6 @@ pub async fn process_login(
 }
 
 /// Logs out the current user.
-///
-/// If an identity exists, the user's cached authentication data is invalidated
-/// before the identity session is removed.
 #[post("/logout")]
 pub async fn logout(user: Option<Identity>, cache: web::Data<UserCache>) -> impl Responder {
     if let Some(identity) = user {
