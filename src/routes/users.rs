@@ -479,7 +479,7 @@ pub async fn enable_user(
     }
 }
 
-/// Registers party routes with the Actix Web service configuration.
+/// Registers user routes with the Actix Web service configuration.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(list_users)
         .service(new_user)

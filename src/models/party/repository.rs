@@ -33,8 +33,19 @@ impl Party {
             .map(|opt| opt.map(Party::from))
     }
 
-    /// Search parties with optional filters.
-    /// `q` matches name or company (case-insensitive LIKE).
+    /// Searches for parties using optional filters and pagination.
+    ///
+    /// The search can filter parties by:
+    /// - name or company search query,
+    /// - party type,
+    /// - party status.
+    ///
+    /// Results are ordered by creation date in descending order.
+    ///
+    /// Returns a tuple containing:
+    /// - `Vec<Party>`: the parties for the selected page,
+    /// - `u32`: the total number of pages,
+    /// - `u32`: the current page number after pagination clamping.
     pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
