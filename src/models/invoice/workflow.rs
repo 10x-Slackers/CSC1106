@@ -38,6 +38,7 @@ impl Invoice {
         }
     }
 
+    /// Validate the inputs for creating or updating an invoice.
     fn validate_inputs(
         issue_date: NaiveDate,
         due_date: NaiveDate,
@@ -71,6 +72,7 @@ impl Invoice {
         Ok(())
     }
 
+    /// Convert line item inputs into active models for database insertion.
     fn line_items_to_active(
         invoice_id: i32,
         items: Vec<LineItemInput>,
@@ -88,6 +90,7 @@ impl Invoice {
             .collect()
     }
 
+    /// Checks if party is active and of type Customer, returns error if not.
     async fn require_active_party(
         db: &DatabaseConnection,
         party_id: i32,
@@ -108,6 +111,7 @@ impl Invoice {
         Ok(())
     }
 
+    /// Generate a unique invoice number based on the issue date and existing invoices.
     async fn generate_invoice_no<C: ConnectionTrait>(
         db: &C,
         issue_date: NaiveDate,
@@ -120,6 +124,7 @@ impl Invoice {
         Ok(format!("{}-{:04}", prefix, count + 1))
     }
 
+    /// Post a journal entry for the invoice and update its status.
     async fn post_invoice_entry(
         txn: &impl ConnectionTrait,
         current: &Invoice,
@@ -356,6 +361,7 @@ impl Invoice {
         }
     }
 
+    /// recomputes and applies the invoice status
     async fn apply_recomputed_status<C: ConnectionTrait>(
         &self,
         db: &C,
@@ -388,6 +394,7 @@ impl Invoice {
         }
     }
 
+    /// recomputes the invoice status for a given invoice
     pub async fn recompute_status_for<C: ConnectionTrait>(
         db: &C,
         invoice_id: i32,
