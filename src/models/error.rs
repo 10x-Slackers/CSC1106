@@ -1,9 +1,13 @@
+//! Error types for the application
+//!
+//! Authors: commit2main
 use argon2::password_hash::Error as HashError;
 use rust_decimal::Decimal;
 use sea_orm::DbErr;
 
 use crate::models::util::is_unique_violation;
 
+/// Application-level error types.
 #[derive(Debug)]
 pub enum AppError {
     Database(DbErr),
@@ -47,6 +51,7 @@ impl From<ClaimError> for AppError {
     }
 }
 
+/// Authentication Error types.
 #[derive(Debug)]
 pub enum AuthError {
     InvalidCredentials,
@@ -86,6 +91,7 @@ impl From<HashError> for AuthError {
 
 impl std::error::Error for AuthError {}
 
+/// Invoice error type.
 #[derive(Debug)]
 pub enum PostingError {
     UnbalancedEntry {
@@ -127,6 +133,7 @@ impl From<DbErr> for PostingError {
 
 impl std::error::Error for PostingError {}
 
+/// Payment creation error.
 #[derive(Debug)]
 pub enum PaymentCreateError {
     SameAccount,
@@ -179,6 +186,7 @@ impl From<InvoiceError> for PaymentCreateError {
 
 impl std::error::Error for PaymentCreateError {}
 
+/// Invoice Status error.
 #[derive(Debug)]
 pub enum InvoiceError {
     NotEditable,
@@ -243,6 +251,7 @@ impl From<AppError> for InvoiceError {
 
 impl std::error::Error for InvoiceError {}
 
+/// Claims error type.
 #[derive(Debug)]
 pub enum ClaimError {
     NotFound,

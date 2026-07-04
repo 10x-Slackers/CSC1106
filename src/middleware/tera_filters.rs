@@ -1,6 +1,6 @@
 //! Tera templating filters for Actix-web.
 //!
-//!  Authors: Kitsuneez
+//!  Authors: commit2main
 
 use std::collections::HashMap;
 

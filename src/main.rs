@@ -1,6 +1,6 @@
 //! Main entry point for the Actix-web application.
 //!
-//! Authors: Kitsuneez
+//! Authors: commit2main
 
 mod db;
 mod entity;
