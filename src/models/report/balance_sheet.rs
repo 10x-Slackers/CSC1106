@@ -35,6 +35,8 @@ impl BalanceSheetReport {
         db: &DatabaseConnection,
         as_of: Option<NaiveDateTime>,
     ) -> Result<BalanceSheet, AppError> {
+        // Revenue and expense accounts are never reset, so this adds up
+        // all income since the start, not just the current period.
         let all_balances = balances_by_category(
             db,
             &[

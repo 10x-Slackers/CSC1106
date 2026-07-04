@@ -125,6 +125,8 @@ impl Payment {
 
         let payment = Payment::from(model);
 
+        // `payment_direction` is a label only; the actual debit/credit posting
+        // comes entirely from which account the caller passes as from/to.
         let lines = vec![
             JournalEntryLineInput {
                 account_id: to_account_id,
@@ -155,6 +157,7 @@ impl Payment {
     }
 
     /// Sum of all payment amounts for a given party using SQL SUM.
+    /// Adds IN and OUT payments together instead of subtracting one from the other.
     pub async fn total_for_party(
         db: &DatabaseConnection,
         party_id: i32,

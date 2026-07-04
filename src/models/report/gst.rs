@@ -24,6 +24,7 @@ pub struct GstSummary {
 pub struct GstReport;
 
 impl GstReport {
+    /// Only counts GST charged on sales invoices. Doesn't subtract GST paid on purchases.
     pub async fn compute(
         db: &DatabaseConnection,
         from: Option<chrono::NaiveDate>,
