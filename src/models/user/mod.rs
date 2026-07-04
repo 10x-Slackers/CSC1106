@@ -1,7 +1,3 @@
-//! Module entry point for the user model folder.
-//!
-//! Authors: Tan Yong Meng
-
 mod repository;
 mod stats;
 mod types;
