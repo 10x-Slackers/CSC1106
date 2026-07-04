@@ -13,6 +13,7 @@ use crate::routes::utils::{
     require_non_empty, validate_email,
 };
 
+/// Form data used when creating or updating a user.
 #[derive(Deserialize)]
 pub struct UserForm {
     name: String,
@@ -21,6 +22,9 @@ pub struct UserForm {
     password: Option<String>,
 }
 
+/// Query parameters used to filter the user list.
+///
+/// These values are read from the URL query string on the user listing page.
 #[derive(Deserialize, Serialize)]
 pub struct UserFilter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -33,6 +37,10 @@ pub struct UserFilter {
     page: Option<String>,
 }
 
+/// Renders the user listing page.
+///
+/// This helper inserts user records, role options, pagination data, and
+/// optional feedback messages into the Tera context.
 fn render_users_list(
     tera: &Tera,
     user: &Require<AdminOnly>,
@@ -53,7 +61,9 @@ fn render_users_list(
     render(tera, "users/list.html", &context)
 }
 
-/// Reload the full user list and render it with a flash message.
+/// Reloads the user listing page after a create, update, enable, or disable action.
+///
+/// If the user list cannot be loaded, an error message is displayed instead.
 async fn reload_users_list(
     tera: &Tera,
     user: &Require<AdminOnly>,
@@ -95,6 +105,11 @@ async fn reload_users_list(
     }
 }
 
+/// Renders the create or edit user form.
+///
+/// The `mode` value controls whether the form is displayed for creating or
+/// editing a user. When editing, `existing_user` should contain the current
+/// user data.
 fn render_user_form(
     tera: &Tera,
     user: &Require<AdminOnly>,
@@ -118,7 +133,9 @@ fn render_user_form(
     render(tera, "users/form.html", &context)
 }
 
-/// List users with optional filters.
+/// Displays the user listing page.
+///
+/// Access is restricted to admin users.
 #[get("/users")]
 pub async fn list_users(
     user: Require<AdminOnly>,
@@ -168,13 +185,15 @@ pub async fn list_users(
     }
 }
 
-/// Show the create-user form.
+/// Displays the form for creating a new user.
+///
+/// Access is restricted to admin users.
 #[get("/users/new")]
 pub async fn new_user(user: Require<AdminOnly>, tera: web::Data<Tera>) -> HttpResponse {
     render_user_form(tera.get_ref(), &user, "create", None, "", "")
 }
 
-/// Create a new user.
+/// Creates a new user from submitted form data.
 #[post("/users")]
 pub async fn create_user(
     user: Require<AdminOnly>,
@@ -234,7 +253,9 @@ pub async fn create_user(
     }
 }
 
-/// Show the edit-user form.
+/// Displays the edit form for an existing user.
+///
+/// Returns a 404 response if the user cannot be found.
 #[get("/users/{id}/edit")]
 pub async fn edit_user(
     user: Require<AdminOnly>,
@@ -250,7 +271,7 @@ pub async fn edit_user(
     }
 }
 
-/// Update an existing user.
+/// Updates an existing user from submitted form data.
 #[post("/users/{id}")]
 pub async fn update_user(
     current_user: Require<AdminOnly>,
@@ -345,7 +366,10 @@ pub async fn update_user(
     }
 }
 
-/// Disable a user account.
+/// Disables an existing user account.
+///
+/// The current admin is not allowed to disable their own account. When a user
+/// is disabled, their cached authentication data is invalidated.
 #[post("/users/{id}/disable")]
 pub async fn disable_user(
     current_user: Require<AdminOnly>,
@@ -408,7 +432,10 @@ pub async fn disable_user(
     }
 }
 
-/// Enable a user account.
+/// Enables an existing user account.
+///
+/// When a user is enabled, their cached authentication data is invalidated so
+/// future requests use fresh account data.
 #[post("/users/{id}/enable")]
 pub async fn enable_user(
     current_user: Require<AdminOnly>,
@@ -452,6 +479,7 @@ pub async fn enable_user(
     }
 }
 
+/// Registers party routes with the Actix Web service configuration.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(list_users)
         .service(new_user)

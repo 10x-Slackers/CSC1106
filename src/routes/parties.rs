@@ -17,6 +17,7 @@ use crate::routes::utils::{
     require_non_empty, validate_email,
 };
 
+/// Form data used when creating or updating a party.
 #[derive(Deserialize)]
 pub struct PartyForm {
     party_type: String,
@@ -27,6 +28,9 @@ pub struct PartyForm {
     address: String,
 }
 
+/// Query parameters used to filter the party list.
+///
+/// These values are read from the URL query string on the party listing page.
 #[derive(Deserialize, Serialize)]
 pub struct PartyFilter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -39,6 +43,7 @@ pub struct PartyFilter {
     page: Option<String>,
 }
 
+/// Renders the party listing page.
 fn render_parties_list(
     tera: &Tera,
     user: &Authenticated,
@@ -60,7 +65,9 @@ fn render_parties_list(
     render(tera, "parties/list.html", &context)
 }
 
-/// Reload the full party list and render it with a flash message.
+/// Reloads the party listing page after a create, update, or status change.
+///
+/// If the list cannot be loaded, an error message is displayed instead.
 async fn reload_parties_list(
     tera: &Tera,
     user: &Authenticated,
@@ -102,6 +109,11 @@ async fn reload_parties_list(
     }
 }
 
+/// Renders the create or edit party form.
+///
+/// The `mode` value controls whether the form is displayed for creating or
+/// editing a party. When editing, `existing_party` should contain the current
+/// party data.
 fn render_party_form(
     tera: &Tera,
     user: &Authenticated,
@@ -125,7 +137,10 @@ fn render_party_form(
     render(tera, "parties/form.html", &context)
 }
 
-/// List parties with optional filters.
+/// Displays the party listing page.
+///
+/// Supports filtering by search query, party type, status, and page number.
+/// When no status filter is provided, only active parties are shown by default.
 #[get("/parties")]
 pub async fn list_parties(
     user: Authenticated,
@@ -179,13 +194,15 @@ pub async fn list_parties(
     }
 }
 
-/// Show the create-party form.
+/// Displays the form for creating a new party.
+///
+/// Access is restricted to users with finance permissions.
 #[get("/parties/new")]
 pub async fn new_party(user: Require<Finance>, tera: web::Data<Tera>) -> HttpResponse {
     render_party_form(tera.get_ref(), &user, "create", None, "", "")
 }
 
-/// Create a new party.
+/// Creates a new party from submitted form data.
 #[post("/parties")]
 pub async fn create_party(
     user: Require<Finance>,
@@ -258,7 +275,9 @@ pub async fn create_party(
     }
 }
 
-/// Show the edit-party form.
+/// Displays the edit form for an existing party.
+///
+/// Returns a 404 response if the party cannot be found.
 #[get("/parties/{id}/edit")]
 pub async fn edit_party(
     user: Require<Finance>,
@@ -274,7 +293,7 @@ pub async fn edit_party(
     }
 }
 
-/// Update an existing party.
+/// Updates an existing party from submitted form data.
 #[post("/parties/{id}")]
 pub async fn update_party(
     user: Require<Finance>,
@@ -355,7 +374,7 @@ pub async fn update_party(
     }
 }
 
-/// Deactivate a party.
+/// Deactivates an existing party.
 #[post("/parties/{id}/deactivate")]
 pub async fn deactivate_party(
     user: Require<Finance>,
@@ -398,7 +417,7 @@ pub async fn deactivate_party(
     }
 }
 
-/// Activate a party.
+/// Activates an existing party.
 #[post("/parties/{id}/activate")]
 pub async fn activate_party(
     user: Require<Finance>,
@@ -438,7 +457,7 @@ pub async fn activate_party(
     }
 }
 
-/// Party dashboard / detail view.
+/// Displays the details page for a party.
 #[get("/parties/{id}")]
 pub async fn show_party(
     user: Authenticated,
@@ -478,6 +497,7 @@ pub async fn show_party(
     render(tera.get_ref(), "parties/show.html", &context)
 }
 
+/// Registers party routes with the Actix Web service configuration.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(list_parties)
         .service(new_party)

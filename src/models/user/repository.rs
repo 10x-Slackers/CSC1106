@@ -16,6 +16,7 @@ use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 use super::types::User;
 
 impl User {
+    /// Finds the raw SeaORM user model by its ID.
     async fn find_model_by_id(
         db: &DatabaseConnection,
         id: i32,
@@ -26,13 +27,18 @@ impl User {
             .map_err(AuthError::from)
     }
 
-    /// Verify a plaintext password against the stored Argon2 hash.
+    /// Verifies a plaintext password against the user's stored password hash.
+    ///
+    /// Returns `Ok(())` if the password matches the hash.
     pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
         let parsed_hash = PasswordHash::new(&self.password_hash)?;
         Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
     }
 
-    /// Create a new user with a hashed password.
+    /// Creates a new user account.
+    ///
+    /// The provided password is hashed before being stored. New users are
+    /// created as enabled by default.
     pub async fn create(
         db: &DatabaseConnection,
         email: &str,
@@ -65,14 +71,18 @@ impl User {
             .ok_or(AuthError::NotFound)
     }
 
-    /// Look up a user by their primary key.
+    /// Finds a user by their ID.
+    ///
+    /// Returns `Ok(None)` if no matching user exists.
     pub async fn find_by_id(db: &DatabaseConnection, id: i32) -> Result<Option<User>, AuthError> {
         Self::find_model_by_id(db, id)
             .await
             .map(|opt| opt.map(User::from))
     }
 
-    /// Look up a user by email address.
+    /// Finds a user by their email address.
+    ///
+    /// Returns `Ok(None)` if no matching user exists.
     pub async fn find_by_email(
         db: &DatabaseConnection,
         email: &str,
@@ -85,8 +95,15 @@ impl User {
             .map(|opt| opt.map(User::from))
     }
 
-    /// List users with optional filters.
-    /// `q` matches name or email (case-insensitive LIKE).
+    /// Searches for users using optional filters and pagination.
+    ///
+    /// The search can filter by name/email query, role, and account status.
+    /// Results are ordered by creation date in descending order.
+    ///
+    /// Returns a tuple containing:
+    /// - the users for the selected page,
+    /// - the total number of pages,
+    /// - the clamped current page number.
     pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
@@ -131,7 +148,10 @@ impl User {
         Ok((users, total_pages, page))
     }
 
-    /// Update user fields, re-hashing password if provided.
+    /// Updates an existing user account.
+    ///
+    /// Each field is optional. Fields set to `None` are left unchanged.
+    /// If a new password is provided, it is hashed before being saved.
     pub async fn update(
         &self,
         db: &DatabaseConnection,
@@ -167,7 +187,10 @@ impl User {
         Ok(User::from(updated))
     }
 
-    /// Enable or disable a user account.
+    /// Enables or disables a user account.
+    ///
+    /// When `disabled` is `true`, the user account should no longer be allowed
+    /// to authenticate.
     pub async fn set_disabled(
         &self,
         db: &DatabaseConnection,
@@ -186,7 +209,10 @@ impl User {
         Ok(User::from(updated))
     }
 
-    /// Check if user exists, password is correct, and account is not disabled.
+    /// Authenticates a user using an email address and password.
+    ///
+    /// Authentication succeeds only when the user exists, the account is not
+    /// disabled, and the provided password matches the stored password hash.
     pub async fn authenticate(
         db: &DatabaseConnection,
         email: &str,
@@ -199,7 +225,9 @@ impl User {
     }
 }
 
-/// Look up a user's display name by ID.
+/// Finds a user's name by their ID.
+///
+/// Returns `Ok(None)` if no matching user exists.
 pub async fn name_by_id<C: ConnectionTrait>(db: &C, id: i32) -> Result<Option<String>, AppError> {
     let name: Option<String> = user_entity::Entity::find_by_id(id)
         .select_only()
@@ -210,7 +238,9 @@ pub async fn name_by_id<C: ConnectionTrait>(db: &C, id: i32) -> Result<Option<St
     Ok(name)
 }
 
-/// Build a map of user ID → display name for the given IDs.
+/// Builds a map of user IDs to user names.
+///
+/// Returns an empty map when the provided ID list is empty.
 pub async fn name_map_by_ids<C: ConnectionTrait>(
     db: &C,
     ids: Vec<i32>,
@@ -229,7 +259,11 @@ pub async fn name_map_by_ids<C: ConnectionTrait>(
     Ok(rows.into_iter().collect())
 }
 
-/// Hash a plaintext password using Argon2 with a random salt.
+/// Hashes a plaintext password using Argon2.
+///
+/// A random salt is generated for each password before hashing. The returned
+/// string contains the encoded password hash and parameters needed for later
+/// verification.
 fn hash_password(password: &str) -> Result<String, HashError> {
     let salt = SaltString::generate(&mut OsRng);
     Argon2::default()

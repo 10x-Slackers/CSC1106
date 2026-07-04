@@ -5,7 +5,7 @@ use crate::entity::party as party_entity;
 use crate::entity::party::{PartyStatus, PartyType};
 
 impl PartyType {
-    /// Parse a party type string into a `PartyType`.
+    /// Parses a string into a [`PartyType`].
     pub fn parse(s: &str) -> Option<Self> {
         let s = s.trim();
         if s.eq_ignore_ascii_case("customer") {
@@ -19,7 +19,7 @@ impl PartyType {
 }
 
 impl PartyStatus {
-    /// Parse a party status string into a `PartyStatus`.
+    /// Parses a string into a [`PartyStatus`].
     pub fn parse(s: &str) -> Option<Self> {
         let s = s.trim();
         if s.eq_ignore_ascii_case("active") {
@@ -31,8 +31,7 @@ impl PartyStatus {
         }
     }
 }
-
-/// Application-level party model.
+/// Party Model to define a Party Record for Application-Level Use.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Party {
     pub id: i32,
@@ -48,6 +47,7 @@ pub struct Party {
 }
 
 impl From<party_entity::Model> for Party {
+    /// Converts a SeaORM party entity model into an application [`Party`].
     fn from(m: party_entity::Model) -> Self {
         Party {
             id: m.id,

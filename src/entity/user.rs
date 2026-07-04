@@ -1,11 +1,12 @@
-use std::fmt;
-
 use sea_orm::Iterable;
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
-/// User role controlling access level.
+/// Represents the role assigned to a user
+///
+/// The role determines the user's permission level within the system
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
 pub enum Role {
@@ -18,6 +19,7 @@ pub enum Role {
 }
 
 impl fmt::Display for Role {
+    /// Formats the role as a label.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Role::Staff => write!(f, "Staff"),
@@ -28,7 +30,7 @@ impl fmt::Display for Role {
 }
 
 impl Role {
-    /// Parse a role string (case-insensitive) into a `Role`.
+    /// Parse a string into a [`Role`].
     pub fn parse(s: &str) -> Option<Self> {
         match s.trim().to_lowercase().as_str() {
             "staff" => Some(Role::Staff),
@@ -38,13 +40,13 @@ impl Role {
         }
     }
 
-    /// Return all role variant labels in declaration order.
+    /// Return all role labels.
     pub fn labels() -> Vec<String> {
         Self::iter().map(|v| v.to_string()).collect()
     }
 }
 
-/// Account status filter, mapping to the `disabled` boolean column.
+/// Represents the account status of a user.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UserStatus {
     Active,
@@ -52,7 +54,7 @@ pub enum UserStatus {
 }
 
 impl UserStatus {
-    /// Parse a status string (case-insensitive) into a `UserStatus`.
+    /// Parse a string into a [`UserStatus`].
     pub fn parse(s: &str) -> Option<Self> {
         match s.trim().to_lowercase().as_str() {
             "active" => Some(UserStatus::Active),
@@ -61,7 +63,7 @@ impl UserStatus {
         }
     }
 
-    /// The `disabled` column value this status maps to.
+    /// Returns whether the user status is disabled
     pub fn disabled(&self) -> bool {
         match self {
             UserStatus::Active => false,
@@ -70,6 +72,7 @@ impl UserStatus {
     }
 }
 
+/// Represents a user record in the `user` database
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "user")]
 pub struct Model {
@@ -85,18 +88,21 @@ pub struct Model {
     pub updated_at: DateTime,
 }
 
+/// Defines relationships between the user
+/// and other database tables
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    /// A user can be associated with many invoices.
     #[sea_orm(has_many = "super::invoice::Entity")]
     Invoice,
+    /// A user can be associated with many payments.
     #[sea_orm(has_many = "super::payment::Entity")]
     Payment,
+    /// A user can be associated with many journal entries.
     #[sea_orm(has_many = "super::journal_entry::Entity")]
     JournalEntry,
 }
 
-/// Related<claim::Entity> only resolves submitter relation.
-/// To find claims reviewed by this user, use with `claim::Relation::ReviewedByUser.def()` directly.
 impl Related<super::claim::Entity> for Entity {
     fn to() -> RelationDef {
         super::claim::Relation::SubmittedByUser.def()
@@ -127,6 +133,13 @@ impl Related<super::journal_entry::Entity> for Entity {
 
 #[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {
+    /// Runs automatically when a record is inserted or updated.
+    ///
+    /// When inserting a new record, this function sets `created_at` if it has
+    /// not already been set. It also updates `updated_at` every time the record
+    /// is saved.
+    ///
+    /// Returns the modified record with updated timestamp fields.
     async fn before_save<C>(self, _db: &C, insert: bool) -> Result<Self, DbErr>
     where
         C: ConnectionTrait,
