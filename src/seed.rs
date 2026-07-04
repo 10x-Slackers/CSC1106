@@ -117,6 +117,9 @@ pub async fn seed_claim_categories(db: &DatabaseConnection) {
 pub async fn create_admin_interactively(db: &DatabaseConnection) -> User {
     println!("\nNo users found, proceeding with admin account creation.\n");
 
+    const MAX_CREATE_ATTEMPTS: u32 = 5;
+    let mut attempts = 0;
+
     loop {
         let email = prompt("Admin email: ");
         if !email.contains('@') {
@@ -148,6 +151,10 @@ pub async fn create_admin_interactively(db: &DatabaseConnection) -> User {
                 return user;
             }
             Err(e) => {
+                attempts += 1;
+                if attempts >= MAX_CREATE_ATTEMPTS {
+                    panic!("Failed to create admin after {MAX_CREATE_ATTEMPTS} attempts: {e}");
+                }
                 println!("Failed to create admin: {e}");
                 continue;
             }

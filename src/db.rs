@@ -25,11 +25,13 @@ pub async fn init(database_url: &str) -> DatabaseConnection {
 
 /// Returns `true` if the user table has zero rows.
 pub async fn is_empty(db: &DatabaseConnection) -> bool {
-    user_entity::Entity::find()
-        .count(db)
-        .await
-        .map(|n| n == 0)
-        .unwrap_or(false)
+    match user_entity::Entity::find().count(db).await {
+        Ok(n) => n == 0,
+        Err(e) => {
+            eprintln!("warning: failed to count users: {e}; assuming empty");
+            true
+        }
+    }
 }
 
 /// Create a connection pool with WAL mode and foreign keys enabled for concurrency.
