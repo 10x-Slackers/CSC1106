@@ -31,8 +31,7 @@ pub struct IncomeStatement {
 pub struct IncomeStatementReport;
 
 impl IncomeStatementReport {
-    /// Compute total revenue and total expenses for the date range,
-    /// then subtract to get profit or loss.
+    /// Compute revenue, expenses, and net profit or loss for the date range.
     pub async fn compute(
         db: &DatabaseConnection,
         from: Option<NaiveDateTime>,
