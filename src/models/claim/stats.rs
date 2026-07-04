@@ -1,3 +1,7 @@
+//! Computes summary statistics for claims.
+//!
+//! Authors: Teo Kai Wen
+
 use rust_decimal::Decimal;
 use sea_orm::sea_query::{Expr, Func, SimpleExpr};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QuerySelect};

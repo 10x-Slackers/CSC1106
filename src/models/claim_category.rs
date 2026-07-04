@@ -1,3 +1,7 @@
+//! <Summary of file>
+//!
+//! Authors: Teo Kai Wen
+
 use std::collections::HashMap;
 
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};

@@ -1,9 +1,12 @@
-use std::fmt;
+//! Defines the SeaORM database entity for claims
+//!
+//! Authors: Teo Kai Wen
 
 use rust_decimal::Decimal;
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// Claim status.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]

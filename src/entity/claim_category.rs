@@ -1,3 +1,7 @@
+//! Defines the SeaORM database entity for claim categories
+//!
+//! Authors: Teo Kai Wen
+
 use sea_orm::entity::prelude::*;
 
 /// Represents a claim category record in the `claim_category` database table.

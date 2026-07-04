@@ -1,3 +1,7 @@
+//! Defines the Actix Web routes/controllers for the claims feature.
+//!
+//! Authors: Teo Kai Wen
+
 use actix_web::{HttpResponse, get, post, web};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;

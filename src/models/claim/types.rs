@@ -1,3 +1,7 @@
+//! Defines the application-level data structures for claims.
+//!
+//! Authors: Teo Kai Wen
+
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};

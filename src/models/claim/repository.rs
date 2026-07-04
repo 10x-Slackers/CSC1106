@@ -1,3 +1,7 @@
+//! Contains the main business logic and database operations for claims.
+//!
+//! Authors: Teo Kai Wen
+
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
