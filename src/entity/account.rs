@@ -1,3 +1,7 @@
+//! Each account's name, category, and normal balance.
+//!
+//! Authors: commit2main
+
 use std::fmt;
 
 use sea_orm::Set;
@@ -69,6 +73,7 @@ impl fmt::Display for AccountCategory {
     }
 }
 
+/// Which side, debit or credit, increases this account's balance.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(10))")]
 pub enum NormalBalance {

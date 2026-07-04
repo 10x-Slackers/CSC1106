@@ -1,4 +1,6 @@
-//! Income statement PDF layout (mirrors `templates/reports/income_statement.html`).
+//! Income statement PDF layout.
+//!
+//! Authors: Felicia
 
 use chrono::NaiveDateTime;
 
@@ -6,7 +8,7 @@ use super::PdfError;
 use super::builder;
 use crate::models::report::income_statement::{IncomeStatement, IncomeStatementLine};
 
-/// Format the reporting period, using an em dash for open-ended bounds.
+/// Format the reporting period, a dash is used when either date is missing.
 fn period(stmt: &IncomeStatement) -> String {
     let fmt =
         |d: Option<NaiveDateTime>| d.map_or_else(|| "—".to_string(), |d| d.date().to_string());

@@ -1,3 +1,7 @@
+//! The plain payment record and its display-enriched variant.
+//!
+//! Authors: commit2main
+
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -5,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::entity::payment as payment_entity;
 pub use crate::entity::payment::PaymentDirection;
 
-/// A payment with enrichment (party name, created-by name).
+/// A payment with its party name and creator's name attached.
 #[derive(Clone, Serialize)]
 pub struct PaymentDetail {
     pub id: i32,
@@ -32,6 +36,7 @@ impl PaymentDirection {
     }
 }
 
+/// Plain payment record.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Payment {
     pub id: i32,

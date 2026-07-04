@@ -1,3 +1,7 @@
+//! Routes for listing, creating, and viewing payments.
+//!
+//! Authors: commit2main
+
 use actix_web::{HttpResponse, get, post, web};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
@@ -241,7 +245,7 @@ pub async fn create_payment(
         .await;
     }
 
-    // Use a single transaction to create the payment and its linked journal entry for atomicity.
+    // Create the payment and its journal entry in one transaction, so they succeed or fail together.
     let result: Result<Payment, PaymentCreateError> = db
         .transaction(|txn| {
             let remarks = remarks.clone();

@@ -1,3 +1,7 @@
+//! Revenue and expenses over a date range, netted into profit or loss.
+//!
+//! Authors: Felicia
+
 use chrono::NaiveDateTime;
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;
@@ -27,6 +31,7 @@ pub struct IncomeStatement {
 pub struct IncomeStatementReport;
 
 impl IncomeStatementReport {
+    /// Compute revenue, expenses, and net profit or loss for the date range.
     pub async fn compute(
         db: &DatabaseConnection,
         from: Option<NaiveDateTime>,

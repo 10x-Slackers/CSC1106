@@ -1,4 +1,6 @@
-//! GST summary PDF layout (mirrors `templates/reports/gst.html`).
+//! GST summary PDF layout.
+//!
+//! Authors: Felicia
 
 use chrono::NaiveDate;
 
@@ -6,7 +8,7 @@ use super::PdfError;
 use super::builder;
 use crate::models::report::gst::GstSummary;
 
-/// Format the reporting period, using an em dash for open-ended bounds.
+/// Format the reporting period, a dash is used when either date is missing.
 fn period(from: Option<NaiveDate>, to: Option<NaiveDate>) -> String {
     let fmt = |d: Option<NaiveDate>| d.map_or_else(|| "—".to_string(), |d| d.to_string());
     format!("{} to {}", fmt(from), fmt(to))

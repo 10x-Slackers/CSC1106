@@ -1,3 +1,7 @@
+//! Asset, liability, and equity balances as of a given date.
+//!
+//! Authors: Felicia
+
 use chrono::NaiveDateTime;
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;
@@ -31,10 +35,12 @@ pub struct BalanceSheet {
 pub struct BalanceSheetReport;
 
 impl BalanceSheetReport {
+    /// Compute asset, liability, and equity balances, adding a "Net Income" line so the sheet balances.
     pub async fn compute(
         db: &DatabaseConnection,
         as_of: Option<NaiveDateTime>,
     ) -> Result<BalanceSheet, AppError> {
+        // Revenue and expense accounts are never reset, so this adds up everything since the start.
         let all_balances = balances_by_category(
             db,
             &[

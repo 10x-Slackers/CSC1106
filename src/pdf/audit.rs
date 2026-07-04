@@ -1,5 +1,6 @@
-//! Audit statement PDF layout: a compact double-entry ledger, one row per
-//! journal line (mirrors `templates/reports/audit.html`).
+//! Audit statement PDF layout.
+//!
+//! Authors: Felicia
 
 use rust_decimal::Decimal;
 
@@ -25,8 +26,7 @@ pub fn render_audit(report: &AuditReport) -> Result<Vec<u8>, PdfError> {
     ));
     builder::spacer(&mut doc);
 
-    // One continuous ledger: each journal line is a row, with the entry's date
-    // and source shown only on its first line so entries read as groups.
+    // Each line is a row; date and source show only on the entry's first line.
     let mut rows: Vec<Vec<String>> = Vec::new();
     let mut total_debit = Decimal::ZERO;
     let mut total_credit = Decimal::ZERO;

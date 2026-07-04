@@ -1,3 +1,7 @@
+//! GST charged on sales invoices over a date range.
+//!
+//! Authors: Felicia
+
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;
 
@@ -24,6 +28,7 @@ pub struct GstSummary {
 pub struct GstReport;
 
 impl GstReport {
+    /// Only counts GST charged on sales invoices. Doesn't subtract GST paid on purchases.
     pub async fn compute(
         db: &DatabaseConnection,
         from: Option<chrono::NaiveDate>,

@@ -1,3 +1,7 @@
+//! Look up accounts by name and calculate their balances.
+//!
+//! Authors: commit2main
+
 use std::collections::HashMap;
 
 use rust_decimal::Decimal;
@@ -90,9 +94,7 @@ pub struct AccountBalance {
     pub balance: Decimal,
 }
 
-/// Compute signed balances for accounts in the given categories.
-/// For Debit-normal accounts = debits - credits; for Credit-normal = credits - debits.
-/// Returns all accounts in the categories sorted by name.
+/// Compute each account's balance.
 pub async fn balances_by_category<C: ConnectionTrait>(
     db: &C,
     categories: &[AccountCategory],

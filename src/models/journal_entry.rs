@@ -1,3 +1,7 @@
+//! Post balanced journal entries and build the audit trail.
+//!
+//! Authors: commit2main
+
 use std::collections::HashMap;
 
 use chrono::NaiveDateTime;
@@ -24,7 +28,7 @@ pub struct JournalEntryLineInput {
     pub description: Option<String>,
 }
 
-/// A single journal entry line enriched with the account name for display.
+/// A journal entry line paired with its account name, for the audit trail.
 #[derive(serde::Serialize, Clone)]
 pub struct AuditLine {
     pub account_name: String,
@@ -33,7 +37,7 @@ pub struct AuditLine {
     pub description: Option<String>,
 }
 
-/// A journal entry enriched with its lines, poster name, and source document reference.
+/// A journal entry for the audit trail, with its lines, creator's name, and source document.
 #[derive(serde::Serialize, Clone)]
 pub struct AuditEntry {
     pub id: i32,
@@ -47,7 +51,7 @@ pub struct AuditEntry {
 }
 
 impl JournalEntry {
-    /// Create and post a journal entry within an existing transaction.
+    /// Create a journal entry and insert its debit/credit lines, within an existing transaction.
     pub async fn create<C: ConnectionTrait>(
         db: &C,
         lines: Vec<JournalEntryLineInput>,
@@ -87,8 +91,7 @@ impl JournalEntry {
         Ok(journal_entry)
     }
 
-    /// List all posted journal entries within a range, ordered chronologically then by id.
-    /// Each entry enriched with its lines, account names, poster name, and source document reference.
+    /// List journal entries in a date range, ordered by date then id. 
     pub async fn list<C: ConnectionTrait>(
         db: &C,
         from: NaiveDateTime,
@@ -151,8 +154,7 @@ impl JournalEntryLineInput {
     }
 }
 
-/// Fetch journal entry lines for the given account IDs, joined to their parent entry
-/// and filtered by optional date range on the entry's created_at timestamp.
+/// Fetch journal entry lines for the given accounts within an optional date range.
 pub async fn lines_for_accounts<C: ConnectionTrait>(
     db: &C,
     account_ids: Vec<i32>,
@@ -189,6 +191,7 @@ fn totals<'a>(lines: impl Iterator<Item = (&'a EntrySide, Decimal)>) -> (Decimal
     (total_debit, total_credit)
 }
 
+/// Fetch journal entries created within the given date range.
 async fn fetch_entries<C: ConnectionTrait>(
     db: &C,
     from: NaiveDateTime,
@@ -204,6 +207,7 @@ async fn fetch_entries<C: ConnectionTrait>(
         .map_err(AppError::from)
 }
 
+/// Fetch all lines belonging to the given journal entries.
 async fn fetch_lines<C: ConnectionTrait>(
     db: &C,
     entry_ids: Vec<i32>,
@@ -215,6 +219,7 @@ async fn fetch_lines<C: ConnectionTrait>(
         .map_err(AppError::from)
 }
 
+/// Build a map of account id to name, for the accounts used in the given lines.
 async fn build_account_name_map<C: ConnectionTrait>(
     db: &C,
     lines: &[journal_entry_line_entity::Model],
@@ -223,6 +228,7 @@ async fn build_account_name_map<C: ConnectionTrait>(
     crate::models::account::name_map_by_ids(db, account_ids).await
 }
 
+/// Build a map of user id to name, for the users who created the given entries.
 async fn build_user_name_map<C: ConnectionTrait>(
     db: &C,
     entries: &[journal_entry_entity::Model],
@@ -268,6 +274,7 @@ fn group_lines(
     map
 }
 
+/// Build an `AuditEntry` from a journal entry, its lines, and resolved names/links.
 fn build_audit_entry(
     entry: journal_entry_entity::Model,
     lines: Vec<AuditLine>,

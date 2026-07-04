@@ -1,3 +1,7 @@
+//! Routes for viewing the four financial reports as HTML pages, or downloading them as PDFs.
+//!
+//! Authors: Felicia
+
 use actix_web::{HttpResponse, Responder, get, web};
 use chrono::{Datelike, NaiveDate};
 use sea_orm::DatabaseConnection;
@@ -49,6 +53,7 @@ pub struct YearFilter {
     pub year: Option<i32>,
 }
 
+/// Show links to the four reports (GST, income statement, balance sheet, audit).
 #[get("/reports")]
 pub async fn reports_index(user: Require<Finance>, tera: web::Data<tera::Tera>) -> impl Responder {
     let mut context = Context::new();
@@ -56,6 +61,7 @@ pub async fn reports_index(user: Require<Finance>, tera: web::Data<tera::Tera>) 
     render(&tera, "reports/index.html", &context)
 }
 
+/// Show the GST summary report for an optional date range.
 #[get("/reports/gst")]
 pub async fn gst_report(
     user: Require<Finance>,
@@ -86,6 +92,7 @@ pub async fn gst_report(
     render(&tera, "reports/gst.html", &context)
 }
 
+/// Show the income statement for an optional date range.
 #[get("/reports/income-statement")]
 pub async fn income_statement(
     user: Require<Finance>,
@@ -119,6 +126,7 @@ pub async fn income_statement(
     render(&tera, "reports/income_statement.html", &context)
 }
 
+/// Download the income statement as a PDF.
 #[get("/reports/income-statement/pdf")]
 pub async fn income_statement_pdf(
     _user: Require<Finance>,
@@ -147,6 +155,7 @@ pub async fn income_statement_pdf(
     )
 }
 
+/// Download the GST summary as a PDF.
 #[get("/reports/gst/pdf")]
 pub async fn gst_pdf(
     _user: Require<Finance>,
@@ -172,6 +181,7 @@ pub async fn gst_pdf(
     )
 }
 
+/// Show the balance sheet as of a given date, or the latest balances if none is given.
 #[get("/reports/balance-sheet")]
 pub async fn balance_sheet(
     user: Require<Finance>,
@@ -198,6 +208,7 @@ pub async fn balance_sheet(
     render(&tera, "reports/balance_sheet.html", &context)
 }
 
+/// Download the balance sheet as a PDF.
 #[get("/reports/balance-sheet/pdf")]
 pub async fn balance_sheet_pdf(
     _user: Require<Finance>,
@@ -221,6 +232,7 @@ pub async fn balance_sheet_pdf(
     )
 }
 
+/// Download the audit statement as a PDF for the given year, defaulting to the current year.
 #[get("/reports/audit/pdf")]
 pub async fn audit_pdf(
     _user: Require<Finance>,
@@ -247,6 +259,7 @@ pub async fn audit_pdf(
     )
 }
 
+/// Show the audit statement (journal entries) for the given year, defaulting to the current year.
 #[get("/reports/audit")]
 pub async fn audit_report(
     user: Require<Finance>,

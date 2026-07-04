@@ -1,6 +1,11 @@
+//! The header row for a posted double-entry transaction.
+//!
+//! Authors: commit2main
+
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 
+/// Only one of `payment_id`/`claim_id`/`invoice_id` should be set at a time.
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "journal_entry")]
 pub struct Model {
@@ -22,7 +27,7 @@ pub enum SourceDocument {
 }
 
 impl SourceDocument {
-    /// Map the source document variant to its nullable FK columns.
+    /// Map the source document into the three optional id columns it can set.
     pub fn to_fks(&self) -> (Option<i32>, Option<i32>, Option<i32>) {
         match self {
             SourceDocument::Payment { payment_id } => (Some(*payment_id), None, None),

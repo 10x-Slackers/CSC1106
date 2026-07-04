@@ -1,3 +1,7 @@
+//! One debit or credit row within a journal entry.
+//!
+//! Authors: commit2main
+
 use rust_decimal::Decimal;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -24,6 +28,7 @@ impl fmt::Display for EntrySide {
     }
 }
 
+/// `amount` is always positive; `entry_side` decides if it is debit or credit.
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "journal_entry_line")]
 pub struct Model {

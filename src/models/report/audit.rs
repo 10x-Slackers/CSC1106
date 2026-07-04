@@ -1,3 +1,7 @@
+//! All journal entries created during a given calendar year.
+//!
+//! Authors: commit2main
+
 use chrono::NaiveDateTime;
 use sea_orm::DatabaseConnection;
 
@@ -17,6 +21,7 @@ pub struct AuditReport {
 pub struct AuditStatement;
 
 impl AuditStatement {
+    /// Load journal entries for the given calendar year.
     pub async fn compute(db: &DatabaseConnection, year: i32) -> Result<AuditReport, AppError> {
         let from = chrono::NaiveDate::from_ymd_opt(year, 1, 1)
             .and_then(|d| d.and_hms_opt(0, 0, 0))

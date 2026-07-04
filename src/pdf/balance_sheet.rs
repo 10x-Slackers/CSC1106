@@ -1,4 +1,6 @@
-//! Balance sheet PDF layout (mirrors `templates/reports/balance_sheet.html`).
+//! Balance sheet PDF layout.
+//!
+//! Authors: Felicia
 
 use rust_decimal::Decimal;
 

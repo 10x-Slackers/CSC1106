@@ -1,3 +1,7 @@
+//! Payment search, creation, and totals, posting each payment to the journal.
+//!
+//! Authors: commit2main
+
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
@@ -19,7 +23,7 @@ use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 use super::types::{Payment, PaymentDetail};
 
 impl Payment {
-    /// Load a payment with enriched details using a LEFT JOIN for party + a separate user query.
+    /// Load a payment with its party name (via a LEFT JOIN) and creator's name (using a separate query).
     pub async fn find_with_linked(
         db: &DatabaseConnection,
         id: i32,
@@ -48,8 +52,7 @@ impl Payment {
         }
     }
 
-    /// List payments with optional filters.
-    /// `q` matches remarks (case-insensitive LIKE).
+    /// List payments with optional filters and search using a partial, case-insensitive match on `remarks`.
     pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
@@ -99,7 +102,7 @@ impl Payment {
         Ok((payments, total_pages, page))
     }
 
-    /// Create a payment and post the linked balanced journal entry.
+    /// Create a payment, then record a balanced debit/credit entry for it in the journal.
     pub async fn create<C: ConnectionTrait>(
         db: &C,
         payment: Payment,
@@ -125,6 +128,7 @@ impl Payment {
 
         let payment = Payment::from(model);
 
+        // `payment_direction` is a label only; the from/to accounts decide debit/credit.
         let lines = vec![
             JournalEntryLineInput {
                 account_id: to_account_id,
@@ -154,7 +158,7 @@ impl Payment {
         Ok(payment)
     }
 
-    /// Sum of all payment amounts for a given party using SQL SUM.
+    /// Sum of all payment amounts for a given party.
     pub async fn total_for_party(
         db: &DatabaseConnection,
         party_id: i32,
@@ -169,7 +173,7 @@ impl Payment {
         Ok(result.and_then(|(v,)| v).unwrap_or(Decimal::ZERO))
     }
 
-    /// Sum of all payment amounts for a given invoice using SQL SUM.
+    /// Sum of all payment amounts for a given invoice.
     pub async fn total_for_invoice<C: ConnectionTrait>(
         db: &C,
         invoice_id: i32,
@@ -184,7 +188,7 @@ impl Payment {
         Ok(result.and_then(|(v,)| v).unwrap_or(Decimal::ZERO))
     }
 
-    /// List payments with optional invoice and party filters, newest first.
+    /// List payments with optional invoice and party filters, ordered by newest first.
     pub async fn list(
         db: &DatabaseConnection,
         invoice_id: Option<i32>,
