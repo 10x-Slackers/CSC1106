@@ -9,14 +9,16 @@ use crate::models::error::AuthError;
 use crate::models::user::User;
 use crate::routes::utils::{redirect, render};
 
-/// Form data for the login page.
+/// Form data submitted from the login page.
 #[derive(Deserialize)]
 pub struct LoginForm {
     email: String,
     password: String,
 }
 
-/// Render the login page; redirects to home if already authenticated.
+/// Displays the login page.
+///
+/// If the user is already authenticated, they are redirected to the home page.
 #[get("/login")]
 pub async fn show_login(user: Option<Identity>, tera: web::Data<Tera>) -> impl Responder {
     if user.is_some() {
@@ -26,7 +28,11 @@ pub async fn show_login(user: Option<Identity>, tera: web::Data<Tera>) -> impl R
     render_login(tera.get_ref(), "")
 }
 
-/// Process a login form submission and establish a session.
+/// Processes a login form submission.
+///
+/// The submitted credentials are authenticated against the database. On
+/// success, an identity session is created, the user is cached, and the user is
+/// redirected to the home page.
 #[post("/login")]
 pub async fn process_login(
     req: HttpRequest,
@@ -53,7 +59,10 @@ pub async fn process_login(
     }
 }
 
-/// Log out the current user and invalidate their cache entry.
+/// Logs out the current user.
+///
+/// If an identity exists, the user's cached authentication data is invalidated
+/// before the identity session is removed.
 #[post("/logout")]
 pub async fn logout(user: Option<Identity>, cache: web::Data<UserCache>) -> impl Responder {
     if let Some(identity) = user {
@@ -66,13 +75,14 @@ pub async fn logout(user: Option<Identity>, cache: web::Data<UserCache>) -> impl
     redirect("/login")
 }
 
-/// Helper function to render the login template with an optional status message.
+/// Renders the Login Page.
 fn render_login(tera: &Tera, message: &str) -> HttpResponse {
     let mut context = Context::new();
     context.insert("message", message);
     render(tera, "auth/login.html", &context)
 }
 
+/// Registers authentication routes with the Actix Web service configuration.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(show_login)
         .service(process_login)
