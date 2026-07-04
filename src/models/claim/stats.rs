@@ -11,10 +11,6 @@ use crate::entity::claim as claim_entity;
 use crate::entity::claim::ClaimStatus;
 use crate::models::error::ClaimError;
 
-/// Summary statistics for claim records.
-///
-/// This struct is used to display high-level claim metrics, such as pending
-/// claims, approved claim amount, rejection rate, and average claim amount.
 #[derive(Serialize)]
 pub struct ClaimStats {
     pub total_claims: u64,
@@ -37,10 +33,6 @@ type StatsRow = (
 
 impl ClaimStats {
     /// Computes claim statistics from the database.
-    ///
-    /// This performs a single aggregate query to calculate pending claims,
-    /// pending amount, rejected claims, total claims, average claim amount, and
-    /// approved amount. Empty aggregate values are converted to zero.
     pub async fn compute(db: &DatabaseConnection) -> Result<Self, ClaimError> {
         let result: Option<StatsRow> = claim_entity::Entity::find()
             .select_only()

@@ -46,8 +46,6 @@ impl Claim {
             .ok_or(ClaimError::NotFound)?;
         let claim = Claim::from(model);
         let category_name = category.map(|c| c.name).unwrap_or_default();
-
-        // 1 query: batch both user names
         let mut user_ids = vec![claim.submitted_by_user_id];
         if let Some(uid) = claim.reviewed_by_user_id {
             user_ids.push(uid);
