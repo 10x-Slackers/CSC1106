@@ -1,3 +1,6 @@
+//! Invoice entity definition
+//!
+//!  Authors: Kitsuneez
 use std::fmt;
 
 use sea_orm::Iterable;

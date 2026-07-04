@@ -1,3 +1,6 @@
+//! Invoice line item entity definition and GST rate.
+//!
+//! Authors: Kitsuneez
 use rust_decimal::Decimal;
 use sea_orm::Iterable;
 use sea_orm::entity::prelude::*;
