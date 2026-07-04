@@ -3,15 +3,101 @@
 {% block title %}Home{% endblock %}
 
 {% block page_content %}
-  <div class="hero min-h-[60vh]">
-    <div class="hero-content text-center">
-      <div class="max-w-md">
-        <h1 class="text-3xl font-bold">Welcome, {{ current_user.name }}</h1>
-        <p class="py-4">
-          You are logged in as
-          <span class="badge badge-primary">{{ current_user.role }}</span>
-        </p>
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold">Welcome, {{ current_user.name }}</h1>
+    <p class="mt-1">
+      You are logged in as
+      <span class="badge badge-primary">{{ current_user.role }}</span>
+    </p>
+  </div>
+
+  {% if invoice_stats %}
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title">Invoices</h2>
+          <div class="stats stats-vertical sm:stats-horizontal w-full">
+            <div class="stat">
+              <div class="stat-title">Total Invoices</div>
+              <div class="stat-value">{{ invoice_stats.total }}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Draft</div>
+              <div class="stat-value">{{ invoice_stats.draft }}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Unpaid</div>
+              <div class="stat-value">{{ invoice_stats.unpaid }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title">Claims</h2>
+          <div class="stats stats-vertical sm:stats-horizontal w-full">
+            <div class="stat">
+              <div class="stat-title">Total Claims</div>
+              <div class="stat-value">{{ claim_stats.total_claims }}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Pending</div>
+              <div class="stat-value">{{ claim_stats.pending_count }}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Approved Amount</div>
+              <div class="stat-value">
+                {{ claim_stats.approved_amount | money }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title">Parties</h2>
+          <div class="stats stats-vertical sm:stats-horizontal w-full">
+            <div class="stat">
+              <div class="stat-title">Total Parties</div>
+              <div class="stat-value">{{ party_stats.total }}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Active Customers</div>
+              <div class="stat-value">{{ party_stats.active_customers }}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Active Vendors</div>
+              <div class="stat-value">{{ party_stats.active_vendors }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title">Users</h2>
+          <div class="stats stats-vertical sm:stats-horizontal w-full">
+            <div class="stat">
+              <div class="stat-title">Admin</div>
+              <div class="stat-value">{{ user_stats.admin }}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Finance</div>
+              <div class="stat-value">{{ user_stats.finance }}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Staff</div>
+              <div class="stat-value">{{ user_stats.staff }}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+  {% else %}
+    <div class="alert alert-error">
+      <span>Unable to load dashboard statistics. Please try again later.</span>
+    </div>
+  {% endif %}
 {% endblock %}
