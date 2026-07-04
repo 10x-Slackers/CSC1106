@@ -49,7 +49,7 @@ impl Payment {
     }
 
     /// List payments with optional filters.
-    /// `q` matches remarks (case-insensitive LIKE).
+    /// The search text does a partial, case-insensitive match against the payment's `remarks`.
     pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
