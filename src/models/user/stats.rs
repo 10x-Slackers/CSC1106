@@ -1,3 +1,8 @@
+//! Computes summary statistics for users.
+//! Generates user dashboard statistics, grouped by role.
+//!
+//! Authors: Tan Yong Meng
+
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter};
 use serde::Serialize;
 

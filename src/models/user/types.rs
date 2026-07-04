@@ -1,3 +1,7 @@
+//! Defines the application-level User struct.
+//!
+//! Authors: Tan Yong Meng
+
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 

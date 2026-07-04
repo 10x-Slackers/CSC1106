@@ -1,3 +1,7 @@
+//! Defines the application-level party data model.
+//!
+//! Authors: Tan Yong Meng
+
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 

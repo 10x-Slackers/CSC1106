@@ -1,3 +1,9 @@
+//! Defines the SeaORM database entity for users in the system.
+//! tells SeaORM what a user account looks like in the database,
+//! what roles users can have, and how users connect to other records.
+//!
+//! Authors: Tan Yong Meng
+
 use sea_orm::Iterable;
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;

@@ -1,3 +1,12 @@
+//! Handles login and logout.
+//! Controls user authentication:
+//!     - Logging in
+//!     - Creating the session
+//!     - Caching the user
+//!     - Logging out.
+//!
+//! Authors: Tan Yong Meng
+
 use actix_identity::Identity;
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, get, post, web};
 use sea_orm::DatabaseConnection;

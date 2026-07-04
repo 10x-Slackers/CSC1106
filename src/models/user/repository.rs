@@ -1,3 +1,8 @@
+//! Contains the main database and authentication logic for users.
+//! Here is where user accounts are created, searched, updated, disabled, and authenticated.
+//!
+//! Authors: Tan Yong Meng
+
 use argon2::Argon2;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::{

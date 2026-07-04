@@ -1,3 +1,8 @@
+//! Handles the current user’s own profile page.
+//! Allows a logged-in user update their own account details safely.
+//!
+//! Authors: Tan Yong Meng
+
 use actix_web::{HttpResponse, get, post, web};
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;

@@ -1,3 +1,8 @@
+//! Contains the main database logic for parties.
+//! Here is where parties are created, searched, listed, updated, activated, and deactivated.
+//!
+//! Authors: Tan Yong Meng
+
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
     Order, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,

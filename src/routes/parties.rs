@@ -1,3 +1,9 @@
+//! Handles party management.
+//! Manages customers and vendors, including their details,
+//! status, invoices, and payment summaries.
+//!
+//! Authors: Tan Yong Meng
+
 use actix_web::{HttpResponse, get, post, web};
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;

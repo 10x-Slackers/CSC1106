@@ -1,3 +1,9 @@
+//! Defines the SeaORM database entity for parties in the accounting system.
+//! Tells SeaORM what a record looks like in the database
+//! and how it connects to invoices and payments.
+//!
+//! Authors: Tan Yong Meng
+
 use sea_orm::Iterable;
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;
