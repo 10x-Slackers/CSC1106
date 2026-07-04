@@ -19,7 +19,7 @@ use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 use super::types::{Payment, PaymentDetail};
 
 impl Payment {
-    /// Load a payment with enriched details using a LEFT JOIN for party + a separate user query.
+    /// Load a payment with its party name (via a LEFT JOIN) and creator's name (using a separate query).
     pub async fn find_with_linked(
         db: &DatabaseConnection,
         id: i32,
@@ -99,7 +99,7 @@ impl Payment {
         Ok((payments, total_pages, page))
     }
 
-    /// Create a payment and post the linked balanced journal entry.
+    /// Create a payment, then record a balanced debit/credit entry for it in the journal.
     pub async fn create<C: ConnectionTrait>(
         db: &C,
         payment: Payment,

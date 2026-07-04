@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::entity::payment as payment_entity;
 pub use crate::entity::payment::PaymentDirection;
 
-/// A payment with enrichment (party name, created-by name).
+/// A payment with its party name and creator's name attached, for the single-payment display page.
 #[derive(Clone, Serialize)]
 pub struct PaymentDetail {
     pub id: i32,
@@ -32,6 +32,8 @@ impl PaymentDirection {
     }
 }
 
+/// The plain payment record (raw `party_id`/`created_by_user_id`); see
+/// `PaymentDetail` for the version with names resolved for display.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Payment {
     pub id: i32,

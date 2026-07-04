@@ -31,6 +31,8 @@ pub struct BalanceSheet {
 pub struct BalanceSheetReport;
 
 impl BalanceSheetReport {
+    /// Compute asset, liability, and equity balances as of the given date,
+    /// adding a "Net Income" line to equity so the sheet balances.
     pub async fn compute(
         db: &DatabaseConnection,
         as_of: Option<NaiveDateTime>,

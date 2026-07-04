@@ -16,7 +16,7 @@ pub fn render_invoice(
     builder::heading(&mut doc, &format!("Invoice #{}", invoice.invoice_no));
     builder::spacer(&mut doc);
 
-    // Party name and address (values only, no labels).
+    // Show party name and address as plain lines, unlike other fields.
     doc.push(builder::text_line(
         party.map(|p| p.name.as_str()).unwrap_or("—"),
     ));
