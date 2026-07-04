@@ -1,57 +1,11 @@
+use std::io::{self, Write};
+
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{DatabaseConnection, EntityTrait, Set};
 
 use crate::entity::account::{AccountCategory, NormalBalance};
-use crate::entity::party::{PartyStatus, PartyType};
 use crate::entity::user::Role;
 use crate::models::user::User;
-
-/// Insert default users if the database is empty.
-pub async fn seed_users(db: &DatabaseConnection) {
-    if User::find_by_email(db, "admin@example.com")
-        .await
-        .expect("DB query failed")
-        .is_some()
-    {
-        return;
-    }
-
-    // TODO: Don't hardcode credentials
-    let users = [
-        (
-            "admin@example.com",
-            "Administrator",
-            "P@ssw0rd",
-            Role::Admin,
-            false,
-        ),
-        (
-            "john@example.com",
-            "John Doe",
-            "P@ssw0rd",
-            Role::Accountant,
-            false,
-        ),
-        (
-            "staff@example.com",
-            "Staff Member",
-            "P@ssw0rd",
-            Role::Staff,
-            true,
-        ),
-    ];
-
-    for (email, name, password, role, disabled) in users {
-        let user = User::create(db, email, name, password, role)
-            .await
-            .expect("Failed to seed user");
-        if disabled {
-            user.set_disabled(db, true)
-                .await
-                .expect("Failed to disable seeded user");
-        }
-    }
-}
 
 /// Insert a default chart of accounts, skipping duplicates.
 pub async fn seed_accounts(db: &DatabaseConnection) {
@@ -159,57 +113,55 @@ pub async fn seed_claim_categories(db: &DatabaseConnection) {
     }
 }
 
-/// Insert sample parties if the database is empty.
-pub async fn seed_parties(db: &DatabaseConnection) {
-    use crate::models::party::Party;
+/// Prompt the operator interactively to create an admin user.
+pub async fn create_admin_interactively(db: &DatabaseConnection) -> User {
+    println!("\nNo users found, proceeding with admin account creation.\n");
 
-    if Party::find_by_email(db, "alice@acme.com")
-        .await
-        .expect("DB query failed")
-        .is_some()
-    {
-        return;
-    }
+    loop {
+        let email = prompt("Admin email: ");
+        if !email.contains('@') {
+            println!("Email must contain '@'.");
+            continue;
+        }
 
-    let parties = [
-        (
-            PartyType::Customer,
-            "Alice Tan",
-            Some("Acme Pte Ltd"),
-            "alice@acme.com",
-            "91234567",
-            "123 Orchard Road",
-            PartyStatus::Active,
-        ),
-        (
-            PartyType::Vendor,
-            "Bob Lim",
-            Some("Lim Supplies"),
-            "bob@supplies.com",
-            "82345678",
-            "456 Industrial Ave",
-            PartyStatus::Active,
-        ),
-        (
-            PartyType::Vendor,
-            "David Chen",
-            Some("Chen Trading"),
-            "david@oldvendor.com",
-            "84567890",
-            "321 River Valley",
-            PartyStatus::Inactive,
-        ),
-    ];
+        let name = prompt("Admin name: ");
+        if name.is_empty() {
+            println!("Name cannot be empty.");
+            continue;
+        }
 
-    for (party_type, name, company, email, phone, address, status) in parties {
-        let party = Party::create(db, party_type, name, company, email, phone, address)
-            .await
-            .expect("Failed to seed party");
-        if status == PartyStatus::Inactive {
-            party
-                .set_status(db, PartyStatus::Inactive)
-                .await
-                .expect("Failed to deactivate seeded party");
+        let password = prompt("Password: ");
+        if password.len() < 8 {
+            println!("Password must be at least 8 characters.");
+            continue;
+        }
+
+        let confirm = prompt("Confirm password: ");
+        if password != confirm {
+            println!("Passwords do not match.");
+            continue;
+        }
+
+        match User::create(db, &email, &name, &password, Role::Admin).await {
+            Ok(user) => {
+                println!("Created admin: {} ({})", user.name, user.email);
+                return user;
+            }
+            Err(e) => {
+                println!("Failed to create admin: {e}");
+                continue;
+            }
         }
     }
+}
+
+/// Print a prompt, flush stdout, and read a line from stdin.
+fn prompt(label: &str) -> String {
+    print!("{label}");
+    io::stdout().flush().expect("Failed to flush stdout");
+    let mut buf = String::new();
+    io::stdin()
+        .read_line(&mut buf)
+        .expect("Failed to read stdin");
+    buf.trim().to_string()
 }
