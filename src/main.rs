@@ -38,7 +38,7 @@ async fn main() -> std::io::Result<()> {
 
     let db = db::init(&database_url).await;
 
-    if db::is_empty(&db).await {
+    if db::has_no_users(&db).await {
         seed::create_admin_interactively(&db).await;
     }
 

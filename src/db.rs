@@ -24,7 +24,7 @@ pub async fn init(database_url: &str) -> DatabaseConnection {
 }
 
 /// Returns `true` if the user table has zero rows.
-pub async fn is_empty(db: &DatabaseConnection) -> bool {
+pub async fn has_no_users(db: &DatabaseConnection) -> bool {
     match user_entity::Entity::find().count(db).await {
         Ok(n) => n == 0,
         Err(e) => {
