@@ -3,6 +3,7 @@ use actix_web::body::MessageBody;
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::middleware::Next;
 
+/// adds security headers to the response
 pub async fn security_headers<B>(
     req: ServiceRequest,
     next: Next<B>,
