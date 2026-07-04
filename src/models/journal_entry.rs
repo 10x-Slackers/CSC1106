@@ -2,12 +2,27 @@ use std::collections::HashMap;
 
 use chrono::NaiveDateTime;
 use rust_decimal::Decimal;
-use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, Order, QueryFilter, QueryOrder};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, JoinType, Order, QueryFilter,
+    QueryOrder, QuerySelect, RelationTrait, Set,
+};
 
 use crate::entity::journal_entry as journal_entry_entity;
+use crate::entity::journal_entry::SourceDocument;
 use crate::entity::journal_entry_line as journal_entry_line_entity;
 use crate::entity::journal_entry_line::EntrySide;
-use crate::models::error::AppError;
+use crate::models::error::{AppError, PostingError};
+
+pub use journal_entry_entity::Model as JournalEntry;
+
+/// Input for a single debit or credit line within a journal entry.
+#[derive(Clone)]
+pub struct JournalEntryLineInput {
+    pub account_id: i32,
+    pub entry_side: EntrySide,
+    pub amount: Decimal,
+    pub description: Option<String>,
+}
 
 /// A single journal entry line enriched with the account name for display.
 #[derive(serde::Serialize, Clone)]
@@ -31,39 +46,147 @@ pub struct AuditEntry {
     pub total_credit: Decimal,
 }
 
-/// List all posted journal entries within a range, ordered chronologically then by id.
-/// Each entry enriched with its lines, account names, poster name, and source document reference.
-pub async fn list_for_audit<C: ConnectionTrait>(
-    db: &C,
-    from: NaiveDateTime,
-    to: NaiveDateTime,
-) -> Result<Vec<AuditEntry>, AppError> {
-    let entries = fetch_entries(db, from, to).await?;
-    if entries.is_empty() {
-        return Ok(Vec::new());
+impl JournalEntry {
+    /// Create and post a journal entry within an existing transaction.
+    pub async fn create<C: ConnectionTrait>(
+        db: &C,
+        lines: Vec<JournalEntryLineInput>,
+        source: SourceDocument,
+        created_by_user_id: i32,
+    ) -> Result<JournalEntry, PostingError> {
+        JournalEntryLineInput::validate_all(&lines)?;
+
+        let (payment_id, claim_id, invoice_id) = source.to_fks();
+
+        let journal_entry = journal_entry_entity::ActiveModel {
+            payment_id: Set(payment_id),
+            claim_id: Set(claim_id),
+            invoice_id: Set(invoice_id),
+            created_by_user_id: Set(created_by_user_id),
+            ..Default::default()
+        }
+        .insert(db)
+        .await?;
+
+        let line_models: Vec<journal_entry_line_entity::ActiveModel> = lines
+            .into_iter()
+            .map(|line| journal_entry_line_entity::ActiveModel {
+                entry_id: Set(journal_entry.id),
+                account_id: Set(line.account_id),
+                entry_side: Set(line.entry_side),
+                amount: Set(line.amount),
+                description: Set(line.description),
+                ..Default::default()
+            })
+            .collect();
+
+        journal_entry_line_entity::Entity::insert_many(line_models)
+            .exec(db)
+            .await?;
+
+        Ok(journal_entry)
     }
 
-    let entry_ids: Vec<i32> = entries.iter().map(|e| e.id).collect();
+    /// List all posted journal entries within a range, ordered chronologically then by id.
+    /// Each entry enriched with its lines, account names, poster name, and source document reference.
+    pub async fn list<C: ConnectionTrait>(
+        db: &C,
+        from: NaiveDateTime,
+        to: NaiveDateTime,
+    ) -> Result<Vec<AuditEntry>, AppError> {
+        let entries = fetch_entries(db, from, to).await?;
+        if entries.is_empty() {
+            return Ok(Vec::new());
+        }
 
-    let (lines, user_names, (invoice_map, claim_map)) = {
-        let lines_fut = fetch_lines(db, entry_ids);
-        let user_fut = build_user_name_map(db, &entries);
-        let source_fut = build_source_maps(db, &entries);
-        futures::try_join!(lines_fut, user_fut, source_fut)?
-    };
-    let account_names = build_account_name_map(db, &lines).await?;
+        let entry_ids: Vec<i32> = entries.iter().map(|e| e.id).collect();
 
-    let lines_by_entry = group_lines(lines, &account_names);
+        let (lines, user_names, (invoice_map, claim_map)) = {
+            let lines_fut = fetch_lines(db, entry_ids);
+            let user_fut = build_user_name_map(db, &entries);
+            let source_fut = build_source_maps(db, &entries);
+            futures::try_join!(lines_fut, user_fut, source_fut)?
+        };
+        let account_names = build_account_name_map(db, &lines).await?;
 
-    let result = entries
-        .into_iter()
-        .map(|entry| {
-            let lines = lines_by_entry.get(&entry.id).cloned().unwrap_or_default();
-            build_audit_entry(entry, lines, &user_names, &invoice_map, &claim_map)
-        })
-        .collect();
+        let lines_by_entry = group_lines(lines, &account_names);
 
-    Ok(result)
+        let result = entries
+            .into_iter()
+            .map(|entry| {
+                let lines = lines_by_entry.get(&entry.id).cloned().unwrap_or_default();
+                build_audit_entry(entry, lines, &user_names, &invoice_map, &claim_map)
+            })
+            .collect();
+
+        Ok(result)
+    }
+}
+
+impl JournalEntryLineInput {
+    /// Validate journal entry lines: non-empty, positive amounts, balanced debits/credits.
+    pub fn validate_all(lines: &[Self]) -> Result<(), PostingError> {
+        if lines.is_empty() {
+            return Err(PostingError::NoLines);
+        }
+
+        for line in lines {
+            if line.amount <= Decimal::ZERO {
+                return Err(PostingError::NonPositiveAmount {
+                    amount: line.amount,
+                });
+            }
+        }
+
+        let (total_debits, total_credits) = totals(lines.iter().map(|l| (&l.entry_side, l.amount)));
+
+        if total_debits != total_credits {
+            return Err(PostingError::UnbalancedEntry {
+                total_debits,
+                total_credits,
+            });
+        }
+
+        Ok(())
+    }
+}
+
+/// Fetch journal entry lines for the given account IDs, joined to their parent entry
+/// and filtered by optional date range on the entry's created_at timestamp.
+pub async fn lines_for_accounts<C: ConnectionTrait>(
+    db: &C,
+    account_ids: Vec<i32>,
+    from: Option<NaiveDateTime>,
+    up_to: Option<NaiveDateTime>,
+) -> Result<Vec<journal_entry_line_entity::Model>, AppError> {
+    let mut query = journal_entry_line_entity::Entity::find()
+        .join(
+            JoinType::InnerJoin,
+            journal_entry_line_entity::Relation::JournalEntry.def(),
+        )
+        .filter(journal_entry_line_entity::Column::AccountId.is_in(account_ids));
+
+    if let Some(dt) = from {
+        query = query.filter(journal_entry_entity::Column::CreatedAt.gte(dt));
+    }
+    if let Some(dt) = up_to {
+        query = query.filter(journal_entry_entity::Column::CreatedAt.lte(dt));
+    }
+
+    query.all(db).await.map_err(AppError::from)
+}
+
+/// Sum debits and credits from an iterator of (side, amount) pairs.
+fn totals<'a>(lines: impl Iterator<Item = (&'a EntrySide, Decimal)>) -> (Decimal, Decimal) {
+    let mut total_debit = Decimal::ZERO;
+    let mut total_credit = Decimal::ZERO;
+    for (side, amount) in lines {
+        match side {
+            EntrySide::Debit => total_debit += amount,
+            EntrySide::Credit => total_credit += amount,
+        }
+    }
+    (total_debit, total_credit)
 }
 
 async fn fetch_entries<C: ConnectionTrait>(
@@ -152,16 +275,7 @@ fn build_audit_entry(
     invoice_map: &HashMap<i32, String>,
     claim_map: &HashMap<i32, String>,
 ) -> AuditEntry {
-    let total_debit: Decimal = lines
-        .iter()
-        .filter(|l| l.entry_side == EntrySide::Debit)
-        .map(|l| l.amount)
-        .sum();
-    let total_credit: Decimal = lines
-        .iter()
-        .filter(|l| l.entry_side == EntrySide::Credit)
-        .map(|l| l.amount)
-        .sum();
+    let (total_debit, total_credit) = totals(lines.iter().map(|l| (&l.entry_side, l.amount)));
 
     let source = format_source(&entry, invoice_map, claim_map);
     let source_link = entry

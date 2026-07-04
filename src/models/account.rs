@@ -10,7 +10,7 @@ use crate::entity::account;
 use crate::entity::account::AccountCategory;
 use crate::entity::journal_entry_line::EntrySide;
 use crate::models::error::AppError;
-use crate::models::posting;
+use crate::models::journal_entry;
 
 #[derive(serde::Serialize)]
 pub struct AccountOption {
@@ -112,7 +112,7 @@ pub async fn balances_by_category<C: ConnectionTrait>(
     let account_ids: Vec<i32> = accounts.iter().map(|a| a.id).collect();
 
     // Fetch journal entry lines joined to their parent entry, filtered by date.
-    let lines = posting::lines_for_accounts(db, account_ids, from, up_to).await?;
+    let lines = journal_entry::lines_for_accounts(db, account_ids, from, up_to).await?;
 
     // Sum debits/credits per account.
     let mut totals: HashMap<i32, Decimal> = HashMap::new();

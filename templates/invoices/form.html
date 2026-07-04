@@ -94,12 +94,12 @@
                   name="items[{{ loop.index0 }}][gst_rate]"
                   class="select select-sm"
                 >
-                  {% for rate in gst_rates %}
+                  {% for choice in gst_rates %}
                     <option
-                      value="{{ rate }}"
-                      {% if item.gst_rate == rate %}selected{% endif %}
+                      value="{{ choice.value }}"
+                      {% if item.gst_rate == choice.value %}selected{% endif %}
                     >
-                      {{ rate }}
+                      {{ choice.label }}
                     </option>
                   {% endfor %}
                 </select>
@@ -143,8 +143,10 @@
                     name="items[{{ existing_count + i }}][gst_rate]"
                     class="select select-sm"
                   >
-                    {% for rate in gst_rates %}
-                      <option value="{{ rate }}">{{ rate }}</option>
+                    {% for choice in gst_rates %}
+                      <option value="{{ choice.value }}">
+                        {{ choice.label }}
+                      </option>
                     {% endfor %}
                   </select>
                 </td>

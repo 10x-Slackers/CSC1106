@@ -1,12 +1,13 @@
-use sea_orm::{DatabaseConnection, SqlxSqliteConnector};
+use sea_orm::{DatabaseConnection, EntityTrait, PaginatorTrait, SqlxSqliteConnector};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use std::str::FromStr;
 use std::time::Duration;
 
+use crate::entity::user as user_entity;
 use crate::seed;
 use migration::{Migrator, MigratorTrait};
 
-/// Initialise the database: connect, run migrations, and seed default data.
+/// Initialise the database: connect, run migrations, and seed reference data.
 pub async fn init(database_url: &str) -> DatabaseConnection {
     let db = connect(database_url)
         .await
@@ -17,11 +18,20 @@ pub async fn init(database_url: &str) -> DatabaseConnection {
         .expect("Failed to run migrations");
 
     seed::seed_accounts(&db).await;
-    seed::seed_users(&db).await;
-    seed::seed_parties(&db).await;
     seed::seed_claim_categories(&db).await;
 
     db
+}
+
+/// Returns `true` if the user table has zero rows.
+pub async fn has_no_users(db: &DatabaseConnection) -> bool {
+    match user_entity::Entity::find().count(db).await {
+        Ok(n) => n == 0,
+        Err(e) => {
+            eprintln!("warning: failed to count users: {e}; assuming empty");
+            true
+        }
+    }
 }
 
 /// Create a connection pool with WAL mode and foreign keys enabled for concurrency.

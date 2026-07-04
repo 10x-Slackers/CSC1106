@@ -27,18 +27,6 @@ impl Party {
             .map(|opt| opt.map(Party::from))
     }
 
-    pub async fn find_by_email(
-        db: &DatabaseConnection,
-        email: &str,
-    ) -> Result<Option<Party>, AppError> {
-        party_entity::Entity::find()
-            .filter(party_entity::Column::Email.eq(email))
-            .one(db)
-            .await
-            .map_err(AppError::from)
-            .map(|opt| opt.map(Party::from))
-    }
-
     /// Search parties with optional filters.
     /// `q` matches name or company (case-insensitive LIKE).
     pub async fn search(

@@ -12,7 +12,7 @@ use crate::entity::journal_entry_line::EntrySide;
 use crate::models::account::find_oe_and_ap;
 use crate::models::claim_category::name_map_by_ids as category_name_map_by_ids;
 use crate::models::error::ClaimError;
-use crate::models::posting::{JournalEntryLineInput, PostingService};
+use crate::models::journal_entry::{JournalEntry, JournalEntryLineInput};
 use crate::models::user::name_map_by_ids;
 use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
@@ -76,8 +76,8 @@ impl Claim {
         })
     }
 
-    /// List claims with optional filters and pagination, and optional scoping to a specific user ID.
-    pub async fn list<C: ConnectionTrait>(
+    /// List claims with optional filters and pagination.
+    pub async fn search<C: ConnectionTrait>(
         db: &C,
         filter: &ClaimFilter,
         scope_user_id: Option<i32>,
@@ -250,7 +250,7 @@ impl Claim {
             },
         ];
 
-        PostingService::post_entry_in(
+        JournalEntry::create(
             &txn,
             lines,
             SourceDocument::Claim { claim_id: id },

@@ -12,7 +12,7 @@ use crate::entity::payment as payment_entity;
 use crate::entity::payment::PaymentDirection;
 use crate::models::error::{AppError, PaymentCreateError};
 use crate::models::invoice::Invoice;
-use crate::models::posting::{JournalEntryLineInput, PostingService};
+use crate::models::journal_entry::{JournalEntry, JournalEntryLineInput};
 use crate::models::user;
 use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
@@ -50,7 +50,7 @@ impl Payment {
 
     /// List payments with optional filters.
     /// `q` matches remarks (case-insensitive LIKE).
-    pub async fn list(
+    pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
         direction: Option<PaymentDirection>,
@@ -142,7 +142,7 @@ impl Payment {
         let source = SourceDocument::Payment {
             payment_id: payment.id,
         };
-        PostingService::post_entry_in(db, lines, source, payment.created_by_user_id).await?;
+        JournalEntry::create(db, lines, source, payment.created_by_user_id).await?;
 
         // Recompute invoice status if this payment is linked to an invoice
         if let Some(invoice_id) = payment.invoice_id {
@@ -184,33 +184,32 @@ impl Payment {
         Ok(result.and_then(|(v,)| v).unwrap_or(Decimal::ZERO))
     }
 
-    /// List all payments linked to an invoice, newest first.
-    pub async fn list_for_invoice(
+    /// List payments with optional invoice and party filters, newest first.
+    pub async fn list(
         db: &DatabaseConnection,
-        invoice_id: i32,
+        invoice_id: Option<i32>,
+        party_id: Option<i32>,
+        limit: Option<u64>,
     ) -> Result<Vec<Payment>, AppError> {
-        let payments = payment_entity::Entity::find()
-            .filter(payment_entity::Column::InvoiceId.eq(invoice_id))
-            .order_by_desc(payment_entity::Column::PaymentDate)
-            .all(db)
-            .await
-            .map_err(AppError::from)?
-            .into_iter()
-            .map(Payment::from)
-            .collect();
-        Ok(payments)
-    }
+        let mut conditions = Condition::all();
 
-    /// Most recent payments for a given party.
-    pub async fn recent_for_party(
-        db: &DatabaseConnection,
-        party_id: i32,
-        limit: u64,
-    ) -> Result<Vec<Payment>, AppError> {
-        let payments = payment_entity::Entity::find()
-            .filter(payment_entity::Column::PartyId.eq(party_id))
-            .order_by_desc(payment_entity::Column::CreatedAt)
-            .limit(limit)
+        if let Some(iid) = invoice_id {
+            conditions = conditions.add(payment_entity::Column::InvoiceId.eq(iid));
+        }
+
+        if let Some(pid) = party_id {
+            conditions = conditions.add(payment_entity::Column::PartyId.eq(pid));
+        }
+
+        let mut query = payment_entity::Entity::find()
+            .filter(conditions)
+            .order_by(payment_entity::Column::CreatedAt, Order::Desc);
+
+        if let Some(l) = limit {
+            query = query.limit(l);
+        }
+
+        let payments = query
             .all(db)
             .await
             .map_err(AppError::from)?

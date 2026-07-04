@@ -74,7 +74,7 @@ impl Invoice {
 
     /// List invoices with optional filters and staff scoping.
     #[allow(clippy::too_many_arguments)]
-    pub async fn list<C: ConnectionTrait>(
+    pub async fn search<C: ConnectionTrait>(
         db: &C,
         q: Option<&str>,
         status: Option<InvoiceStatus>,

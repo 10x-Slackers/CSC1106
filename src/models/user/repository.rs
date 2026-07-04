@@ -87,7 +87,7 @@ impl User {
 
     /// List users with optional filters.
     /// `q` matches name or email (case-insensitive LIKE).
-    pub async fn list(
+    pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
         role: Option<Role>,

@@ -4,6 +4,13 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// A form `<option>` entry: a parseable `value` and human-readable `label`.
+#[derive(Clone, serde::Serialize)]
+pub struct GstRateChoice {
+    pub value: &'static str,
+    pub label: String,
+}
+
 /// GST rate applied to an invoice line item.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
@@ -35,9 +42,23 @@ impl GstRate {
         }
     }
 
-    /// Return all GST rate variant labels in declaration order.
-    pub fn labels() -> Vec<String> {
-        Self::iter().map(|v| v.to_string()).collect()
+    /// Return `GstRateChoice`s for form `<option>`s, ordered by variant declaration.
+    pub fn choices() -> Vec<GstRateChoice> {
+        Self::iter()
+            .map(|v| GstRateChoice {
+                value: v.parse_key(),
+                label: v.to_string(),
+            })
+            .collect()
+    }
+
+    /// Stable key accepted by [`parse`](Self::parse) and matching the serde
+    /// representation, so form `<option>` values round-trip with the enum.
+    pub fn parse_key(&self) -> &'static str {
+        match self {
+            GstRate::None => "None",
+            GstRate::Standard => "Standard",
+        }
     }
 
     /// Parse a GST rate string (case-insensitive) into a `GstRate`.
