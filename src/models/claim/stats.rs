@@ -9,13 +9,22 @@ use crate::models::error::ClaimError;
 
 #[derive(Serialize)]
 pub struct ClaimStats {
+    pub total_claims: u64,
     pub pending_count: u64,
     pub pending_amount: Decimal,
+    pub approved_amount: Decimal,
     pub rejection_percentage: f64,
     pub avg_claim_amount: Decimal,
 }
 
-type StatsRow = (i64, Option<Decimal>, i64, i64, Option<Decimal>);
+type StatsRow = (
+    i64,
+    Option<Decimal>,
+    i64,
+    i64,
+    Option<Decimal>,
+    Option<Decimal>,
+);
 
 impl ClaimStats {
     pub async fn compute(db: &DatabaseConnection) -> Result<Self, ClaimError> {
@@ -50,12 +59,29 @@ impl ClaimStats {
                 SimpleExpr::from(Func::avg(Expr::col(claim_entity::Column::Amount))),
                 "avg_amount",
             )
+            .column_as(
+                SimpleExpr::from(Func::sum(
+                    Expr::case(
+                        Expr::col(claim_entity::Column::Status)
+                            .eq(Expr::val(ClaimStatus::Approved)),
+                        Expr::col(claim_entity::Column::Amount),
+                    )
+                    .finally(Expr::val(0)),
+                )),
+                "approved_amount",
+            )
             .into_tuple()
             .one(db)
             .await?;
 
-        let (pending_count, pending_amount, rejected_count, total_count, avg_amount) =
-            result.unwrap_or((0, None, 0, 0, None));
+        let (
+            pending_count,
+            pending_amount,
+            rejected_count,
+            total_count,
+            avg_amount,
+            approved_amount,
+        ) = result.unwrap_or((0, None, 0, 0, None, None));
 
         let rejection_percentage = if total_count == 0 {
             0.0
@@ -64,8 +90,10 @@ impl ClaimStats {
         };
 
         Ok(ClaimStats {
+            total_claims: total_count as u64,
             pending_count: pending_count as u64,
             pending_amount: pending_amount.unwrap_or(Decimal::ZERO),
+            approved_amount: approved_amount.unwrap_or(Decimal::ZERO),
             rejection_percentage,
             avg_claim_amount: avg_amount.unwrap_or(Decimal::ZERO),
         })
