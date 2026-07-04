@@ -23,6 +23,7 @@ use super::calc::grand_total;
 use super::types::{Invoice, InvoiceLineItem, LineItemInput};
 
 impl Invoice {
+    /// Convert the invoice model into database struct
     fn to_active_model(&self) -> invoice_entity::ActiveModel {
         invoice_entity::ActiveModel {
             id: Set(self.id),
@@ -33,11 +34,10 @@ impl Invoice {
             due_date: Set(self.due_date),
             status: Set(self.status.clone()),
             created_at: Set(self.created_at),
-            updated_at: sea_orm::ActiveValue::NotSet, // set by ActiveModelBehavior::before_save
+            updated_at: sea_orm::ActiveValue::NotSet, // auto updated by SeaORM before_save hook
         }
     }
 
-    /// Validate dates and line items for create/update.
     fn validate_inputs(
         issue_date: NaiveDate,
         due_date: NaiveDate,
@@ -71,7 +71,6 @@ impl Invoice {
         Ok(())
     }
 
-    /// Build `ActiveModel`s from line item inputs bound to a given invoice id.
     fn line_items_to_active(
         invoice_id: i32,
         items: Vec<LineItemInput>,
@@ -89,7 +88,6 @@ impl Invoice {
             .collect()
     }
 
-    /// Require that the party exists and is active.
     async fn require_active_party(
         db: &DatabaseConnection,
         party_id: i32,
@@ -110,7 +108,6 @@ impl Invoice {
         Ok(())
     }
 
-    /// Generate the next invoice number: INV-YYYYMM-XXXX
     async fn generate_invoice_no<C: ConnectionTrait>(
         db: &C,
         issue_date: NaiveDate,
@@ -123,7 +120,6 @@ impl Invoice {
         Ok(format!("{}-{:04}", prefix, count + 1))
     }
 
-    /// Post a two-line journal entry for the invoice (AR/Sales) and update its status within the given transaction.
     async fn post_invoice_entry(
         txn: &impl ConnectionTrait,
         current: &Invoice,
@@ -173,7 +169,7 @@ impl Invoice {
         Ok(())
     }
 
-    /// Create a new draft invoice with auto-generated number and line items.
+    /// creates new invoice in Draft Status
     pub async fn create(
         db: &DatabaseConnection,
         party_id: i32,
@@ -182,15 +178,12 @@ impl Invoice {
         due_date: NaiveDate,
         items: Vec<LineItemInput>,
     ) -> Result<Invoice, InvoiceError> {
-        // Validate
         Self::validate_inputs(issue_date, due_date, &items)?;
 
-        // Check party exists and is active
         Self::require_active_party(db, party_id).await?;
 
         let txn = db.begin().await?;
 
-        // Generate invoice number with retry on unique violation
         let mut invoice_no = Self::generate_invoice_no(&txn, issue_date).await?;
         let mut retries = 0;
         let max_retries = 5;
@@ -228,7 +221,7 @@ impl Invoice {
         Self::reload(db, invoice_model.last_insert_id).await
     }
 
-    /// Update a draft invoice's dates and line items. Only allowed in `Draft` status.
+    /// updates the invoice if it is in Draft status, otherwise returns an error
     pub async fn update(
         &self,
         db: &DatabaseConnection,
@@ -238,7 +231,6 @@ impl Invoice {
     ) -> Result<Invoice, InvoiceError> {
         Self::validate_inputs(issue_date, due_date, &items)?;
 
-        // Check party is still active
         Self::require_active_party(db, self.party_id).await?;
 
         let txn = db.begin().await?;
@@ -249,13 +241,11 @@ impl Invoice {
             return Err(InvoiceError::NotEditable);
         }
 
-        // Delete existing line items
         line_item_entity::Entity::delete_many()
             .filter(line_item_entity::Column::InvoiceId.eq(self.id))
             .exec(&txn)
             .await?;
 
-        // Insert new line items
         let line_ams: Vec<line_item_entity::ActiveModel> =
             Self::line_items_to_active(self.id, items);
 
@@ -263,7 +253,6 @@ impl Invoice {
             .exec(&txn)
             .await?;
 
-        // Update invoice dates
         let mut am = current.to_active_model();
         am.issue_date = Set(issue_date);
         am.due_date = Set(due_date);
@@ -275,9 +264,7 @@ impl Invoice {
         Self::reload(db, self.id).await
     }
 
-    /// Post a draft invoice to the ledger (`Draft` → `Sent`).
-    ///
-    /// Posts DR Accounts Receivable, CR Sales Revenue for the invoice grand total.
+    /// sends the invoice, updates the status to Sent, and creates a journal entry for the invoice
     pub async fn send(
         &self,
         db: &DatabaseConnection,
@@ -310,9 +297,7 @@ impl Invoice {
         Self::reload(db, self.id).await
     }
 
-    /// Void an invoice. `Draft` → `Voided` with no posting; `Sent` → `Voided`
-    /// with a reversal entry (DR Sales Revenue, CR Accounts Receivable).
-    /// Disallowed from `PartiallyPaid`, `Paid`, and `Voided`.
+    /// voids the invoice and reverse the journal entry if the invoice is sent
     pub async fn void(
         &self,
         db: &DatabaseConnection,
@@ -371,7 +356,6 @@ impl Invoice {
         }
     }
 
-    /// Recompute status based on total paid amount and grand total.
     async fn apply_recomputed_status<C: ConnectionTrait>(
         &self,
         db: &C,
@@ -393,8 +377,6 @@ impl Invoice {
                     InvoiceStatus::Sent
                 };
 
-                // Update only the status column to avoid overwriting concurrent
-                // changes to other fields from a stale `self`.
                 let mut am = invoice_entity::ActiveModel {
                     id: Set(self.id),
                     ..Default::default()
@@ -406,9 +388,6 @@ impl Invoice {
         }
     }
 
-    /// Load an invoice by ID and recompute its status from cumulative payments.
-    /// The caller is responsible for transactional wrapping (e.g. the payment
-    /// create route wraps this in `db.transaction`).
     pub async fn recompute_status_for<C: ConnectionTrait>(
         db: &C,
         invoice_id: i32,

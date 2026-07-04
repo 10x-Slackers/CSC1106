@@ -6,9 +6,7 @@ use tera::{Result, Tera, Value};
 use crate::entity::user::Role;
 use crate::middleware::permissions::role_set;
 
-/// Tera filter for role-based visibility checks against a named role set.
-///
-/// Usage: `{% if current_user.role | can(set="finance") %}...{% endif %}`
+/// showing/hiding template UI based on user role. Usage: `{{ user.role | can(set="admin,finance") }}`
 pub fn can(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let role = value.as_str().and_then(Role::parse);
     let allowed = args.get("set").and_then(|v| v.as_str()).and_then(role_set);
@@ -17,7 +15,7 @@ pub fn can(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     ))
 }
 
-/// Tera filter that formats a `NaiveDateTime` string into a human-readable form. Defaults to `"%Y-%m-%d %H:%M"`.
+/// formats datetime string into human readable format. Usage: `{{ value | datetime(format="%d %b %Y") }}`
 pub fn datetime(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let Some(s) = value.as_str() else {
         return Ok(value.clone());
@@ -32,7 +30,7 @@ pub fn datetime(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(Value::String(dt.format(format).to_string()))
 }
 
-/// Tera filter that formats a decimal amount string to two decimal places.
+/// formats a decimal string into a money format. Usage: `{{ value | money }}`
 pub fn money(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let Some(s) = value.as_str() else {
         return Ok(value.clone());
@@ -43,7 +41,7 @@ pub fn money(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     }
 }
 
-/// Register all custom Tera filters on the given engine.
+/// Registers custom Tera filters for money formatting, datetime formatting, and role checks.
 pub fn register(tera: &mut Tera) {
     tera.register_filter("can", can);
     tera.register_filter("datetime", datetime);

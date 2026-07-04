@@ -14,29 +14,28 @@ use tera::{Context, Tera};
 use crate::entity::user::Role;
 use crate::models::user::User;
 
-const CACHE_TTL: Duration = Duration::from_secs(300); // 5 minutes
+const CACHE_TTL: Duration = Duration::from_secs(300);
 
-/// In-memory user cache keyed by email.
+/// Cache Manager to store authenticated users
 #[derive(Clone)]
 pub struct UserCache {
     inner: web::Data<RwLock<HashMap<String, CachedUser>>>,
 }
 
-/// Cached user record with insertion time for TTL expiration.
 pub struct CachedUser {
     pub user: User,
     pub cached_at: Instant,
 }
 
 impl UserCache {
-    /// Create an empty user cache.
+    /// initialise the cache
     pub fn new() -> Self {
         Self {
             inner: web::Data::new(RwLock::new(HashMap::new())),
         }
     }
 
-    /// Add or refresh a user in the cache.
+    /// insert/update user into cache with current timestamp and email as key
     pub fn insert(&self, user: &User) {
         self.inner.write().unwrap().insert(
             user.email.clone(),
@@ -47,12 +46,12 @@ impl UserCache {
         );
     }
 
-    /// Remove a user from the cache by email.
+    /// remove user from cache by email
     pub fn invalidate(&self, email: &str) {
         self.inner.write().unwrap().remove(email);
     }
 
-    /// Look up a cached user, evicting expired entries.
+    /// checks if user is in cache and kicks user if expired
     fn get(&self, email: &str) -> Option<CachedUser> {
         let cache = self.inner.read().unwrap();
         let entry = cache.get(email)?;
@@ -62,7 +61,6 @@ impl UserCache {
                 cached_at: entry.cached_at,
             })
         } else {
-            // Drop read lock before acquiring write lock to remove expired entry
             drop(cache);
             self.inner.write().unwrap().remove(email);
             None
@@ -70,8 +68,6 @@ impl UserCache {
     }
 }
 
-/// Extractor that requires authentication and looks up the user.
-/// Returns 401 for unauthenticated or disabled users.
 #[derive(serde::Serialize)]
 pub struct Authenticated {
     pub id: i32,
@@ -84,6 +80,7 @@ impl FromRequest for Authenticated {
     type Error = actix_web::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self, Self::Error>>>>;
 
+    /// extracts user from request, checks cache first, then database if not found, and handles disabled accounts
     fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
         let result = <Identity as FromRequest>::from_request(req, payload);
         let db = req
@@ -101,7 +98,6 @@ impl FromRequest for Authenticated {
                 .id()
                 .map_err(|_| ErrorUnauthorized("Invalid session"))?;
 
-            // Check cache first
             if let Some(entry) = cache.get(&email) {
                 if entry.user.disabled {
                     return Err(ErrorUnauthorized("Account disabled"));
@@ -114,7 +110,6 @@ impl FromRequest for Authenticated {
                 });
             }
 
-            // If not cached, lookup database
             let user = User::find_by_email(db.get_ref(), &email)
                 .await
                 .map_err(|_| actix_web::error::ErrorInternalServerError("Database error"))?
@@ -124,7 +119,6 @@ impl FromRequest for Authenticated {
                 return Err(ErrorUnauthorized("Account disabled"));
             }
 
-            // Repopulate cache for non-cached users
             cache.insert(&user);
 
             Ok(Authenticated {
@@ -137,7 +131,7 @@ impl FromRequest for Authenticated {
     }
 }
 
-/// Convert 401 Unauthorized responses into a redirect to `/login`.
+/// Redirects unauthorized users to the login page
 pub fn redirect_unauthorized<B>(
     res: ServiceResponse<B>,
 ) -> Result<ErrorHandlerResponse<B>, actix_web::Error> {
@@ -151,7 +145,7 @@ pub fn redirect_unauthorized<B>(
     )))
 }
 
-/// Render an unauthorized page with a link to the login page.
+/// Renders an unauthorized page for users without permission
 pub fn show_unauthorized_page<B>(
     res: ServiceResponse<B>,
 ) -> Result<ErrorHandlerResponse<B>, actix_web::Error> {
