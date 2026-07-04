@@ -1,7 +1,3 @@
-//! Module entry file for the claim model folder.
-//!
-//! Authors: Teo Kai Wen
-
 mod repository;
 mod stats;
 mod types;
