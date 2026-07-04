@@ -1,4 +1,4 @@
-//! Invoice PDF layout (mirrors `templates/invoices/show.html`).
+//! Invoice PDF layout.
 //!
 //! Authors: Felicia
 

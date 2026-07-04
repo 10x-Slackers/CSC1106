@@ -1,4 +1,4 @@
-//! Income statement PDF layout (mirrors `templates/reports/income_statement.html`).
+//! Income statement PDF layout.
 //!
 //! Authors: Felicia
 

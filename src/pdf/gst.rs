@@ -1,4 +1,4 @@
-//! GST summary PDF layout (mirrors `templates/reports/gst.html`).
+//! GST summary PDF layout.
 //!
 //! Authors: Felicia
 

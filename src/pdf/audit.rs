@@ -1,5 +1,4 @@
-//! Audit statement PDF layout: a compact double-entry ledger, one row per
-//! journal line (mirrors `templates/reports/audit.html`).
+//! Audit statement PDF layout
 //!
 //! Authors: Felicia
 
