@@ -1,3 +1,7 @@
+//! Defines the Actix Web routes/controllers for the claims feature.
+//!
+//! Authors: Teo Kai Wen
+
 use actix_web::{HttpResponse, get, post, web};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
@@ -16,13 +20,14 @@ use crate::routes::utils::{
     require_non_empty,
 };
 
+/// Form data submitted when rejecting a claim.
 #[derive(Deserialize)]
 struct RejectForm {
     #[serde(default)]
     rejection_reason: String,
 }
 
-/// Render the claim show page with an optional message.
+/// Renders the claim details page.
 async fn render_claim_show(
     tera: &Tera,
     user: &Authenticated,
@@ -48,6 +53,7 @@ async fn render_claim_show(
     render(tera, "claims/show.html", &ctx)
 }
 
+/// Renders the claim listing page.
 async fn render_claims_list(
     tera: &Tera,
     user: &Authenticated,
@@ -110,6 +116,7 @@ async fn render_claims_list(
     render(tera, "claims/list.html", &ctx)
 }
 
+/// Renders the claim submission form.
 async fn render_claim_form(
     tera: &Tera,
     user: &Authenticated,
@@ -127,6 +134,7 @@ async fn render_claim_form(
     render(tera, "claims/form.html", &ctx)
 }
 
+/// Displays the claim listing page.
 #[get("/claims")]
 pub async fn list_claims(
     user: Authenticated,
@@ -137,6 +145,7 @@ pub async fn list_claims(
     render_claims_list(tera.get_ref(), &user, db.get_ref(), &query, "", "").await
 }
 
+/// Displays the form for submitting a new claim.
 #[get("/claims/new")]
 pub async fn new_claim(
     user: Authenticated,
@@ -146,6 +155,7 @@ pub async fn new_claim(
     render_claim_form(tera.get_ref(), &user, db.get_ref(), "", "").await
 }
 
+/// Creates a new claim from submitted form data.
 #[post("/claims")]
 pub async fn create_claim(
     user: Authenticated,
@@ -221,6 +231,7 @@ pub async fn create_claim(
     }
 }
 
+/// Displays the details page for a claim.
 #[get("/claims/{id}")]
 pub async fn show_claim(
     user: Authenticated,
@@ -232,6 +243,7 @@ pub async fn show_claim(
     render_claim_show(tera.get_ref(), &user, db.get_ref(), id, "", "").await
 }
 
+/// Approves a pending claim.
 #[post("/claims/{id}/approve")]
 pub async fn approve_claim(
     user: Require<Finance>,
@@ -262,6 +274,7 @@ pub async fn approve_claim(
     }
 }
 
+/// Rejects a pending claim with a rejection reason.
 #[post("/claims/{id}/reject")]
 pub async fn reject_claim(
     user: Require<Finance>,
@@ -306,6 +319,7 @@ pub async fn reject_claim(
     }
 }
 
+/// Withdraws the authenticated user's own pending claim.
 #[post("/claims/{id}/withdraw")]
 pub async fn withdraw_claim(
     user: Authenticated,
@@ -347,6 +361,7 @@ pub async fn withdraw_claim(
     }
 }
 
+/// Registers claim routes with the Actix Web service configuration.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(list_claims)
         .service(new_claim)

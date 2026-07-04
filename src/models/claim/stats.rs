@@ -1,3 +1,7 @@
+//! Computes summary statistics for claims.
+//!
+//! Authors: Teo Kai Wen
+
 use rust_decimal::Decimal;
 use sea_orm::sea_query::{Expr, Func, SimpleExpr};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QuerySelect};
@@ -17,6 +21,7 @@ pub struct ClaimStats {
     pub avg_claim_amount: Decimal,
 }
 
+/// Raw database result returned by the claim statistics query.
 type StatsRow = (
     i64,
     Option<Decimal>,
@@ -27,6 +32,7 @@ type StatsRow = (
 );
 
 impl ClaimStats {
+    /// Computes claim statistics from the database.
     pub async fn compute(db: &DatabaseConnection) -> Result<Self, ClaimError> {
         let result: Option<StatsRow> = claim_entity::Entity::find()
             .select_only()

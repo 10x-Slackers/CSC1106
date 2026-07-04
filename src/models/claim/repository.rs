@@ -1,3 +1,7 @@
+//! Contains the main business logic and database operations for claims.
+//!
+//! Authors: Teo Kai Wen
+
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
@@ -19,6 +23,7 @@ use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 use super::types::{Claim, ClaimDetail, ClaimFilter, ClaimForm, ClaimRow};
 
 impl Claim {
+    /// Load the claim model by ID, returning an error if not found.
     async fn find_model_by_id<C: ConnectionTrait>(
         db: &C,
         id: i32,
@@ -41,8 +46,6 @@ impl Claim {
             .ok_or(ClaimError::NotFound)?;
         let claim = Claim::from(model);
         let category_name = category.map(|c| c.name).unwrap_or_default();
-
-        // 1 query: batch both user names
         let mut user_ids = vec![claim.submitted_by_user_id];
         if let Some(uid) = claim.reviewed_by_user_id {
             user_ids.push(uid);

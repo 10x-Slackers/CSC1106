@@ -1,10 +1,14 @@
+//! Defines the application-level data structures for claims.
+//!
+//! Authors: Teo Kai Wen
+
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::entity::claim as claim_entity;
 
-/// Flat claim model matching the entity fields.
+/// Application-level claim model converted from the database entity.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Claim {
     pub id: i32,
@@ -21,6 +25,7 @@ pub struct Claim {
     pub updated_at: chrono::NaiveDateTime,
 }
 
+/// Convert the SeaORM claim entity into the application-level claim model.
 impl From<claim_entity::Model> for Claim {
     fn from(m: claim_entity::Model) -> Self {
         Claim {
@@ -40,7 +45,7 @@ impl From<claim_entity::Model> for Claim {
     }
 }
 
-/// Enriched claim detail for the detail view.
+/// Claim detail data enriched with names for the detail view.
 #[derive(Clone, Serialize)]
 pub struct ClaimDetail {
     pub id: i32,
@@ -70,7 +75,7 @@ pub struct ClaimForm {
     pub purchase_date: String,
 }
 
-/// Filter parameters for the claim list.
+/// Query-string filter parameters for the claim list.
 #[derive(Clone, Deserialize, Serialize, Default)]
 pub struct ClaimFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
