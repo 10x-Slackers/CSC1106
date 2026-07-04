@@ -1,5 +1,9 @@
 use sea_orm::entity::prelude::*;
 
+/// Represents a claim category record in the `claim_category` database table.
+///
+/// Claim categories are used to group claims by type, such as transport,
+/// meals, office supplies, or other expense categories.
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "claim_category")]
 pub struct Model {
@@ -9,8 +13,10 @@ pub struct Model {
     pub name: String,
 }
 
+/// Defines relationships between the `claim_category` table and other tables.
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    /// A claim category can be associated with many claims.
     #[sea_orm(has_many = "super::claim::Entity")]
     Claim,
 }
