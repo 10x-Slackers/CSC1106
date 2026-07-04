@@ -1,10 +1,14 @@
+//! Defines the application-level User struct.
+//!
+//! Authors: Tan Yong Meng
+
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 use crate::entity::user as user_entity;
 use crate::entity::user::Role;
 
-/// Application-level user model with authentication support.
+/// User Model to define a User Record for Application-Level Use.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: i32,
@@ -19,6 +23,7 @@ pub struct User {
 }
 
 impl From<user_entity::Model> for User {
+    /// Converts a SeaORM user entity model into an application [`User`].
     fn from(m: user_entity::Model) -> Self {
         User {
             id: m.id,

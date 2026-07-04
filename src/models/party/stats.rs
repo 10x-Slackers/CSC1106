@@ -1,3 +1,7 @@
+//! Computes summary statistics for parties.
+//!
+//! Authors: Tan Yong Meng
+
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter};
 use serde::Serialize;
 
@@ -5,6 +9,7 @@ use crate::entity::party as party_entity;
 use crate::entity::party::{PartyStatus, PartyType};
 use crate::models::error::AppError;
 
+/// Summary statistics for party records.
 #[derive(Serialize)]
 pub struct PartyStats {
     pub total: u64,
@@ -13,6 +18,7 @@ pub struct PartyStats {
 }
 
 impl PartyStats {
+    /// Computes party statistics from the database.
     pub async fn compute(db: &DatabaseConnection) -> Result<Self, AppError> {
         let total_fut = party_entity::Entity::find().count(db);
         let customers_fut = party_entity::Entity::find()

@@ -1,3 +1,7 @@
+//! Handles the current user’s own profile page.
+//!
+//! Authors: Tan Yong Meng
+
 use actix_web::{HttpResponse, get, post, web};
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
@@ -10,6 +14,7 @@ use crate::routes::utils::{
     find_or_404, insert_nav_context, render, require_non_empty, validate_email,
 };
 
+/// Form data submitted from the profile update page.
 #[derive(Deserialize)]
 pub struct ProfileForm {
     name: String,
@@ -19,6 +24,7 @@ pub struct ProfileForm {
     confirm_password: Option<String>,
 }
 
+/// Form values used when rendering the profile form.
 #[derive(serde::Serialize)]
 struct FormValues<'a> {
     name: &'a str,
@@ -45,13 +51,13 @@ fn render_profile(
     render(tera, "users/profile.html", &context)
 }
 
-/// Show the current user's profile form.
+/// Displays the current user's profile page.
 #[get("/profile")]
 pub async fn show_profile(user: Authenticated, tera: web::Data<Tera>) -> HttpResponse {
     render_profile(tera.get_ref(), &user, &user.name, &user.email, "", "")
 }
 
-/// Update the current user's profile.
+/// Updates the current user's profile.
 #[post("/profile")]
 pub async fn update_profile(
     user: Authenticated,
@@ -69,7 +75,6 @@ pub async fn update_profile(
         Err(resp) => return resp,
     };
 
-    // Require current password to authorize self-edit.
     if existing
         .verify_password(form.current_password.as_str())
         .is_err()
@@ -144,6 +149,7 @@ pub async fn update_profile(
     }
 }
 
+/// Registers profile routes with the Actix Web service configuration.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(show_profile).service(update_profile);
 }

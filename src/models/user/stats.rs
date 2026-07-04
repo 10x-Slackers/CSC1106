@@ -1,3 +1,7 @@
+//! Computes summary statistics for users.
+//!
+//! Authors: Tan Yong Meng
+
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter};
 use serde::Serialize;
 
@@ -5,6 +9,7 @@ use crate::entity::user as user_entity;
 use crate::entity::user::Role;
 use crate::models::error::AppError;
 
+/// Summary statistics for active users by role.
 #[derive(Serialize)]
 pub struct UserStats {
     pub admin: u64,
@@ -13,6 +18,7 @@ pub struct UserStats {
 }
 
 impl UserStats {
+    /// Computes user statistics from the database.
     pub async fn compute(db: &DatabaseConnection) -> Result<Self, AppError> {
         let admin_fut = user_entity::Entity::find()
             .filter(user_entity::Column::Role.eq(Role::Admin))

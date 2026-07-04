@@ -1,3 +1,7 @@
+//! Contains the main database logic for parties.
+//!
+//! Authors: Tan Yong Meng
+
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
     Order, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
@@ -11,6 +15,7 @@ use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 use super::types::Party;
 
 impl Party {
+    /// Finds the raw SeaORM party model by ID.
     async fn find_model_by_id(
         db: &DatabaseConnection,
         id: i32,
@@ -21,14 +26,14 @@ impl Party {
             .map_err(AppError::from)
     }
 
+    /// Finds a party by its ID
     pub async fn find_by_id(db: &DatabaseConnection, id: i32) -> Result<Option<Party>, AppError> {
         Self::find_model_by_id(db, id)
             .await
             .map(|opt| opt.map(Party::from))
     }
 
-    /// Search parties with optional filters.
-    /// `q` matches name or company (case-insensitive LIKE).
+    /// Searches for parties using optional filters and pagination.
     pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
@@ -73,7 +78,7 @@ impl Party {
         Ok((parties, total_pages, page))
     }
 
-    /// List parties, optionally filtered by type and/or status, ordered by name.
+    /// Lists parties using optional party type and status filters.
     pub async fn list(
         db: &DatabaseConnection,
         party_type: Option<PartyType>,
@@ -97,7 +102,7 @@ impl Party {
         Ok(parties)
     }
 
-    /// Build a map of party ID → name for the given IDs.
+    /// Builds a map of party IDs to party names.
     pub async fn name_map_by_ids<C: ConnectionTrait>(
         db: &C,
         ids: Vec<i32>,
@@ -116,6 +121,7 @@ impl Party {
         Ok(rows.into_iter().collect())
     }
 
+    /// Creates a new party record.
     pub async fn create(
         db: &DatabaseConnection,
         party_type: PartyType,
@@ -151,7 +157,7 @@ impl Party {
             .ok_or(AppError::NotFound)
     }
 
-    /// Update party fields.
+    /// Updates an existing party record.
     #[allow(clippy::too_many_arguments)]
     pub async fn update(
         &self,
@@ -202,7 +208,7 @@ impl Party {
         Ok(Party::from(updated))
     }
 
-    /// Set party status (activate/deactivate).
+    /// Updates the status of an existing party.
     pub async fn set_status(
         &self,
         db: &DatabaseConnection,

@@ -1,11 +1,14 @@
-use std::fmt;
+//! Defines the SeaORM database entity for parties in the accounting system.
+//!
+//! Authors: Tan Yong Meng
 
 use sea_orm::Iterable;
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
-/// Party type: customer or vendor.
+/// Represents the different types of parties in the accounting system.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
 pub enum PartyType {
@@ -16,6 +19,7 @@ pub enum PartyType {
 }
 
 impl fmt::Display for PartyType {
+    /// Formats the different party type to a label.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             PartyType::Customer => write!(f, "Customer"),
@@ -25,13 +29,13 @@ impl fmt::Display for PartyType {
 }
 
 impl PartyType {
-    /// Return all party type variant labels in declaration order.
+    /// Returns all available party types as strings.
     pub fn labels() -> Vec<String> {
         Self::iter().map(|v| v.to_string()).collect()
     }
 }
 
-/// Party status: active or inactive.
+/// Used to determine whether a party is active or inactive
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(20))")]
 pub enum PartyStatus {
@@ -42,6 +46,7 @@ pub enum PartyStatus {
 }
 
 impl fmt::Display for PartyStatus {
+    /// Formats the different status to a label
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             PartyStatus::Active => write!(f, "Active"),
@@ -51,12 +56,13 @@ impl fmt::Display for PartyStatus {
 }
 
 impl PartyStatus {
-    /// Return all status variant labels in declaration order.
+    /// Return all available party status (Active/Inactive).
     pub fn labels() -> Vec<String> {
         Self::iter().map(|v| v.to_string()).collect()
     }
 }
 
+/// Represents a party record in the database
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "party")]
 pub struct Model {
@@ -74,10 +80,13 @@ pub struct Model {
     pub updated_at: DateTime,
 }
 
+/// Defines relationships from a party to its invoices and payments.
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    /// A party can have many invoices
     #[sea_orm(has_many = "super::invoice::Entity")]
     Invoice,
+    /// A party can have many payments
     #[sea_orm(has_many = "super::payment::Entity")]
     Payment,
 }
@@ -96,15 +105,18 @@ impl Related<super::payment::Entity> for Entity {
 
 #[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {
+    /// Runs automatically when a record is inserted or updated.
     async fn before_save<C>(self, _db: &C, insert: bool) -> Result<Self, DbErr>
     where
         C: ConnectionTrait,
     {
         let now = chrono::Utc::now().naive_utc();
         let mut am = self;
+        // If creation time is not set, it will set here
         if insert && am.is_not_set(Column::CreatedAt) {
             am.created_at = Set(now);
         }
+        // Updates the `updated_at` every time the record is saved.
         am.updated_at = Set(now);
         Ok(am)
     }

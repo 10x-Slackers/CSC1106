@@ -1,3 +1,7 @@
+//! Handles admin user management.
+//!
+//! Authors: Tan Yong Meng
+
 use actix_web::{HttpResponse, get, post, web};
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -13,6 +17,7 @@ use crate::routes::utils::{
     require_non_empty, validate_email,
 };
 
+/// Form data used when creating or updating a user.
 #[derive(Deserialize)]
 pub struct UserForm {
     name: String,
@@ -21,6 +26,7 @@ pub struct UserForm {
     password: Option<String>,
 }
 
+/// Query parameters used to filter the user list.
 #[derive(Deserialize, Serialize)]
 pub struct UserFilter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -33,6 +39,7 @@ pub struct UserFilter {
     page: Option<String>,
 }
 
+/// Renders the user listing page.
 fn render_users_list(
     tera: &Tera,
     user: &Require<AdminOnly>,
@@ -53,7 +60,7 @@ fn render_users_list(
     render(tera, "users/list.html", &context)
 }
 
-/// Reload the full user list and render it with a flash message.
+/// Reloads the user listing page after a create, update, enable, or disable action.
 async fn reload_users_list(
     tera: &Tera,
     user: &Require<AdminOnly>,
@@ -95,6 +102,7 @@ async fn reload_users_list(
     }
 }
 
+/// Renders the create or edit user form.
 fn render_user_form(
     tera: &Tera,
     user: &Require<AdminOnly>,
@@ -118,7 +126,7 @@ fn render_user_form(
     render(tera, "users/form.html", &context)
 }
 
-/// List users with optional filters.
+/// Displays the user listing page.
 #[get("/users")]
 pub async fn list_users(
     user: Require<AdminOnly>,
@@ -168,13 +176,13 @@ pub async fn list_users(
     }
 }
 
-/// Show the create-user form.
+/// Displays the form for creating a new user.
 #[get("/users/new")]
 pub async fn new_user(user: Require<AdminOnly>, tera: web::Data<Tera>) -> HttpResponse {
     render_user_form(tera.get_ref(), &user, "create", None, "", "")
 }
 
-/// Create a new user.
+/// Creates a new user from submitted form data.
 #[post("/users")]
 pub async fn create_user(
     user: Require<AdminOnly>,
@@ -234,7 +242,7 @@ pub async fn create_user(
     }
 }
 
-/// Show the edit-user form.
+/// Displays the edit form for an existing user.
 #[get("/users/{id}/edit")]
 pub async fn edit_user(
     user: Require<AdminOnly>,
@@ -250,7 +258,7 @@ pub async fn edit_user(
     }
 }
 
-/// Update an existing user.
+/// Updates an existing user from submitted form data.
 #[post("/users/{id}")]
 pub async fn update_user(
     current_user: Require<AdminOnly>,
@@ -345,7 +353,7 @@ pub async fn update_user(
     }
 }
 
-/// Disable a user account.
+/// Disables an existing user account.
 #[post("/users/{id}/disable")]
 pub async fn disable_user(
     current_user: Require<AdminOnly>,
@@ -408,7 +416,7 @@ pub async fn disable_user(
     }
 }
 
-/// Enable a user account.
+/// Enables an existing user account.
 #[post("/users/{id}/enable")]
 pub async fn enable_user(
     current_user: Require<AdminOnly>,
@@ -452,6 +460,7 @@ pub async fn enable_user(
     }
 }
 
+/// Registers user routes with the Actix Web service configuration.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(list_users)
         .service(new_user)

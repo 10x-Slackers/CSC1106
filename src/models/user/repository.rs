@@ -1,3 +1,7 @@
+//! Contains the main database and authentication logic for users.
+//!
+//! Authors: Tan Yong Meng
+
 use argon2::Argon2;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::{
@@ -16,6 +20,7 @@ use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 use super::types::User;
 
 impl User {
+    /// Finds the raw SeaORM user model by its ID.
     async fn find_model_by_id(
         db: &DatabaseConnection,
         id: i32,
@@ -26,13 +31,13 @@ impl User {
             .map_err(AuthError::from)
     }
 
-    /// Verify a plaintext password against the stored Argon2 hash.
+    /// Verifies a plaintext password against the user's stored password hash.
     pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
         let parsed_hash = PasswordHash::new(&self.password_hash)?;
         Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
     }
 
-    /// Create a new user with a hashed password.
+    /// Creates a new user account.
     pub async fn create(
         db: &DatabaseConnection,
         email: &str,
@@ -65,14 +70,14 @@ impl User {
             .ok_or(AuthError::NotFound)
     }
 
-    /// Look up a user by their primary key.
+    /// Finds a user by their ID.
     pub async fn find_by_id(db: &DatabaseConnection, id: i32) -> Result<Option<User>, AuthError> {
         Self::find_model_by_id(db, id)
             .await
             .map(|opt| opt.map(User::from))
     }
 
-    /// Look up a user by email address.
+    /// Finds a user by their email address.
     pub async fn find_by_email(
         db: &DatabaseConnection,
         email: &str,
@@ -85,8 +90,7 @@ impl User {
             .map(|opt| opt.map(User::from))
     }
 
-    /// List users with optional filters.
-    /// `q` matches name or email (case-insensitive LIKE).
+    /// Searches for users using optional filters and pagination.
     pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
@@ -131,7 +135,7 @@ impl User {
         Ok((users, total_pages, page))
     }
 
-    /// Update user fields, re-hashing password if provided.
+    /// Updates an existing user account.
     pub async fn update(
         &self,
         db: &DatabaseConnection,
@@ -167,7 +171,7 @@ impl User {
         Ok(User::from(updated))
     }
 
-    /// Enable or disable a user account.
+    /// Enables or disables a user account.
     pub async fn set_disabled(
         &self,
         db: &DatabaseConnection,
@@ -186,7 +190,7 @@ impl User {
         Ok(User::from(updated))
     }
 
-    /// Check if user exists, password is correct, and account is not disabled.
+    /// Authenticates a user using an email address and password.
     pub async fn authenticate(
         db: &DatabaseConnection,
         email: &str,
@@ -199,7 +203,7 @@ impl User {
     }
 }
 
-/// Look up a user's display name by ID.
+/// Finds a user's name by their ID.
 pub async fn name_by_id<C: ConnectionTrait>(db: &C, id: i32) -> Result<Option<String>, AppError> {
     let name: Option<String> = user_entity::Entity::find_by_id(id)
         .select_only()
@@ -210,7 +214,7 @@ pub async fn name_by_id<C: ConnectionTrait>(db: &C, id: i32) -> Result<Option<St
     Ok(name)
 }
 
-/// Build a map of user ID → display name for the given IDs.
+/// Builds a map of user IDs to user names.
 pub async fn name_map_by_ids<C: ConnectionTrait>(
     db: &C,
     ids: Vec<i32>,
@@ -229,7 +233,7 @@ pub async fn name_map_by_ids<C: ConnectionTrait>(
     Ok(rows.into_iter().collect())
 }
 
-/// Hash a plaintext password using Argon2 with a random salt.
+/// Hashes a plaintext password using Argon2.
 fn hash_password(password: &str) -> Result<String, HashError> {
     let salt = SaltString::generate(&mut OsRng);
     Argon2::default()
