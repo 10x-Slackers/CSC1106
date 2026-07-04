@@ -1,3 +1,7 @@
+//! Database seeding functions for initial setup.
+//!
+//! Authors: Kitsuneez
+
 use std::io::{self, Write};
 
 use sea_orm::sea_query::OnConflict;

@@ -1,3 +1,7 @@
+//! Invoice routes and handlers.
+//!
+//! Authors: Kitsuneez
+
 use actix_web::{HttpResponse, get, post, web};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;

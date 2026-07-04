@@ -1,3 +1,7 @@
+//! Invoice business logic using SeaORM for database operations.
+//! Covers invoice CRU operations, voiding and payment status recomputations
+//!
+//! Authors: Kitsuneez
 use chrono::NaiveDate;
 use futures::TryFutureExt;
 use rust_decimal::Decimal;

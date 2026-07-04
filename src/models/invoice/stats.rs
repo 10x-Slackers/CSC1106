@@ -1,3 +1,6 @@
+//! Invoice statistics computation.
+//!
+//! Authors: Kitsuneez
 use sea_orm::sea_query::{Expr, Func, SimpleExpr};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QuerySelect};
 use serde::Serialize;

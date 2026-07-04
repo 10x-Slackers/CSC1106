@@ -1,3 +1,7 @@
+//! Security headers middleware for Actix-web.
+//!
+//! Authors: Kitsuneez
+
 use actix_web::Error;
 use actix_web::body::MessageBody;
 use actix_web::dev::{ServiceRequest, ServiceResponse};

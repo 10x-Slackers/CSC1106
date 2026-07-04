@@ -1,3 +1,7 @@
+//! Tera templating filters for Actix-web.
+//!
+//!  Authors: Kitsuneez
+
 use std::collections::HashMap;
 
 use chrono::NaiveDateTime;

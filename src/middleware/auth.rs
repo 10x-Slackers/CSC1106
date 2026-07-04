@@ -1,3 +1,7 @@
+//! Authentication middleware for Actix-web.
+//!
+//! Authors: Kitsuneez
+
 use actix_identity::Identity;
 use actix_web::dev::{Payload, ServiceResponse};
 use actix_web::error::ErrorUnauthorized;

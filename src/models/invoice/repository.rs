@@ -1,3 +1,6 @@
+//! Invoice Database Operations Functions
+//!
+//! Authors: Kitsuneez
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{

@@ -1,3 +1,7 @@
+//! Database connection and initialization using SeaORM and SQLx for SQLite.
+//!
+//!  Authors: Kitsuneez
+
 use sea_orm::{DatabaseConnection, EntityTrait, PaginatorTrait, SqlxSqliteConnector};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use std::str::FromStr;

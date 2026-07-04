@@ -1,3 +1,7 @@
+//! Main entry point for the Actix-web application.
+//!
+//! Authors: Kitsuneez
+
 mod db;
 mod entity;
 mod middleware;

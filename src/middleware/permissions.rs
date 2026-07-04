@@ -1,3 +1,7 @@
+//! Role based access control middleware for Actix-web.
+//!
+//! Authors: Kitsuneez
+
 use actix_web::dev::{Payload, ServiceResponse};
 use actix_web::middleware::ErrorHandlerResponse;
 use actix_web::{FromRequest, HttpRequest, HttpResponse, web};

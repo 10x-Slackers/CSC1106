@@ -1,3 +1,6 @@
+//! Invoice calculation functions.
+//!
+//! Authors: Kitsuneez
 use rust_decimal::Decimal;
 
 use super::types::InvoiceLineItem;
