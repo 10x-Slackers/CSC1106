@@ -1,3 +1,7 @@
+//! Post balanced journal entries and build the audit trail.
+//!
+//! Authors: Felicia
+
 use std::collections::HashMap;
 
 use chrono::NaiveDateTime;

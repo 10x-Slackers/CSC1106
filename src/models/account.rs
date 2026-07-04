@@ -1,3 +1,7 @@
+//! Look up accounts by name and calculate their balances.
+//!
+//! Authors: Felicia
+
 use std::collections::HashMap;
 
 use rust_decimal::Decimal;

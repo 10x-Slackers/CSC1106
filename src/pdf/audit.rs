@@ -1,5 +1,7 @@
 //! Audit statement PDF layout: a compact double-entry ledger, one row per
 //! journal line (mirrors `templates/reports/audit.html`).
+//!
+//! Authors: Felicia
 
 use rust_decimal::Decimal;
 

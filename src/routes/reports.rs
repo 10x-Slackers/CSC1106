@@ -1,3 +1,8 @@
+//! Routes for viewing the four financial reports as HTML pages.
+//! and to download each report as a PDF.
+//!
+//! Authors: Felicia
+
 use actix_web::{HttpResponse, Responder, get, web};
 use chrono::{Datelike, NaiveDate};
 use sea_orm::DatabaseConnection;

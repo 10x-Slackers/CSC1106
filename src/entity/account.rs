@@ -1,3 +1,7 @@
+//! Each account's name, category, and normal balance.
+//!
+//! Authors: Felicia
+
 use std::fmt;
 
 use sea_orm::Set;

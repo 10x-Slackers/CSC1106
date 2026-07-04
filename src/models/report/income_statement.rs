@@ -1,3 +1,7 @@
+//! Revenue and expenses over a date range, netted into profit or loss.
+//!
+//! Authors: Felicia
+
 use chrono::NaiveDateTime;
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;

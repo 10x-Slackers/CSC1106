@@ -1,3 +1,7 @@
+//! GST charged on sales invoices over a date range.
+//!
+//! Authors: Felicia
+
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;
 

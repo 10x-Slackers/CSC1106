@@ -1,4 +1,6 @@
 //! Income statement PDF layout (mirrors `templates/reports/income_statement.html`).
+//!
+//! Authors: Felicia
 
 use chrono::NaiveDateTime;
 

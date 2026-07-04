@@ -1,3 +1,7 @@
+//! The header row for a posted double-entry transaction.
+//!
+//! Authors: Felicia
+
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 

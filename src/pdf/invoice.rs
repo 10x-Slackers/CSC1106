@@ -1,4 +1,6 @@
 //! Invoice PDF layout (mirrors `templates/invoices/show.html`).
+//!
+//! Authors: Felicia
 
 use super::PdfError;
 use super::builder;

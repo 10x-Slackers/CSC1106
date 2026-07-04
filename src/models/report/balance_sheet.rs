@@ -1,3 +1,7 @@
+//! Asset, liability, and equity balances as of a given date.
+//!
+//! Authors: Felicia
+
 use chrono::NaiveDateTime;
 use rust_decimal::Decimal;
 use sea_orm::DatabaseConnection;

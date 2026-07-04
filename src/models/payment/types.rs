@@ -1,3 +1,7 @@
+//! The plain payment record and its display-enriched variant.
+//!
+//! Authors: Felicia
+
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};

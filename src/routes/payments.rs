@@ -1,3 +1,7 @@
+//! Routes for listing, creating, and viewing payments.
+//!
+//! Authors: Felicia
+
 use actix_web::{HttpResponse, get, post, web};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;

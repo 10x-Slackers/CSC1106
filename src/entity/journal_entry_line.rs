@@ -1,3 +1,7 @@
+//! One debit or credit row within a journal entry.
+//!
+//! Authors: Felicia
+
 use rust_decimal::Decimal;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};

@@ -2,6 +2,8 @@
 //!
 //! [`builder`] holds shared building blocks; each document type has its own
 //! layout module that composes them.
+//!
+//! Authors: Felicia
 
 pub mod audit;
 pub mod balance_sheet;

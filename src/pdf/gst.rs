@@ -1,4 +1,6 @@
 //! GST summary PDF layout (mirrors `templates/reports/gst.html`).
+//!
+//! Authors: Felicia
 
 use chrono::NaiveDate;
 

@@ -1,4 +1,6 @@
-//! Document-agnostic building blocks shared by every generated PDF.
+//! Shared helpers for building PDFs.
+//!
+//! Authors: Felicia
 
 use genpdf::fonts::{FontData, FontFamily};
 use genpdf::style::Style;

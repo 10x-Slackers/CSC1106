@@ -1,3 +1,7 @@
+//! A single payment: its direction, amount, and links to an invoice or party.
+//!
+//! Authors: Felicia
+
 use std::fmt;
 
 use rust_decimal::Decimal;

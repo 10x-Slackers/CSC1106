@@ -1,3 +1,7 @@
+//! Payment search, creation, and totals, posting each payment to the journal.
+//!
+//! Authors: Felicia
+
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sea_orm::{
