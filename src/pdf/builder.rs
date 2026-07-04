@@ -9,13 +9,11 @@ use rust_decimal::Decimal;
 
 use super::PdfError;
 
-/// Fonts embedded into the binary at compile time, so PDF generation never
-/// depends on the working directory or on font files being present at runtime.
+/// Fonts are embedded in the binary, so PDFs don't need font files at runtime.
 const REGULAR_FONT: &[u8] = include_bytes!("../../assets/fonts/Inter_24pt-Regular.ttf");
 const BOLD_FONT: &[u8] = include_bytes!("../../assets/fonts/Inter_24pt-Bold.ttf");
 
-/// Format a decimal amount as currency (`S$0.00`), collapsing values that
-/// round to zero so tiny negatives never render as `S$-0.00`.
+/// Format an amount as currency.
 pub fn money(amount: Decimal) -> String {
     let rounded = amount.round_dp(2);
     let value = if rounded.is_zero() {
@@ -73,7 +71,7 @@ pub fn spacer(doc: &mut Document) {
     doc.push(elements::Break::new(1));
 }
 
-/// The standard gap between a table and the total line(s) directly beneath it.
+/// The gap between a table and the total line below it.
 pub fn table_total_gap(doc: &mut Document) {
     doc.push(elements::Break::new(0.5));
 }
@@ -131,8 +129,7 @@ pub fn push_table_aligned(
     doc.push(table);
 }
 
-/// Push one table row (header cells in bold), right-aligning cells from index
-/// `right_from` onwards.
+/// Push one table row. The header cells are bold and cells from `right_from` onward are right-aligned.
 fn push_cells(
     table: &mut elements::TableLayout,
     cells: impl Iterator<Item = String>,

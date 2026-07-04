@@ -6,7 +6,6 @@ use sea_orm::Set;
 use sea_orm::entity::prelude::*;
 
 /// Only one of `payment_id`/`claim_id`/`invoice_id` should be set at a time.
-/// Enforced in code through `SourceDocument::to_fks`, not by a DB constraint.
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "journal_entry")]
 pub struct Model {

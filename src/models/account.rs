@@ -94,9 +94,7 @@ pub struct AccountBalance {
     pub balance: Decimal,
 }
 
-/// Compute signed balances for accounts in the given categories.
-/// For Debit-normal accounts = debits - credits; for Credit-normal = credits - debits.
-/// Returns all accounts in the categories sorted by name.
+/// Compute each account's balance.
 pub async fn balances_by_category<C: ConnectionTrait>(
     db: &C,
     categories: &[AccountCategory],

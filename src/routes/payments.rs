@@ -245,8 +245,7 @@ pub async fn create_payment(
         .await;
     }
 
-    // Create the payment and its linked journal entry in one transaction,
-    // so they succeed or fail together.
+    // Create the payment and its journal entry in one transaction, so they succeed or fail together.
     let result: Result<Payment, PaymentCreateError> = db
         .transaction(|txn| {
             let remarks = remarks.clone();

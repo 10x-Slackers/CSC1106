@@ -52,8 +52,7 @@ impl Payment {
         }
     }
 
-    /// List payments with optional filters.
-    /// The search text does a partial, case-insensitive match against the payment's `remarks`.
+    /// List payments with optional filters and search using a partial, case-insensitive match on `remarks`.
     pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
@@ -129,8 +128,7 @@ impl Payment {
 
         let payment = Payment::from(model);
 
-        // `payment_direction` is a label only; the actual debit/credit posting
-        // comes entirely from which account the caller passes as from/to.
+        // `payment_direction` is a label only; the from/to accounts decide debit/credit.
         let lines = vec![
             JournalEntryLineInput {
                 account_id: to_account_id,
@@ -160,8 +158,7 @@ impl Payment {
         Ok(payment)
     }
 
-    /// Sum of all payment amounts for a given party using SQL SUM.
-    /// Adds IN and OUT payments together instead of subtracting one from the other.
+    /// Sum of all payment amounts for a given party.
     pub async fn total_for_party(
         db: &DatabaseConnection,
         party_id: i32,
@@ -176,7 +173,7 @@ impl Payment {
         Ok(result.and_then(|(v,)| v).unwrap_or(Decimal::ZERO))
     }
 
-    /// Sum of all payment amounts for a given invoice using SQL SUM.
+    /// Sum of all payment amounts for a given invoice.
     pub async fn total_for_invoice<C: ConnectionTrait>(
         db: &C,
         invoice_id: i32,
@@ -191,7 +188,7 @@ impl Payment {
         Ok(result.and_then(|(v,)| v).unwrap_or(Decimal::ZERO))
     }
 
-    /// List payments with optional invoice and party filters, newest first.
+    /// List payments with optional invoice and party filters, ordered by newest first.
     pub async fn list(
         db: &DatabaseConnection,
         invoice_id: Option<i32>,

@@ -28,9 +28,7 @@ impl fmt::Display for EntrySide {
     }
 }
 
-/// `amount` is always positive. Whether a line is a debit or credit is
-/// decided by `entry_side`. This rule is enforced in code 
-/// (`JournalEntryLineInput::validate_all`).
+/// `amount` is always positive; `entry_side` decides if it is debit or credit.
 #[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "journal_entry_line")]
 pub struct Model {

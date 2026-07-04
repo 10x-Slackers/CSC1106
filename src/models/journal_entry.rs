@@ -91,8 +91,7 @@ impl JournalEntry {
         Ok(journal_entry)
     }
 
-    /// List all journal entries created within a range, ordered chronologically then by id.
-    /// Each entry comes with its debit/credit lines, account names, creator's name, and source document, for display.
+    /// List journal entries in a date range, ordered by date then id. 
     pub async fn list<C: ConnectionTrait>(
         db: &C,
         from: NaiveDateTime,
@@ -155,8 +154,7 @@ impl JournalEntryLineInput {
     }
 }
 
-/// Fetch journal entry lines for the given account IDs, joined to their parent entry
-/// and filtered by optional date range on the entry's created_at timestamp.
+/// Fetch journal entry lines for the given accounts within an optional date range.
 pub async fn lines_for_accounts<C: ConnectionTrait>(
     db: &C,
     account_ids: Vec<i32>,
