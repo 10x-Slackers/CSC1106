@@ -1,6 +1,4 @@
-//! Handles party management.
-//! Manages customers and vendors, including their details,
-//! status, invoices, and payment summaries.
+//! Handles party management, managing party details.
 //!
 //! Authors: Tan Yong Meng
 

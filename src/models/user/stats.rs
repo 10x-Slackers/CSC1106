@@ -1,5 +1,4 @@
 //! Computes summary statistics for users.
-//! Generates user dashboard statistics, grouped by role.
 //!
 //! Authors: Tan Yong Meng
 

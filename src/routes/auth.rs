@@ -1,9 +1,4 @@
 //! Handles login and logout.
-//! Controls user authentication:
-//!     - Logging in
-//!     - Creating the session
-//!     - Caching the user
-//!     - Logging out.
 //!
 //! Authors: Tan Yong Meng
 

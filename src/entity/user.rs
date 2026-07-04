@@ -1,6 +1,4 @@
 //! Defines the SeaORM database entity for users in the system.
-//! tells SeaORM what a user account looks like in the database,
-//! what roles users can have, and how users connect to other records.
 //!
 //! Authors: Tan Yong Meng
 

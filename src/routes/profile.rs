@@ -1,5 +1,4 @@
 //! Handles the current user’s own profile page.
-//! Allows a logged-in user to update their own account details safely.
 //!
 //! Authors: Tan Yong Meng
 

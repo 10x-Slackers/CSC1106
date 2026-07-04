@@ -1,5 +1,4 @@
 //! Handles admin user management.
-//! Admin panel for managing user accounts and roles.
 //!
 //! Authors: Tan Yong Meng
 

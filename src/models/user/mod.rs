@@ -1,5 +1,4 @@
 //! Module entry point for the user model folder.
-//! Connects the other user-related files together & re-exports.
 //!
 //! Authors: Tan Yong Meng
 

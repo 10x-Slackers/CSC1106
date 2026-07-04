@@ -1,5 +1,4 @@
 //! Contains the main database logic for parties.
-//! Here is where parties are created, searched, listed, updated, activated, and deactivated.
 //!
 //! Authors: Tan Yong Meng
 

@@ -1,5 +1,4 @@
 //! Computes summary statistics for parties.
-//! Generates the party dashboard numbers, such as how many customers and vendors exist.
 //!
 //! Authors: Tan Yong Meng
 
