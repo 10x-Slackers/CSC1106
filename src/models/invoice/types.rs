@@ -50,11 +50,7 @@ impl From<invoice_entity::Model> for Invoice {
     }
 }
 
-<<<<<<< HEAD
-/// Invoice line item with precomputed totals.
-=======
 /// Invoice line item with precomputed totals for rendering.
->>>>>>> main
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InvoiceLineItem {
     pub invoice_id: i32,
