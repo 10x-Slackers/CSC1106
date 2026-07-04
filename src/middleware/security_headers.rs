@@ -31,7 +31,9 @@ where
     );
     headers.insert(
         actix_web::http::header::CONTENT_SECURITY_POLICY,
-        actix_web::http::header::HeaderValue::from_static("default-src 'self'"),
+        actix_web::http::header::HeaderValue::from_static(
+            "default-src 'self'; script-src 'self' 'unsafe-inline'",
+        ),
     );
     Ok(res)
 }
