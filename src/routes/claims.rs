@@ -16,13 +16,17 @@ use crate::routes::utils::{
     require_non_empty,
 };
 
+/// Form data submitted when rejecting a claim.
 #[derive(Deserialize)]
 struct RejectForm {
     #[serde(default)]
     rejection_reason: String,
 }
 
-/// Render the claim show page with an optional message.
+/// Renders the claim details page.
+///
+/// The page displays a single claim together with an optional feedback message.
+/// If the claim cannot be found, the user is redirected back to the claims list.
 async fn render_claim_show(
     tera: &Tera,
     user: &Authenticated,
@@ -48,6 +52,10 @@ async fn render_claim_show(
     render(tera, "claims/show.html", &ctx)
 }
 
+/// Renders the claim listing page.
+///
+/// Staff users only see their own claims, while finance users can view all
+/// claims and see claim statistics.
 async fn render_claims_list(
     tera: &Tera,
     user: &Authenticated,
@@ -110,6 +118,10 @@ async fn render_claims_list(
     render(tera, "claims/list.html", &ctx)
 }
 
+/// Renders the claim submission form.
+///
+/// Claim categories are loaded and inserted into the template context so the
+/// user can select a category when creating a claim.
 async fn render_claim_form(
     tera: &Tera,
     user: &Authenticated,
@@ -127,6 +139,9 @@ async fn render_claim_form(
     render(tera, "claims/form.html", &ctx)
 }
 
+/// Displays the claim listing page.
+///
+/// Supports filtering and pagination through [`ClaimFilter`].
 #[get("/claims")]
 pub async fn list_claims(
     user: Authenticated,
@@ -137,6 +152,7 @@ pub async fn list_claims(
     render_claims_list(tera.get_ref(), &user, db.get_ref(), &query, "", "").await
 }
 
+/// Displays the form for submitting a new claim.
 #[get("/claims/new")]
 pub async fn new_claim(
     user: Authenticated,
@@ -146,6 +162,10 @@ pub async fn new_claim(
     render_claim_form(tera.get_ref(), &user, db.get_ref(), "", "").await
 }
 
+/// Creates a new claim from submitted form data.
+///
+/// The form input is validated before the claim is saved. If validation fails,
+/// the claim form is re-rendered with an error message.
 #[post("/claims")]
 pub async fn create_claim(
     user: Authenticated,
@@ -221,6 +241,7 @@ pub async fn create_claim(
     }
 }
 
+/// Displays the details page for a claim.
 #[get("/claims/{id}")]
 pub async fn show_claim(
     user: Authenticated,
@@ -232,6 +253,10 @@ pub async fn show_claim(
     render_claim_show(tera.get_ref(), &user, db.get_ref(), id, "", "").await
 }
 
+/// Approves a pending claim.
+///
+/// Access is restricted to finance users. If the claim is no longer pending,
+/// the claim details page is re-rendered with an error message.
 #[post("/claims/{id}/approve")]
 pub async fn approve_claim(
     user: Require<Finance>,
@@ -262,6 +287,10 @@ pub async fn approve_claim(
     }
 }
 
+/// Rejects a pending claim with a rejection reason.
+///
+/// Access is restricted to finance users. A rejection reason is required
+/// before the claim can be rejected.
 #[post("/claims/{id}/reject")]
 pub async fn reject_claim(
     user: Require<Finance>,
@@ -306,6 +335,10 @@ pub async fn reject_claim(
     }
 }
 
+/// Withdraws the authenticated user's own pending claim.
+///
+/// Users can only withdraw claims they submitted themselves. Claims that are
+/// no longer pending cannot be withdrawn.
 #[post("/claims/{id}/withdraw")]
 pub async fn withdraw_claim(
     user: Authenticated,
@@ -347,6 +380,7 @@ pub async fn withdraw_claim(
     }
 }
 
+/// Registers claim routes with the Actix Web service configuration.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(list_claims)
         .service(new_claim)

@@ -18,8 +18,8 @@ use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 
 use super::types::{Claim, ClaimDetail, ClaimFilter, ClaimForm, ClaimRow};
 
-/// Load the claim model by ID, returning an error if not found.
 impl Claim {
+    /// Load the claim model by ID, returning an error if not found.
     async fn find_model_by_id<C: ConnectionTrait>(
         db: &C,
         id: i32,
@@ -84,14 +84,14 @@ impl Claim {
     ) -> Result<(Vec<ClaimRow>, u32, u32), ClaimError> {
         let mut conditions = Condition::all();
 
-        if let Some(ref q) = filter.q {
-            if let Some(pattern) = like_pattern(q) {
-                conditions = conditions.add(
-                    Condition::any()
-                        .add(claim_entity::Column::Title.like(&pattern))
-                        .add(claim_entity::Column::Description.like(&pattern)),
-                );
-            }
+        if let Some(ref q) = filter.q
+            && let Some(pattern) = like_pattern(q)
+        {
+            conditions = conditions.add(
+                Condition::any()
+                    .add(claim_entity::Column::Title.like(&pattern))
+                    .add(claim_entity::Column::Description.like(&pattern)),
+            );
         }
 
         if let Some(ref status_str) = filter.status {
@@ -124,16 +124,16 @@ impl Claim {
             conditions = conditions.add(claim_entity::Column::SubmittedByUserId.eq(uid));
         }
 
-        if let Some(ref from_str) = filter.from {
-            if let Ok(from) = NaiveDate::parse_from_str(from_str, "%Y-%m-%d") {
-                conditions = conditions.add(claim_entity::Column::PurchaseDate.gte(from));
-            }
+        if let Some(ref from_str) = filter.from
+            && let Ok(from) = NaiveDate::parse_from_str(from_str, "%Y-%m-%d")
+        {
+            conditions = conditions.add(claim_entity::Column::PurchaseDate.gte(from));
         }
 
-        if let Some(ref to_str) = filter.to {
-            if let Ok(to) = NaiveDate::parse_from_str(to_str, "%Y-%m-%d") {
-                conditions = conditions.add(claim_entity::Column::PurchaseDate.lte(to));
-            }
+        if let Some(ref to_str) = filter.to
+            && let Ok(to) = NaiveDate::parse_from_str(to_str, "%Y-%m-%d")
+        {
+            conditions = conditions.add(claim_entity::Column::PurchaseDate.lte(to));
         }
 
         let page = filter
