@@ -1,3 +1,6 @@
+//! Invoice statistics computation.
+//!
+//! Authors: Kitsuneez
 use sea_orm::sea_query::{Expr, Func, SimpleExpr};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QuerySelect};
 use serde::Serialize;
@@ -14,6 +17,7 @@ pub struct InvoiceStats {
 }
 
 impl InvoiceStats {
+    /// Compute the invoice total, draft, and unpaid counts from the database.
     pub async fn compute(db: &DatabaseConnection) -> Result<Self, AppError> {
         let result: Option<(i64, i64, i64)> = invoice_entity::Entity::find()
             .select_only()

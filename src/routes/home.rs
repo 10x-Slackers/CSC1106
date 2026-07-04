@@ -1,3 +1,6 @@
+//! Home page route.
+//!
+//! Authors: commit2main
 use actix_web::http::StatusCode;
 use actix_web::middleware::ErrorHandlers;
 use actix_web::{Responder, web};
@@ -41,6 +44,7 @@ pub async fn home(
     render(&tera, "home/index.html", &context)
 }
 
+/// Configure the home route.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::resource("/")

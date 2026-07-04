@@ -1,3 +1,7 @@
+//! Invoice routes and handlers.
+//!
+//! Authors: Kitsuneez
+
 use actix_web::{HttpResponse, get, post, web};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
@@ -74,6 +78,7 @@ pub struct InvoiceFilter {
 }
 
 impl InvoiceFilter {
+    /// Converts valid party_id into i32, else returns None
     fn parsed_party_id(&self) -> Option<i32> {
         self.party_id
             .as_deref()
@@ -81,6 +86,7 @@ impl InvoiceFilter {
             .and_then(|s| s.parse().ok())
     }
 
+    /// Helper function to parse a date string into NaiveDate, returning None if invalid.
     fn parsed_date(field: &Option<String>) -> Option<NaiveDate> {
         field
             .as_deref()
@@ -161,6 +167,7 @@ fn parse_line_items(form_items: &[InvoiceLineItemForm]) -> (Vec<LineItemInput>, 
     (parsed, errors)
 }
 
+/// Check if the authenticated user has permission to access the given invoice.
 fn check_ownership(user: &Authenticated, invoice: &Invoice) -> Result<(), HttpResponse> {
     if user.role == Role::Staff && invoice.created_by_user_id != user.id {
         Err(HttpResponse::Forbidden().body("You do not have permission to access this invoice."))
@@ -169,6 +176,7 @@ fn check_ownership(user: &Authenticated, invoice: &Invoice) -> Result<(), HttpRe
     }
 }
 
+/// Renders the invoice list Tera template with the given context.
 #[allow(clippy::too_many_arguments)]
 fn render_invoices_list(
     tera: &Tera,
@@ -200,6 +208,7 @@ fn render_invoices_list(
     render(tera, "invoices/list.html", &context)
 }
 
+/// Reloads the invoice list after an action (create, update, delete) with a success message.
 async fn reload_invoices_list(
     tera: &Tera,
     user: &Authenticated,
@@ -217,6 +226,7 @@ async fn reload_invoices_list(
     .await
 }
 
+/// Reloads the invoice list with the given filter and message.
 async fn reload_invoices_list_with(
     tera: &Tera,
     user: &Authenticated,
@@ -287,6 +297,7 @@ async fn reload_invoices_list_with(
     }
 }
 
+/// Renders the invoice form with optional error/success messages.
 #[allow(clippy::too_many_arguments)]
 fn render_invoice_form(
     tera: &Tera,
@@ -315,6 +326,7 @@ fn render_invoice_form(
     render(tera, "invoices/form.html", &context)
 }
 
+/// Renders the invoice detail page.
 #[allow(clippy::too_many_arguments)]
 fn render_invoice_show(
     tera: &Tera,
@@ -739,7 +751,6 @@ pub async fn pay_invoice(
         .await
         .unwrap_or(None);
 
-    // Re-check status (guards against stale form / double submit).
     if !matches!(
         invoice.status,
         InvoiceStatus::Sent | InvoiceStatus::PartiallyPaid
@@ -806,7 +817,6 @@ pub async fn pay_invoice(
         );
     }
 
-    // Look up Cash (debit) and Accounts Receivable (credit) accounts.
     let (cash, ar) = match find_cash_and_ar(db.get_ref()).await {
         Ok(pair) => pair,
         Err(_) => {

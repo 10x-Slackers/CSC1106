@@ -1,3 +1,7 @@
+//! Invoice types and models.
+//!
+//!  Authors: Kitsuneez
+
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -9,7 +13,7 @@ use crate::entity::invoice_line_item::GstRate;
 
 use super::calc::{line_gst_amount, line_total};
 
-/// Application-level invoice model with enrichment fields for rendering.
+/// Invoice model with enrichment fields for rendering.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Invoice {
     pub id: i32,
@@ -46,7 +50,7 @@ impl From<invoice_entity::Model> for Invoice {
     }
 }
 
-/// Invoice line item with precomputed totals for display.
+/// Invoice line item with precomputed totals for rendering.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InvoiceLineItem {
     pub invoice_id: i32,
@@ -85,7 +89,7 @@ pub struct LineItemInput {
     pub gst_rate: GstRate,
 }
 
-/// Group of line items for a single invoice.
+/// Group of line items for a single invoice
 #[derive(Clone, Serialize)]
 pub struct GstInvoiceLineGroup {
     pub invoice_id: i32,

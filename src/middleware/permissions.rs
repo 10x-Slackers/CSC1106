@@ -1,3 +1,7 @@
+//! Role based access control middleware for Actix-web.
+//!
+//! Authors: Kitsuneez
+
 use actix_web::dev::{Payload, ServiceResponse};
 use actix_web::middleware::ErrorHandlerResponse;
 use actix_web::{FromRequest, HttpRequest, HttpResponse, web};
@@ -22,7 +26,7 @@ impl RoleSet for Finance {
     const ROLES: &'static [Role] = &[Role::Admin, Role::Accountant];
 }
 
-/// Look up a named role set by its short name.
+/// Returns the role set based on the provided name, or None if not found
 pub fn role_set(name: &str) -> Option<&'static [Role]> {
     let name = name.trim();
     if name.eq_ignore_ascii_case("admin") {
@@ -34,14 +38,13 @@ pub fn role_set(name: &str) -> Option<&'static [Role]> {
     }
 }
 
-/// Extractor that requires the user's role to be in `R::ROLES`.
+/// Wraps authenticated user together with the required role for a route
 pub struct Require<R: RoleSet> {
     pub user: Authenticated,
-    // Zero-sized marker so the generic `R` is used.
     _marker: std::marker::PhantomData<R>,
 }
 
-/// Lets handlers use `user.id`, `user.role`, etc. directly via auto-deref, making `Require<R>` a drop-in replacement for `Authenticated`.
+/// allow route code to be written easier such as user.id instead of user.user.id
 impl<R: RoleSet> std::ops::Deref for Require<R> {
     type Target = Authenticated;
     fn deref(&self) -> &Self::Target {
@@ -49,12 +52,12 @@ impl<R: RoleSet> std::ops::Deref for Require<R> {
     }
 }
 
+/// Checks whether the user has the required role(s) and returns 403 Forbidden if not
 impl<R: RoleSet> FromRequest for Require<R> {
     type Error = actix_web::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self, Self::Error>>>>;
 
     fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
-        // Reuse Authenticated so auth logic stays in one place.
         let auth_fut = <Authenticated as FromRequest>::from_request(req, payload);
 
         Box::pin(async move {
@@ -72,7 +75,7 @@ impl<R: RoleSet> FromRequest for Require<R> {
     }
 }
 
-/// Render a forbidden page for insufficient permissions.
+/// Returns a 403 Forbidden page for users without permission
 pub fn forbidden_page<B>(
     res: ServiceResponse<B>,
 ) -> Result<ErrorHandlerResponse<B>, actix_web::Error> {

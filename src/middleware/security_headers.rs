@@ -1,8 +1,13 @@
+//! Security headers middleware for Actix-web.
+//!
+//! Authors: commit2main
+
 use actix_web::Error;
 use actix_web::body::MessageBody;
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::middleware::Next;
 
+/// Adds security headers to the response.
 pub async fn security_headers<B>(
     req: ServiceRequest,
     next: Next<B>,

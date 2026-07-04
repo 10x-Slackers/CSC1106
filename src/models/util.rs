@@ -1,6 +1,9 @@
+//! Utility functions for models.
+//!
+//! Authors: commit2main
 use sea_orm::DbErr;
 
-/// Escape `\`, `%` and `_` and wrap in `%...%` for a substring LIKE match.
+/// Escape string for SQL LIKE query.
 pub fn like_pattern(q: &str) -> Option<String> {
     let trimmed = q.trim();
     if trimmed.is_empty() {
@@ -19,16 +22,14 @@ pub fn non_empty(s: &str) -> Option<&str> {
     if t.is_empty() { None } else { Some(t) }
 }
 
-/// True if a `DbErr` is a SQLite unique constraint violation.
+/// Check if a database error is a unique constraint violation.
 pub fn is_unique_violation(err: &DbErr) -> bool {
     err.to_string().contains("UNIQUE constraint failed")
 }
 
-/// Number of rows shown per page in list views.
 pub const PER_PAGE: u64 = 10;
 
-/// Clamp `page` to a valid 1-indexed range given SeaORM's `num_pages` (u64).
-/// Returns `(total_pages, current_page)`, both guaranteed `>= 1`.
+/// Clamp the requested page number to the valid range of pages.
 pub fn clamp_pagination(page: u32, num_pages: u64) -> (u32, u32) {
     let total_pages = num_pages.min(u32::MAX as u64) as u32;
     let total_pages = total_pages.max(1);

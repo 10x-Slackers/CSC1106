@@ -1,3 +1,7 @@
+//! Database seeding functions for initial setup.
+//!
+//! Authors: Kitsuneez
+
 use std::io::{self, Write};
 
 use sea_orm::sea_query::OnConflict;
@@ -7,13 +11,12 @@ use crate::entity::account::{AccountCategory, NormalBalance};
 use crate::entity::user::Role;
 use crate::models::user::User;
 
-/// Insert a default chart of accounts, skipping duplicates.
+/// Insert default accounts into the database
 pub async fn seed_accounts(db: &DatabaseConnection) {
     use crate::entity::account as account_entity;
 
     let now = chrono::Utc::now().naive_utc();
 
-    // Default chart of accounts
     let accounts = [
         ("Cash", AccountCategory::Asset, NormalBalance::Debit),
         (
@@ -66,7 +69,6 @@ pub async fn seed_accounts(db: &DatabaseConnection) {
         )
         .collect();
 
-    // Insert all accounts, skip any that already exist
     let result = account_entity::Entity::insert_many(active_models)
         .on_conflict(
             OnConflict::column(account_entity::Column::Name)
@@ -83,7 +85,7 @@ pub async fn seed_accounts(db: &DatabaseConnection) {
     }
 }
 
-/// Insert default claim categories, skipping duplicates.
+/// Insert claim categories into the database
 pub async fn seed_claim_categories(db: &DatabaseConnection) {
     use crate::entity::claim_category as claim_category_entity;
 
@@ -113,7 +115,7 @@ pub async fn seed_claim_categories(db: &DatabaseConnection) {
     }
 }
 
-/// Prompt the operator interactively to create an admin user.
+/// Interactively create an admin user if no users exist in the database
 pub async fn create_admin_interactively(db: &DatabaseConnection) -> User {
     println!("\nNo users found, proceeding with admin account creation.\n");
 
@@ -162,7 +164,7 @@ pub async fn create_admin_interactively(db: &DatabaseConnection) -> User {
     }
 }
 
-/// Print a prompt, flush stdout, and read a line from stdin.
+/// Prompt the user for input and return the trimmed string
 fn prompt(label: &str) -> String {
     print!("{label}");
     io::stdout().flush().expect("Failed to flush stdout");

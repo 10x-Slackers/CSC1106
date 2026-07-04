@@ -1,3 +1,7 @@
+//! Database connection and initialization using SeaORM and SQLx for SQLite.
+//!
+//!  Authors: Kitsuneez
+
 use sea_orm::{DatabaseConnection, EntityTrait, PaginatorTrait, SqlxSqliteConnector};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use std::str::FromStr;
@@ -7,7 +11,7 @@ use crate::entity::user as user_entity;
 use crate::seed;
 use migration::{Migrator, MigratorTrait};
 
-/// Initialise the database: connect, run migrations, and seed reference data.
+/// Initialise the database connection, run migrations, and seed default data.
 pub async fn init(database_url: &str) -> DatabaseConnection {
     let db = connect(database_url)
         .await
@@ -23,7 +27,7 @@ pub async fn init(database_url: &str) -> DatabaseConnection {
     db
 }
 
-/// Returns `true` if the user table has zero rows.
+/// Check user count in database
 pub async fn has_no_users(db: &DatabaseConnection) -> bool {
     match user_entity::Entity::find().count(db).await {
         Ok(n) => n == 0,
@@ -41,7 +45,6 @@ async fn connect(url: &str) -> Result<DatabaseConnection, sea_orm::DbErr> {
         .journal_mode(SqliteJournalMode::Wal)
         .foreign_keys(true);
 
-    // Create a connection pool with reasonable defaults
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
         .min_connections(1)
