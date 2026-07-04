@@ -1,6 +1,6 @@
 //! Routes for listing, creating, and viewing payments.
 //!
-//! Authors: Felicia
+//! Authors: commit2main
 
 use actix_web::{HttpResponse, get, post, web};
 use chrono::NaiveDate;

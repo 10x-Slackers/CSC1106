@@ -1,6 +1,6 @@
 //! All journal entries created during a given calendar year.
 //!
-//! Authors: Felicia
+//! Authors: commit2main
 
 use chrono::NaiveDateTime;
 use sea_orm::DatabaseConnection;

@@ -1,6 +1,6 @@
 //! One debit or credit row within a journal entry.
 //!
-//! Authors: Felicia
+//! Authors: commit2main
 
 use rust_decimal::Decimal;
 use sea_orm::entity::prelude::*;

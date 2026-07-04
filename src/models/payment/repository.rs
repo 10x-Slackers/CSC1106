@@ -1,6 +1,6 @@
 //! Payment search, creation, and totals, posting each payment to the journal.
 //!
-//! Authors: Felicia
+//! Authors: commit2main
 
 use chrono::NaiveDate;
 use rust_decimal::Decimal;

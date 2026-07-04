@@ -1,6 +1,6 @@
 //! Look up accounts by name and calculate their balances.
 //!
-//! Authors: Felicia
+//! Authors: commit2main
 
 use std::collections::HashMap;
 

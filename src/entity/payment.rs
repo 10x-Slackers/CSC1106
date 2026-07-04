@@ -1,6 +1,6 @@
 //! A single payment: its direction, amount, and links to an invoice or party.
 //!
-//! Authors: Felicia
+//! Authors: commit2main
 
 use std::fmt;
 

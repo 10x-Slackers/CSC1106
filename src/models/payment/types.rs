@@ -1,6 +1,6 @@
 //! The plain payment record and its display-enriched variant.
 //!
-//! Authors: Felicia
+//! Authors: commit2main
 
 use chrono::NaiveDate;
 use rust_decimal::Decimal;

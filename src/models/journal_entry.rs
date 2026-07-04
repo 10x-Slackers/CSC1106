@@ -1,6 +1,6 @@
 //! Post balanced journal entries and build the audit trail.
 //!
-//! Authors: Felicia
+//! Authors: commit2main
 
 use std::collections::HashMap;
 

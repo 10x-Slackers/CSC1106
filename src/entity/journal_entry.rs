@@ -1,6 +1,6 @@
 //! The header row for a posted double-entry transaction.
 //!
-//! Authors: Felicia
+//! Authors: commit2main
 
 use sea_orm::Set;
 use sea_orm::entity::prelude::*;

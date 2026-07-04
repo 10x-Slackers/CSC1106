@@ -1,6 +1,6 @@
 //! Each account's name, category, and normal balance.
 //!
-//! Authors: Felicia
+//! Authors: commit2main
 
 use std::fmt;
 

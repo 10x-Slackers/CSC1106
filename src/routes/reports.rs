@@ -1,5 +1,5 @@
 //! Routes for viewing the four financial reports as HTML pages.
-//! and to download each report as a PDF.
+//! and for downloading each report as a PDF.
 //!
 //! Authors: Felicia
 
