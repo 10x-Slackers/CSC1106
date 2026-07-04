@@ -21,7 +21,7 @@ pub struct AuditReport {
 pub struct AuditStatement;
 
 impl AuditStatement {
-    /// Load journal entries for the given calendar year (Jan 1 to Dec 31).
+    /// Load journal entries for the given calendar year.
     pub async fn compute(db: &DatabaseConnection, year: i32) -> Result<AuditReport, AppError> {
         let from = chrono::NaiveDate::from_ymd_opt(year, 1, 1)
             .and_then(|d| d.and_hms_opt(0, 0, 0))

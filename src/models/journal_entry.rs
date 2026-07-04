@@ -28,7 +28,7 @@ pub struct JournalEntryLineInput {
     pub description: Option<String>,
 }
 
-/// A single journal entry line paired with its account name, for display.
+/// A journal entry line paired with its account name, for the audit trail.
 #[derive(serde::Serialize, Clone)]
 pub struct AuditLine {
     pub account_name: String,
@@ -37,7 +37,7 @@ pub struct AuditLine {
     pub description: Option<String>,
 }
 
-/// A journal entry with its debit/credit lines, the name of who created it, and its source document, for display.
+/// A journal entry for the audit trail, with its lines, creator's name, and source document.
 #[derive(serde::Serialize, Clone)]
 pub struct AuditEntry {
     pub id: i32,
@@ -274,7 +274,7 @@ fn group_lines(
     map
 }
 
-/// Build an `AuditEntry` from a journal entry, its lines, and resolved names/links, for display.
+/// Build an `AuditEntry` from a journal entry, its lines, and resolved names/links.
 fn build_audit_entry(
     entry: journal_entry_entity::Model,
     lines: Vec<AuditLine>,
