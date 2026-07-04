@@ -33,29 +33,8 @@ impl Party {
             .map(|opt| opt.map(Party::from))
     }
 
-    /// Finds a party by email address.
-    ///
-    /// Returns `Ok(None)` if no party exists with the given email.
-    pub async fn find_by_email(
-        db: &DatabaseConnection,
-        email: &str,
-    ) -> Result<Option<Party>, AppError> {
-        party_entity::Entity::find()
-            .filter(party_entity::Column::Email.eq(email))
-            .one(db)
-            .await
-            .map_err(AppError::from)
-            .map(|opt| opt.map(Party::from))
-    }
-
-    /// Search for parties using optional filters and paginaton.
-    ///
-    /// Can be filtered down with the different filters.
-    ///
-    /// Returns a tuple containing:
-    /// - the matching parties for the selected page,
-    /// - the total number of pages,
-    /// - the clamped current page number.
+    /// Search parties with optional filters.
+    /// `q` matches name or company (case-insensitive LIKE).
     pub async fn search(
         db: &DatabaseConnection,
         q: Option<&str>,
