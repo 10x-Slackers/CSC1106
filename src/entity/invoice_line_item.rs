@@ -42,7 +42,6 @@ impl GstRate {
         }
     }
 
-    /// Return `GstRateChoice`s for form `<option>`s, ordered by variant declaration.
     pub fn choices() -> Vec<GstRateChoice> {
         Self::iter()
             .map(|v| GstRateChoice {
@@ -52,8 +51,6 @@ impl GstRate {
             .collect()
     }
 
-    /// Stable key accepted by [`parse`](Self::parse) and matching the serde
-    /// representation, so form `<option>` values round-trip with the enum.
     pub fn parse_key(&self) -> &'static str {
         match self {
             GstRate::None => "None",
@@ -61,7 +58,6 @@ impl GstRate {
         }
     }
 
-    /// Parse a GST rate string (case-insensitive) into a `GstRate`.
     pub fn parse(s: &str) -> Option<Self> {
         match s.trim().to_lowercase().as_str() {
             "none" => Some(GstRate::None),
