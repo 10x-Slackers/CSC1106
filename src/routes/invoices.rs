@@ -74,7 +74,7 @@ pub struct InvoiceFilter {
 }
 
 impl InvoiceFilter {
-    /// converts valid party_id into int, else returns None
+    /// Converts valid party_id into i32, else returns None
     fn parsed_party_id(&self) -> Option<i32> {
         self.party_id
             .as_deref()

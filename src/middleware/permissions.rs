@@ -22,7 +22,7 @@ impl RoleSet for Finance {
     const ROLES: &'static [Role] = &[Role::Admin, Role::Accountant];
 }
 
-/// returns the role set based on the provided name, or None if not found
+/// Returns the role set based on the provided name, or None if not found
 pub fn role_set(name: &str) -> Option<&'static [Role]> {
     let name = name.trim();
     if name.eq_ignore_ascii_case("admin") {
@@ -34,7 +34,7 @@ pub fn role_set(name: &str) -> Option<&'static [Role]> {
     }
 }
 
-/// wraps authenticated user together with the required role for a route
+/// Wraps authenticated user together with the required role for a route
 pub struct Require<R: RoleSet> {
     pub user: Authenticated,
     _marker: std::marker::PhantomData<R>,
@@ -48,7 +48,7 @@ impl<R: RoleSet> std::ops::Deref for Require<R> {
     }
 }
 
-/// checks whether the user has the required role(s) and returns 403 Forbidden if not
+/// Checks whether the user has the required role(s) and returns 403 Forbidden if not
 impl<R: RoleSet> FromRequest for Require<R> {
     type Error = actix_web::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self, Self::Error>>>>;
@@ -71,7 +71,7 @@ impl<R: RoleSet> FromRequest for Require<R> {
     }
 }
 
-/// returns a 403 Forbidden page for users without permission
+/// Returns a 403 Forbidden page for users without permission
 pub fn forbidden_page<B>(
     res: ServiceResponse<B>,
 ) -> Result<ErrorHandlerResponse<B>, actix_web::Error> {

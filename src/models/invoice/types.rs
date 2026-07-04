@@ -9,6 +9,7 @@ use crate::entity::invoice_line_item::GstRate;
 
 use super::calc::{line_gst_amount, line_total};
 
+/// Invoice model with enrichment fields for rendering.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Invoice {
     pub id: i32,
@@ -45,6 +46,7 @@ impl From<invoice_entity::Model> for Invoice {
     }
 }
 
+/// Invoice line item with precomputed totals for rendering.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InvoiceLineItem {
     pub invoice_id: i32,
@@ -74,6 +76,7 @@ impl From<line_item_entity::Model> for InvoiceLineItem {
     }
 }
 
+/// Input for a single line item when creating or updating an invoice.
 #[derive(Clone, Debug)]
 pub struct LineItemInput {
     pub description: String,
@@ -82,6 +85,7 @@ pub struct LineItemInput {
     pub gst_rate: GstRate,
 }
 
+/// Group of line items for a single invoice
 #[derive(Clone, Serialize)]
 pub struct GstInvoiceLineGroup {
     pub invoice_id: i32,

@@ -21,7 +21,6 @@ use crate::middleware::tera_filters;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // Load configuration from environment variables with defaults
     let host = std::env::var("HOST").unwrap_or_else(|_| "localhost".to_string());
     let port: u16 = std::env::var("PORT")
         .ok()
@@ -58,7 +57,7 @@ async fn main() -> std::io::Result<()> {
             ))
             .wrap(
                 SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
-                    .cookie_secure(false) // No HTTPS for the project
+                    .cookie_secure(false)
                     .cookie_http_only(true)
                     .cookie_same_site(actix_web::cookie::SameSite::Lax)
                     .build(),

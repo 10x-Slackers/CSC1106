@@ -6,7 +6,7 @@ use tera::{Result, Tera, Value};
 use crate::entity::user::Role;
 use crate::middleware::permissions::role_set;
 
-/// showing/hiding template UI based on user role. Usage: `{{ user.role | can(set="admin,finance") }}`
+/// Showing/hiding template UI based on user role. Usage: `{{ user.role | can(set="finance") }}`
 pub fn can(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let role = value.as_str().and_then(Role::parse);
     let allowed = args.get("set").and_then(|v| v.as_str()).and_then(role_set);
@@ -15,7 +15,7 @@ pub fn can(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     ))
 }
 
-/// formats datetime string into human readable format. Usage: `{{ value | datetime(format="%d %b %Y") }}`
+/// Formats datetime string into human readable format. Usage: `{{ value | datetime(format="%d %b %Y") }}`
 pub fn datetime(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let Some(s) = value.as_str() else {
         return Ok(value.clone());
@@ -30,7 +30,7 @@ pub fn datetime(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(Value::String(dt.format(format).to_string()))
 }
 
-/// formats a decimal string into a money format. Usage: `{{ value | money }}`
+/// Formats a decimal string into a money format. Usage: `{{ value | money }}`
 pub fn money(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let Some(s) = value.as_str() else {
         return Ok(value.clone());
