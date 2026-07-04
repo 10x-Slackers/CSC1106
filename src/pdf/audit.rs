@@ -1,4 +1,4 @@
-//! Audit statement PDF layout
+//! Audit statement PDF layout.
 //!
 //! Authors: Felicia
 
