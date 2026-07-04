@@ -91,7 +91,7 @@ impl From<HashError> for AuthError {
 
 impl std::error::Error for AuthError {}
 
-/// Invoice error type.
+/// Journal posting error type.
 #[derive(Debug)]
 pub enum PostingError {
     UnbalancedEntry {
@@ -186,7 +186,7 @@ impl From<InvoiceError> for PaymentCreateError {
 
 impl std::error::Error for PaymentCreateError {}
 
-/// Invoice Status error.
+/// Invoice error type.
 #[derive(Debug)]
 pub enum InvoiceError {
     NotEditable,

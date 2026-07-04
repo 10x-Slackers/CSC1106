@@ -42,6 +42,7 @@ impl InvoiceStatus {
         Self::iter().map(|v| v.to_string()).collect()
     }
 
+    /// Parse status string into enum variant
     pub fn parse(s: &str) -> Option<Self> {
         let key = s.trim().to_lowercase().replace(' ', "");
         match key.as_str() {

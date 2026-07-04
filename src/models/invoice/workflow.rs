@@ -178,7 +178,7 @@ impl Invoice {
         Ok(())
     }
 
-    /// creates new invoice in Draft Status
+    /// Creates a new invoice in Draft Status
     pub async fn create(
         db: &DatabaseConnection,
         party_id: i32,
@@ -230,7 +230,7 @@ impl Invoice {
         Self::reload(db, invoice_model.last_insert_id).await
     }
 
-    /// updates the invoice if it is in Draft status, otherwise returns an error
+    /// Updates the invoice if it is in Draft status, otherwise returns an error
     pub async fn update(
         &self,
         db: &DatabaseConnection,
@@ -273,7 +273,7 @@ impl Invoice {
         Self::reload(db, self.id).await
     }
 
-    /// sends the invoice, updates the status to Sent, and creates a journal entry for the invoice
+    /// Sends the invoice, updates the status to Sent, and creates a journal entry for the invoice
     pub async fn send(
         &self,
         db: &DatabaseConnection,
@@ -306,7 +306,7 @@ impl Invoice {
         Self::reload(db, self.id).await
     }
 
-    /// voids the invoice and reverse the journal entry if the invoice is sent
+    /// Voids the invoice and reverses the journal entry if the invoice is sent
     pub async fn void(
         &self,
         db: &DatabaseConnection,
@@ -365,7 +365,7 @@ impl Invoice {
         }
     }
 
-    /// recomputes and applies the invoice status
+    /// Recomputes and applies the invoice status
     async fn apply_recomputed_status<C: ConnectionTrait>(
         &self,
         db: &C,
@@ -398,7 +398,7 @@ impl Invoice {
         }
     }
 
-    /// recomputes the invoice status for a given invoice
+    /// Recomputes the invoice status for a given invoice
     pub async fn recompute_status_for<C: ConnectionTrait>(
         db: &C,
         invoice_id: i32,
