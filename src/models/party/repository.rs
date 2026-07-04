@@ -16,7 +16,7 @@ use crate::models::util::{PER_PAGE, clamp_pagination, like_pattern};
 use super::types::Party;
 
 impl Party {
-    /// Finds the raw SEAORM party model by ID.
+    /// Finds the raw SeaORM party model by ID.
     ///
     /// An internal helper used by other party lookup methods.
     async fn find_model_by_id(
