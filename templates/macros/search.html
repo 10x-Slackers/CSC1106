@@ -14,9 +14,9 @@ filters - Array of {name, label, options: [{value, label, selected}]}.
   <form
     action="{{ action }}"
     method="get"
-    class="flex flex-wrap items-end gap-2"
+    class="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-end"
   >
-    <label class="input w-full grow sm:w-auto">
+    <label class="input w-full grow lg:w-auto">
       <span class="label">Search</span>
       <input
         type="text"

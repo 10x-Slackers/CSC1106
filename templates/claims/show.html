@@ -9,7 +9,6 @@
 
   <div class="mb-6 flex flex-wrap items-center gap-3">
     <h1 class="text-3xl font-bold">Claim #{{ claim.id }}</h1>
-    {{ claim_macro::status_badge(status=claim.status) }}
   </div>
 
   {% if message != "" %}
@@ -93,26 +92,43 @@
           </button>
         </form>
 
-        <form
-          action="/claims/{{ claim.id }}/reject"
-          method="post"
-          data-confirm="Reject this claim?"
-          class="inline"
+        <button
+          type="button"
+          class="btn btn-error btn-sm"
+          onclick="reject_modal.showModal()"
         >
-          <div class="inline-flex items-end gap-2 p-3">
-            <label class="form-control">
-              <span class="label">Rejection Reason</span>
-              <textarea
-                name="rejection_reason"
-                class="textarea"
-                required
-              ></textarea>
-            </label>
-            <button type="submit" class="btn btn-error btn-sm">
-              Reject Claim
-            </button>
+          Reject Claim
+        </button>
+        <dialog id="reject_modal" class="modal">
+          <div class="modal-box">
+            <h3 class="text-lg font-bold">Reject Claim #{{ claim.id }}</h3>
+            <form
+              action="/claims/{{ claim.id }}/reject"
+              method="post"
+              data-confirm="Reject this claim?"
+            >
+              <label class="form-control mt-4">
+                <span class="label">Rejection Reason</span>
+                <textarea
+                  name="rejection_reason"
+                  class="textarea"
+                  required
+                ></textarea>
+              </label>
+              <div class="modal-action">
+                <button type="submit" class="btn btn-error btn-sm">
+                  Reject Claim
+                </button>
+                <form method="dialog">
+                  <button class="btn btn-sm">Cancel</button>
+                </form>
+              </div>
+            </form>
           </div>
-        </form>
+          <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+          </form>
+        </dialog>
       {% endif %}
 
       {% if claim.submitted_by_user_id == current_user.id %}

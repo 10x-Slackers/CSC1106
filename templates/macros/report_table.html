@@ -13,7 +13,11 @@ total_value  - Formatted total value (already passed through the money filter).
 {% macro render(title, items, total_label, total_value) %}
   <div class="mb-6 overflow-x-auto">
     <h2 class="mb-2 text-xl font-semibold">{{ title }}</h2>
-    <table class="table-zebra table">
+    <table class="table-zebra table w-full table-fixed">
+      <colgroup>
+        <col class="w-2/3" />
+        <col class="w-1/3" />
+      </colgroup>
       <thead>
         <tr>
           <th>Account</th>
