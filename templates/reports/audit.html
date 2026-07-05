@@ -18,7 +18,7 @@
     method="get"
     class="mb-6 flex flex-wrap items-end gap-2"
   >
-    <label class="form-control w-full sm:w-auto">
+    <label class="form-control">
       <span class="label">Year</span>
       <input
         type="number"
@@ -27,7 +27,9 @@
         class="input input-bordered"
       />
     </label>
-    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+    <button type="submit" class="btn btn-primary btn-sm self-end">
+      Filter
+    </button>
   </form>
 
   {% if report %}

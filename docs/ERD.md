@@ -1,11 +1,12 @@
+```mermaid
 erDiagram
     USER {
         INT id PK
-        VARCHAR name
         VARCHAR email UK
+        VARCHAR name
         VARCHAR password_hash
         ENUM role "ADMIN/ACCOUNTANT/STAFF"
-        BOOL disabled
+        BOOL disabled "default false"
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
@@ -119,6 +120,7 @@ erDiagram
     ACCOUNT ||--o{ JOURNAL_ENTRY_LINE : posts_to
 
     USER ||--o{ JOURNAL_ENTRY : posts
+    INVOICE ||--o{ JOURNAL_ENTRY : source_for
     PAYMENT ||--o{ JOURNAL_ENTRY : source_for
     CLAIM ||--o{ JOURNAL_ENTRY : source_for
 
@@ -130,3 +132,14 @@ erDiagram
     %% payment: amount > 0, payment_direction IN (IN, OUT)
     %% journal_entry_line: amount > 0
     %% journal_entry: at most one of (payment_id, claim_id, invoice_id) is non-null (enforced in app via SourceDocument enum)
+```
+
+## Notes
+
+- All `DECIMAL` columns use precision **(15,4)** — 2 display decimals + 2 buffer, banker's rounding
+- **FK on_delete actions**:
+  - `CASCADE`: `invoice_line_item → invoice`, `journal_entry_line → journal_entry`
+  - `SET NULL`: `journal_entry.(payment_id, claim_id, invoice_id)`, `payment.(invoice_id, party_id)`, `claim.reviewed_by_user_id`
+  - `RESTRICT`: all other FKs (`party_id`, `created_by_user_id`, `category_id`, `account_id`, `entry_id`, `submitted_by_user_id`)
+- All PKs auto-increment; `created_at`/`updated_at` default to `current_timestamp`; `user.disabled` defaults to `false`
+- 20 indexes on FK columns and status/date columns (see `migration/src/m00009_add_indexes.rs`)

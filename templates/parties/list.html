@@ -43,10 +43,9 @@
     <label class="form-control w-full sm:w-auto">
       <span class="label">Status</span>
       <select name="status" class="select select-sm">
+        <option value="active" selected>Active</option>
         <option value="">All</option>
-        {% for opt in statuses %}
-          <option value="{{ opt }}">{{ opt }}</option>
-        {% endfor %}
+        <option value="inactive">Inactive</option>
       </select>
     </label>
 

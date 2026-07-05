@@ -91,7 +91,7 @@ impl JournalEntry {
         Ok(journal_entry)
     }
 
-    /// List journal entries in a date range, ordered by date then id. 
+    /// List journal entries in a date range, ordered by date then id.
     pub async fn list<C: ConnectionTrait>(
         db: &C,
         from: NaiveDateTime,

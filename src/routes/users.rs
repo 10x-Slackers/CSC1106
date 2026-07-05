@@ -137,7 +137,11 @@ pub async fn list_users(
     let filter = query.into_inner();
     let q = filter.q.as_deref();
     let role = filter.role.as_deref().and_then(Role::parse);
-    let status = filter.status.as_deref().and_then(UserStatus::parse);
+    let status = match filter.status.as_deref() {
+        Some("all") => None,
+        Some(s) => UserStatus::parse(s),
+        None => Some(UserStatus::Active),
+    };
     let page = parse_page(filter.page.as_deref());
     let base_query = base_query_string(&filter);
     let pagination_default = Pagination {

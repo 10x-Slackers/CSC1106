@@ -14,7 +14,7 @@ e.g. {"id": 1, "name": "Alice", "email": "alice@example.com", "role": "Admin"}
 {% macro render(nav_links, current_user) %}
   <div class="navbar">
     <div class="navbar-start">
-      <div class="dropdown md:hidden">
+      <div class="dropdown lg:hidden">
         <div tabindex="0" role="button" class="btn btn-ghost" aria-label="Menu">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -33,7 +33,7 @@ e.g. {"id": 1, "name": "Alice", "email": "alice@example.com", "role": "Admin"}
         </div>
         <ul
           tabindex="0"
-          class="menu dropdown-content rounded-box z-1 mt-3 w-52 p-2 shadow"
+          class="menu dropdown-content rounded-box bg-base-100 z-1 mt-3 w-52 p-2 shadow"
         >
           {% for link in nav_links %}
             <li><a href="{{ link.href }}">{{ link.name }}</a></li>
@@ -43,7 +43,7 @@ e.g. {"id": 1, "name": "Alice", "email": "alice@example.com", "role": "Admin"}
       <a class="text-xl" href="/">Accounting System</a>
     </div>
 
-    <div class="navbar-center hidden md:flex">
+    <div class="navbar-center hidden lg:flex">
       <ul class="menu menu-horizontal">
         {% for link in nav_links %}
           <li><a href="{{ link.href }}">{{ link.name }}</a></li>
