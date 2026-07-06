@@ -35,7 +35,7 @@ async fn main() -> std::io::Result<()> {
     let secret_key = std::env::var("SECRET_KEY")
         .map(|s| Key::derive_from(s.as_bytes()))
         .unwrap_or_else(|_| {
-            eprintln!("warning: SECRET_KEY not set; generating a random key — sessions will not persist across restarts");
+            eprintln!("warning: SECRET_KEY not set, sessions will not persist across restarts");
             Key::generate()
         });
 
