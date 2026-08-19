@@ -42,13 +42,13 @@
   {% endif %}
 
   <form action="/claims" method="get" class="flex flex-wrap items-end gap-2">
-    <label class="input w-full grow sm:w-auto">
+    <label class="input w-full grow focus:outline-none sm:w-auto">
       <span class="label">Search</span>
       <input
         type="text"
         name="q"
         placeholder="Search title or description..."
-        class="input"
+        class="input focus:outline-none"
         value="{{ filter.q | default(value="") }}"
       />
     </label>

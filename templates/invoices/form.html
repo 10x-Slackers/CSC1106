@@ -92,7 +92,7 @@
               <td>
                 <select
                   name="items[{{ loop.index0 }}][gst_rate]"
-                  class="select select-sm"
+                  class="select select-sm w-full"
                 >
                   {% for choice in gst_rates %}
                     <option
@@ -141,7 +141,7 @@
                 <td>
                   <select
                     name="items[{{ existing_count + i }}][gst_rate]"
-                    class="select select-sm"
+                    class="select select-sm w-full"
                   >
                     {% for choice in gst_rates %}
                       <option value="{{ choice.value }}">

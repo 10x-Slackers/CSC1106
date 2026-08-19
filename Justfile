@@ -14,7 +14,7 @@ build:
 
 format:
     cargo fmt
-    cargo clippy --fix --allow-dirty --allow-staged
+    cargo clippy --fix --allow-dirty --allow-staged --allow-no-vcs
     npm run format
 
 lint:
